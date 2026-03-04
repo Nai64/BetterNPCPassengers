@@ -1,5 +1,9 @@
 if CLIENT then return end
 
+NaiPassengers = NaiPassengers or {}
+NaiPassengers.Modules = NaiPassengers.Modules or {}
+NaiPassengers.Modules.main = true
+
 local friendlyPassengers = {}
 local pendingPassengers = {}
 local vehicleCooldowns = {}
@@ -9,6 +13,16 @@ local npcLookState = {}
 -- Forward declare StartAnimationEnforcement
 local StartAnimationEnforcement
 local DetachNPC
+
+local function IsDebugModeEnabled()
+    if NaiPassengers.GetConVarBool then
+        return NaiPassengers.GetConVarBool("nai_npc_debug_mode", false)
+    end
+    if NaiPassengers.cv_debug_mode then
+        return NaiPassengers.cv_debug_mode:GetBool()
+    end
+    return false
+end
 
 -- Helper: Mark NPC as playing gesture to prevent sit pose reset
 local function MarkGesturePlaying(npc, duration)
@@ -31,7 +45,7 @@ util.AddNetworkString("NaiMakeDriver")
 -- Debug test receiver (simplified - body sway is now client-side)
 net.Receive("NaiPassengers_DebugTest", function(len, ply)
     if not IsValid(ply) or not ply:IsAdmin() then return end
-    if not NaiPassengers.cv_debug_mode:GetBool() then return end
+    if not IsDebugModeEnabled() then return end
     
     local testType = net.ReadString()
     
@@ -124,7 +138,7 @@ end)
 -- Debug: Set passenger status
 net.Receive("NaiPassengers_SetStatus", function(len, ply)
     if not IsValid(ply) or not ply:IsAdmin() then return end
-    if not NaiPassengers.cv_debug_mode:GetBool() then return end
+    if not IsDebugModeEnabled() then return end
     
     local npcIndex = net.ReadInt(32)
     local status = net.ReadString()

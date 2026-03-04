@@ -2,6 +2,8 @@
 if CLIENT then return end
 
 NaiPassengers = NaiPassengers or {}
+NaiPassengers.Modules = NaiPassengers.Modules or {}
+NaiPassengers.Modules.lvs_turret = true
 NaiPassengers.TurretNPCs = NaiPassengers.TurretNPCs or {}
 
 -- Configuration convars for turret control

@@ -1,0 +1,38 @@
+name: Publish to Steam Workshop
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SteamCMD
+        uses: CyberAndrii/setup-steamcmd@v1
+
+      - name: Restore Steam auth config
+        # This restores a pre-authenticated config.vdf so Steam Guard
+        # doesn't prompt during the CI run. See README for how to generate it.
+        run: |
+          mkdir -p $HOME/.steam/steam/config
+          echo "${{ secrets.STEAM_CONFIG_VDF }}" | base64 --decode > $HOME/.steam/steam/config/config.vdf
+          chmod 600 $HOME/.steam/steam/config/config.vdf
+
+      - name: Build workshop VDF with correct path
+        # Inject the absolute checkout path into the VDF at runtime
+        run: |
+          sed "s|CONTENT_PATH_PLACEHOLDER|$GITHUB_WORKSPACE|g" \
+            workshop/addon.vdf > /tmp/addon_publish.vdf
+
+      - name: Publish to Steam Workshop
+        run: |
+          steamcmd \
+            +login "${{ secrets.STEAM_USERNAME }}" \
+            +workshop_build_item /tmp/addon_publish.vdf \
+            +quit

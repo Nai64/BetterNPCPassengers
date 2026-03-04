@@ -6,6 +6,8 @@
 if CLIENT then return end
 
 NaiPassengers = NaiPassengers or {}
+NaiPassengers.Modules = NaiPassengers.Modules or {}
+NaiPassengers.Modules.lvs_driver = true
 NaiPassengers.DriverNPCs = NaiPassengers.DriverNPCs or {}
 
 -- Configuration convars

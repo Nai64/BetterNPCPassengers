@@ -1,4 +1,27 @@
 NaiPassengers = NaiPassengers or {}
+NaiPassengers.Modules = NaiPassengers.Modules or {}
+NaiPassengers.Modules.settings = true
+
+NaiPassengers.Version = NaiPassengers.Version or "1.0.0"
+NaiPassengers.BuildDate = NaiPassengers.BuildDate or "2026-03-04"
+
+NaiPassengers.GetConVarBool = NaiPassengers.GetConVarBool or function(name, default)
+    local cv = GetConVar(name)
+    if not cv then return default == true end
+    return cv:GetBool()
+end
+
+NaiPassengers.GetConVarInt = NaiPassengers.GetConVarInt or function(name, default)
+    local cv = GetConVar(name)
+    if not cv then return default or 0 end
+    return cv:GetInt()
+end
+
+NaiPassengers.GetConVarFloat = NaiPassengers.GetConVarFloat or function(name, default)
+    local cv = GetConVar(name)
+    if not cv then return default or 0 end
+    return cv:GetFloat()
+end
 
 NaiPassengers.cv_max_dist = CreateConVar("nai_npc_max_attach_dist", "500", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Maximum distance to attach NPC")
 NaiPassengers.cv_detach_delay = CreateConVar("nai_npc_detach_delay", "0.5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Delay before detaching")

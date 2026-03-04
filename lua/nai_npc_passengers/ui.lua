@@ -1,10 +1,32 @@
 if SERVER then return end
 
+NaiPassengers = NaiPassengers or {}
+NaiPassengers.Modules = NaiPassengers.Modules or {}
+NaiPassengers.Modules.ui = true
+
 -- NPC Passengers UI
 -- Dark theme settings panel with custom Metropolis font
 
 -- Keybind system: Track key states to detect key presses
 local keyStates = {}
+
+local function GetConVarIntSafe(name, default)
+    if NaiPassengers.GetConVarInt then
+        return NaiPassengers.GetConVarInt(name, default or 0)
+    end
+    local cv = GetConVar(name)
+    if not cv then return default or 0 end
+    return cv:GetInt()
+end
+
+local function GetConVarBoolSafe(name, default)
+    if NaiPassengers.GetConVarBool then
+        return NaiPassengers.GetConVarBool(name, default == true)
+    end
+    local cv = GetConVar(name)
+    if not cv then return default == true end
+    return cv:GetBool()
+end
 
 hook.Add("Think", "NaiPassengers_Keybinds", function()
     -- Helper function to check if a key was just pressed
@@ -19,44 +41,43 @@ hook.Add("Think", "NaiPassengers_Keybinds", function()
     end
     
     -- Check each keybind
-    local keyAttach = GetConVar("nai_npc_key_attach"):GetInt()
+    local keyAttach = GetConVarIntSafe("nai_npc_key_attach", 0)
     if WasKeyJustPressed(keyAttach) then
         RunConsoleCommand("nai_npc_attach_nearest")
     end
     
-    local keyDetachAll = GetConVar("nai_npc_key_detach_all"):GetInt()
+    local keyDetachAll = GetConVarIntSafe("nai_npc_key_detach_all", 0)
     if WasKeyJustPressed(keyDetachAll) then
         RunConsoleCommand("nai_npc_detach_all")
     end
     
-    local keyToggleAutoJoin = GetConVar("nai_npc_key_toggle_autojoin"):GetInt()
+    local keyToggleAutoJoin = GetConVarIntSafe("nai_npc_key_toggle_autojoin", 0)
     if WasKeyJustPressed(keyToggleAutoJoin) then
-        local currentVal = GetConVar("nai_npc_auto_join"):GetBool()
+        local currentVal = GetConVarBoolSafe("nai_npc_auto_join", true)
         RunConsoleCommand("nai_npc_auto_join", currentVal and "0" or "1")
         chat.AddText(Color(100, 200, 255), "[NPC Passengers] ", Color(255, 255, 255), "Auto-Join: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
     end
     
-    local keyMenu = GetConVar("nai_npc_key_menu"):GetInt()
+    local keyMenu = GetConVarIntSafe("nai_npc_key_menu", 0)
     if WasKeyJustPressed(keyMenu) then
         RunConsoleCommand("nai_passengers_menu")
     end
     
-    local keyExitAll = GetConVar("nai_npc_key_exit_all"):GetInt()
+    local keyExitAll = GetConVarIntSafe("nai_npc_key_exit_all", 0)
     if WasKeyJustPressed(keyExitAll) then
         RunConsoleCommand("nai_npc_exit_all")
     end
     
     -- Debug keybinds (only if debug mode is enabled)
-    local debugMode = GetConVar("nai_npc_debug_mode")
-    if debugMode and debugMode:GetBool() then
-        local keyTestGesture = GetConVar("nai_npc_key_test_gesture"):GetInt()
+    if GetConVarBoolSafe("nai_npc_debug_mode", false) then
+        local keyTestGesture = GetConVarIntSafe("nai_npc_key_test_gesture", 0)
         if WasKeyJustPressed(keyTestGesture) then
             net.Start("NaiPassengers_DebugTest")
             net.WriteString("gesture")
             net.SendToServer()
         end
         
-        local keyResetAll = GetConVar("nai_npc_key_reset_all"):GetInt()
+        local keyResetAll = GetConVarIntSafe("nai_npc_key_reset_all", 0)
         if WasKeyJustPressed(keyResetAll) then
             net.Start("NaiPassengers_DebugTest")
             net.WriteString("reset")
