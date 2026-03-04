@@ -23,9 +23,8 @@ NaiBase.Colors = {
     Info = Color(200, 200, 200)
 }
 
-    Module Registration System
-    Allows addons to register themselves with the base system
-]]--
+-- Module Registration System
+-- Allows addons to register themselves with the base system
 function NaiBase.RegisterModule(moduleName, moduleData)
     if not moduleName or moduleName == "" then
         ErrorNoHalt("[Nai's Base] Cannot register module: Invalid name\n")
@@ -61,27 +60,23 @@ function NaiBase.RegisterModule(moduleName, moduleData)
     return true
 end
 
-    Get a registered module
-]]--
+-- Get a registered module
 function NaiBase.GetModule(moduleName)
     return NaiBase.Modules[moduleName]
 end
 
-    Check if a module is loaded
-]]--
+-- Check if a module is loaded
 function NaiBase.IsModuleLoaded(moduleName)
     return NaiBase.Modules[moduleName] ~= nil and NaiBase.Modules[moduleName].loaded == true
 end
 
-    Get all registered modules
-]]--
+-- Get all registered modules
 function NaiBase.GetAllModules()
     return NaiBase.Modules
 end
 
-    Configuration System
-    Allows modules to store and retrieve configuration values with validation, categories, and more
-]]--
+-- Configuration System
+-- Allows modules to store and retrieve configuration values with validation, categories, and more
 
 NaiBase.ConfigMeta = NaiBase.ConfigMeta or {}
 NaiBase.ConfigCallbacks = NaiBase.ConfigCallbacks or {}
@@ -353,9 +348,8 @@ function NaiBase.GetConfig(key, default, moduleName)
     return default
 end
 
-    Event System
-    Custom event dispatcher for inter-module communication
-]]--
+-- Event System
+-- Custom event dispatcher for inter-module communication
 function NaiBase.RegisterEvent(eventName, callback, moduleName)
     if not eventName or not isfunction(callback) then
         ErrorNoHalt("[Nai's Base] Invalid event registration\n")
@@ -409,8 +403,7 @@ function NaiBase.TriggerEvent(eventName, ...)
     end
 end
 
-    Utility Functions
-]]--
+-- Utility Functions
 function NaiBase.Log(message, color)
     color = color or NaiBase.Colors.Info
     MsgC(color, "[Nai's Base] " .. tostring(message) .. "\n")
@@ -428,8 +421,7 @@ function NaiBase.LogWarning(message)
     NaiBase.Log(message, NaiBase.Colors.Warning)
 end
 
-    Debug System
-]]--
+-- Debug System
 NaiBase.SetConfig("debug_mode", false, "global")
 
 function NaiBase.Debug(message, moduleName)
@@ -439,9 +431,8 @@ function NaiBase.Debug(message, moduleName)
     end
 end
 
-    Data Sharing System
-    Allows modules to share data with each other
-]]--
+-- Data Sharing System
+-- Allows modules to share data with each other
 NaiBase.SharedData = NaiBase.SharedData or {}
 
 function NaiBase.SetSharedData(key, value, moduleName)
@@ -477,8 +468,7 @@ function NaiBase.GetSharedData(key, moduleName)
     return nil
 end
 
-    Console Command for listing modules
-]]--
+-- Console Command for listing modules
 concommand.Add("naibase_list", function(ply)
     if IsValid(ply) and not ply:IsSuperAdmin() then
         ply:ChatPrint("You don't have permission to use this command")
