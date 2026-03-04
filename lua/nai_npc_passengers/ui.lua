@@ -28,6 +28,15 @@ local function GetConVarBoolSafe(name, default)
     return cv:GetBool()
 end
 
+local function GetConVarFloatSafe(name, default)
+    if NaiPassengers.GetConVarFloat then
+        return NaiPassengers.GetConVarFloat(name, default or 0)
+    end
+    local cv = GetConVar(name)
+    if not cv then return default or 0 end
+    return cv:GetFloat()
+end
+
 hook.Add("Think", "NaiPassengers_Keybinds", function()
     -- Helper function to check if a key was just pressed
     local function WasKeyJustPressed(keyCode)
@@ -1150,6 +1159,9 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(hudPanel, "Only Show When In Vehicle", "nai_npc_hud_only_vehicle")
     CreateCheckbox(hudPanel, "Show Calm Passengers", "nai_npc_hud_show_calm")
+    CreateCheckbox(hudPanel, "Show Context Hints", "nai_npc_hud_hints")
+    CreateCheckbox(hudPanel, "Show Target Debug", "nai_npc_hud_target_debug")
+    CreateCheckbox(hudPanel, "Play Success/Fail Cues", "nai_npc_client_cues")
     CreateHelpText(hudPanel, "When disabled, only shows passengers with non-calm status.")
     
     CreateSpacer(hudPanel, 10)
@@ -2115,9 +2127,24 @@ concommand.Add("nai_npc_reset", function()
     RunConsoleCommand("nai_npc_hud_opacity", "0.85")
     RunConsoleCommand("nai_npc_hud_show_calm", "1")
     RunConsoleCommand("nai_npc_hud_only_vehicle", "1")
+    RunConsoleCommand("nai_npc_hud_hints", "1")
+    RunConsoleCommand("nai_npc_hud_target_debug", "0")
+    RunConsoleCommand("nai_npc_client_cues", "1")
     RunConsoleCommand("nai_npc_hud_alert_threshold", "0.3")
     RunConsoleCommand("nai_npc_hud_fear_threshold", "0.5")
     RunConsoleCommand("nai_npc_hud_drowsy_threshold", "0.7")
+
+    -- Addon controls
+    RunConsoleCommand("nai_npc_enabled", "1")
+    RunConsoleCommand("nai_npc_max_passengers", "8")
+    RunConsoleCommand("nai_npc_enter_distance", "80")
+    RunConsoleCommand("nai_npc_retry_attempts", "3")
+    RunConsoleCommand("nai_npc_retry_cooldown", "6")
+    RunConsoleCommand("nai_npc_allow_classes", "")
+    RunConsoleCommand("nai_npc_deny_classes", "")
+    RunConsoleCommand("nai_npc_allow_models", "")
+    RunConsoleCommand("nai_npc_deny_models", "")
+    RunConsoleCommand("nai_npc_debug_verbose", "0")
     -- Tank/LVS
     RunConsoleCommand("nai_npc_driver_enabled", "1")
     RunConsoleCommand("nai_npc_driver_range", "4000")
@@ -2695,6 +2722,25 @@ local ejectPromptData = {
     requiredHoldTime = 1.5  -- 1.5 seconds to eject
 }
 
+local clientCueData = {
+    text = "",
+    success = true,
+    expireAt = 0
+}
+
+net.Receive("NaiPassengers_ClientCue", function()
+    local success = net.ReadBool()
+    local msg = net.ReadString()
+
+    if GetConVarBoolSafe("nai_npc_client_cues", true) then
+        surface.PlaySound(success and "buttons/button15.wav" or "buttons/button10.wav")
+    end
+
+    clientCueData.text = msg or ""
+    clientCueData.success = success
+    clientCueData.expireAt = CurTime() + 2.2
+end)
+
 net.Receive("NaiPassengers_EjectPrompt", function()
     ejectPromptData.count = net.ReadInt(8)
     ejectPromptData.lookingAt = net.ReadBool()
@@ -3046,6 +3092,48 @@ hook.Add("HUDPaint", "NaiPassengers_StatusHUD", function()
         draw.SimpleText(healthText, "DermaDefaultBold", barX + healthBarW - 2 * scale, healthBarY + 1 * scale, Color(255, 255, 255, 220), TEXT_ALIGN_RIGHT, TEXT_ALIGN_TOP)
         
         entryY = entryY + entryHeight
+    end
+end)
+
+hook.Add("HUDPaint", "NaiPassengers_ClientHints", function()
+    local ply = LocalPlayer()
+    if not IsValid(ply) then return end
+
+    local showHints = GetConVarBoolSafe("nai_npc_hud_hints", true)
+    local showTargetDebug = GetConVarBoolSafe("nai_npc_hud_target_debug", false)
+    if not showHints and not showTargetDebug then return end
+
+    local scrW, scrH = ScrW(), ScrH()
+    local centerX = scrW * 0.5
+    local y = scrH - 120
+
+    if showHints and clientCueData.expireAt > CurTime() and clientCueData.text ~= "" then
+        local col = clientCueData.success and Color(120, 240, 120) or Color(255, 140, 140)
+        draw.SimpleText(clientCueData.text, "NaiFont_Normal", centerX, y, col, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        y = y - 22
+    end
+
+    if showTargetDebug then
+        local tr = ply:GetEyeTrace()
+        local ent = tr and tr.Entity
+        if IsValid(ent) and ent:IsNPC() then
+            local status = "none"
+            if ent:GetNWBool("IsNaiPassenger", false) then
+                local emotion = "calm"
+                if ent:GetNWBool("NaiIsDrowsy", false) then
+                    emotion = "drowsy"
+                elseif ent:GetNWFloat("NaiFearLevel", 0) > 0.5 then
+                    emotion = "scared"
+                elseif ent:GetNWFloat("NaiAlertLevel", 0) > 0.3 then
+                    emotion = "alert"
+                end
+                status = "passenger:" .. emotion
+            end
+
+            local veh = ent:GetParent()
+            local vehText = IsValid(veh) and (veh:GetClass() or "unknown") or "none"
+            draw.SimpleText("target npc " .. ent:GetClass() .. " | " .. status .. " | seat " .. vehText, "NaiFont_Small", centerX, y, Color(160, 210, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        end
     end
 end)
 

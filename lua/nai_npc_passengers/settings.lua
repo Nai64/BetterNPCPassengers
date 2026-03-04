@@ -23,6 +23,12 @@ NaiPassengers.GetConVarFloat = NaiPassengers.GetConVarFloat or function(name, de
     return cv:GetFloat()
 end
 
+NaiPassengers.GetConVarString = NaiPassengers.GetConVarString or function(name, default)
+    local cv = GetConVar(name)
+    if not cv then return default or "" end
+    return cv:GetString()
+end
+
 NaiPassengers.cv_max_dist = CreateConVar("nai_npc_max_attach_dist", "500", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Maximum distance to attach NPC")
 NaiPassengers.cv_detach_delay = CreateConVar("nai_npc_detach_delay", "0.5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Delay before detaching")
 NaiPassengers.cv_ai_delay = CreateConVar("nai_npc_ai_delay", "2", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Delay before restoring AI")
@@ -30,6 +36,22 @@ NaiPassengers.cv_cooldown = CreateConVar("nai_npc_cooldown", "1", {FCVAR_ARCHIVE
 NaiPassengers.cv_multiple = CreateConVar("nai_npc_allow_multiple", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow multiple passengers")
 NaiPassengers.cv_exit_mode = CreateConVar("nai_npc_exit_mode", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exit behavior: 0=leave when player exits, 1=leave when attacked, 2=never leave")
 NaiPassengers.cv_hide_in_tanks = CreateConVar("nai_npc_hide_in_tanks", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Hide NPCs inside enclosed vehicles like tanks")
+
+-- Addon safety and seat behavior controls
+NaiPassengers.cv_enabled = CreateConVar("nai_npc_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable/disable NPC passenger addon features")
+NaiPassengers.cv_max_passengers = CreateConVar("nai_npc_max_passengers", "8", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Hard cap for NPC passengers per vehicle")
+NaiPassengers.cv_enter_distance = CreateConVar("nai_npc_enter_distance", "80", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Distance required for NPC to enter vehicle")
+NaiPassengers.cv_retry_attempts = CreateConVar("nai_npc_retry_attempts", "3", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Failed board attempts before cooldown")
+NaiPassengers.cv_retry_cooldown = CreateConVar("nai_npc_retry_cooldown", "6", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Cooldown in seconds after repeated board failures")
+
+-- Vehicle/model filtering (CSV patterns, supports * wildcard)
+NaiPassengers.cv_allow_classes = CreateConVar("nai_npc_allow_classes", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allowed vehicle classes (CSV). Empty = allow all")
+NaiPassengers.cv_deny_classes = CreateConVar("nai_npc_deny_classes", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Denied vehicle classes (CSV)")
+NaiPassengers.cv_allow_models = CreateConVar("nai_npc_allow_models", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allowed vehicle models (CSV). Empty = allow all")
+NaiPassengers.cv_deny_models = CreateConVar("nai_npc_deny_models", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Denied vehicle models (CSV)")
+
+-- Optional debug output without full debug mode spam
+NaiPassengers.cv_debug_verbose = CreateConVar("nai_npc_debug_verbose", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Verbose debug messages for passenger attach logic")
 
 -- Auto-join settings
 NaiPassengers.cv_auto_join = CreateConVar("nai_npc_auto_join", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Friendly NPCs automatically join vehicles")
@@ -103,6 +125,9 @@ NaiPassengers.cv_hud_scale = CreateConVar("nai_npc_hud_scale", "1", {FCVAR_ARCHI
 NaiPassengers.cv_hud_opacity = CreateConVar("nai_npc_hud_opacity", "0.85", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "HUD background opacity (0-1)")
 NaiPassengers.cv_hud_show_calm = CreateConVar("nai_npc_hud_show_calm", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Show passengers with calm status")
 NaiPassengers.cv_hud_only_in_vehicle = CreateConVar("nai_npc_hud_only_vehicle", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Only show HUD when player is in a vehicle")
+NaiPassengers.cv_hud_hints = CreateConVar("nai_npc_hud_hints", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Show contextual NPC passenger hint text on HUD")
+NaiPassengers.cv_hud_target_debug = CreateConVar("nai_npc_hud_target_debug", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Show target seat/state debug on HUD")
+NaiPassengers.cv_client_cues = CreateConVar("nai_npc_client_cues", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Play success/fail client sound cues")
 
 -- HUD Emotion Thresholds
 NaiPassengers.cv_hud_alert_threshold = CreateConVar("nai_npc_hud_alert_threshold", "0.3", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Alert level threshold to show alert status (0-1)")
@@ -158,4 +183,27 @@ if CLIENT then
     NaiPassengers.cv_key_test_gesture = CreateClientConVar("nai_npc_key_test_gesture", "0", true, false, "Keybind: Test random gesture")
     NaiPassengers.cv_key_reset_all = CreateClientConVar("nai_npc_key_reset_all", "0", true, false, "Keybind: Reset all NPCs")
     NaiPassengers.cv_key_debug_hud = CreateClientConVar("nai_npc_key_debug_hud", "0", true, false, "Keybind: Toggle debug HUD")
+end
+
+NaiPassengers.Phrases = NaiPassengers.Phrases or {}
+NaiPassengers.Phrases.en = NaiPassengers.Phrases.en or {
+    passenger_boarded = "passenger boarded! (%s total)",
+    passenger_attach_failed = "failed to attach npc to vehicle!",
+    passenger_queue_marked = "npc marked as passenger. get in a vehicle!",
+    passenger_queue_added = "npc added to queue! (%s pending passengers)",
+    passenger_queue_duplicate = "this npc is already in the queue!",
+    passenger_cooldown = "npc is regrouping before trying again.",
+    dump_header = "=== npc passenger dump ===",
+    dump_none = "no passenger npcs nearby.",
+    dump_line = "npc=%s state=%s hp=%s vehicle=%s seat=%s"
+}
+
+NaiPassengers.GetPhrase = NaiPassengers.GetPhrase or function(key, ...)
+    local lang = "en"
+    local dict = NaiPassengers.Phrases and NaiPassengers.Phrases[lang]
+    local phrase = dict and dict[key] or key
+    if select("#", ...) > 0 then
+        return string.format(phrase, ...)
+    end
+    return phrase
 end

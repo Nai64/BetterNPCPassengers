@@ -9,10 +9,15 @@ local pendingPassengers = {}
 local vehicleCooldowns = {}
 local animationTimers = {}
 local npcLookState = {}
+local npcBoardRetryState = {}
+local addonWasEnabled = true
+
+NaiPassengers.LVSCompatResolvers = NaiPassengers.LVSCompatResolvers or {}
 
 -- Forward declare StartAnimationEnforcement
 local StartAnimationEnforcement
 local DetachNPC
+local ResetPassengerState
 
 local function IsDebugModeEnabled()
     if NaiPassengers.GetConVarBool then
@@ -22,6 +27,184 @@ local function IsDebugModeEnabled()
         return NaiPassengers.cv_debug_mode:GetBool()
     end
     return false
+end
+
+local function IsVerboseDebugEnabled()
+    if NaiPassengers.GetConVarBool then
+        return NaiPassengers.GetConVarBool("nai_npc_debug_verbose", false)
+    end
+    if NaiPassengers.cv_debug_verbose then
+        return NaiPassengers.cv_debug_verbose:GetBool()
+    end
+    return false
+end
+
+local function IsAddonEnabled()
+    if NaiPassengers.GetConVarBool then
+        return NaiPassengers.GetConVarBool("nai_npc_enabled", true)
+    end
+    if NaiPassengers.cv_enabled then
+        return NaiPassengers.cv_enabled:GetBool()
+    end
+    return true
+end
+
+local function ParseCSVPatterns(str)
+    local out = {}
+    if not str or str == "" then return out end
+    for token in string.gmatch(str, "[^,]+") do
+        token = string.Trim(string.lower(token or ""))
+        if token ~= "" then
+            out[#out + 1] = token
+        end
+    end
+    return out
+end
+
+local function ValueMatchesPatterns(value, patterns)
+    if #patterns == 0 then return false end
+    local lowerValue = string.lower(value or "")
+    for _, pattern in ipairs(patterns) do
+        local luaPattern = "^" .. string.PatternSafe(pattern):gsub("%%*", ".*") .. "$"
+        if string.find(lowerValue, luaPattern) then
+            return true
+        end
+    end
+    return false
+end
+
+local function IsVehicleAllowedByFilters(vehicle)
+    if not IsValid(vehicle) then return false end
+
+    local className = string.lower(vehicle:GetClass() or "")
+    local modelName = string.lower(vehicle:GetModel() or "")
+
+    local allowClasses = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_allow_classes", "") or (GetConVar("nai_npc_allow_classes") and GetConVar("nai_npc_allow_classes"):GetString() or ""))
+    local denyClasses = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_deny_classes", "") or (GetConVar("nai_npc_deny_classes") and GetConVar("nai_npc_deny_classes"):GetString() or ""))
+    local allowModels = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_allow_models", "") or (GetConVar("nai_npc_allow_models") and GetConVar("nai_npc_allow_models"):GetString() or ""))
+    local denyModels = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_deny_models", "") or (GetConVar("nai_npc_deny_models") and GetConVar("nai_npc_deny_models"):GetString() or ""))
+
+    if ValueMatchesPatterns(className, denyClasses) or ValueMatchesPatterns(modelName, denyModels) then
+        return false
+    end
+
+    if #allowClasses > 0 and not ValueMatchesPatterns(className, allowClasses) then
+        return false
+    end
+
+    if #allowModels > 0 and not ValueMatchesPatterns(modelName, allowModels) then
+        return false
+    end
+
+    return true
+end
+
+local function GetVehiclePassengerLimit()
+    local cap = NaiPassengers.GetConVarInt and NaiPassengers.GetConVarInt("nai_npc_max_passengers", 8) or 8
+    return math.max(1, cap)
+end
+
+local function GetRetryAttemptsLimit()
+    local tries = NaiPassengers.GetConVarInt and NaiPassengers.GetConVarInt("nai_npc_retry_attempts", 3) or 3
+    return math.max(1, tries)
+end
+
+local function GetRetryCooldownSeconds()
+    local seconds = NaiPassengers.GetConVarFloat and NaiPassengers.GetConVarFloat("nai_npc_retry_cooldown", 6) or 6
+    return math.max(0.5, seconds)
+end
+
+local function IsNPCBoardCooldownActive(npc)
+    if not IsValid(npc) then return true end
+    local state = npcBoardRetryState[npc:EntIndex()]
+    if not state then return false end
+    return (state.blockedUntil or 0) > CurTime()
+end
+
+local function RegisterBoardSuccess(npc)
+    if not IsValid(npc) then return end
+    npcBoardRetryState[npc:EntIndex()] = nil
+end
+
+local function RegisterBoardFailure(npc)
+    if not IsValid(npc) then return false end
+    local npcId = npc:EntIndex()
+    local state = npcBoardRetryState[npcId] or { attempts = 0, blockedUntil = 0 }
+    state.attempts = (state.attempts or 0) + 1
+
+    if state.attempts >= GetRetryAttemptsLimit() then
+        state.attempts = 0
+        state.blockedUntil = CurTime() + GetRetryCooldownSeconds()
+        npcBoardRetryState[npcId] = state
+        return true
+    end
+
+    npcBoardRetryState[npcId] = state
+    return false
+end
+
+function NaiPassengers.RegisterLVSSeatResolver(pattern, resolverFn)
+    if not pattern or pattern == "" or not isfunction(resolverFn) then return false end
+    NaiPassengers.LVSCompatResolvers[string.lower(pattern)] = resolverFn
+    return true
+end
+
+if not NaiPassengers.LVSCompatResolvers["lvs_wheeldrive"] then
+    NaiPassengers.RegisterLVSSeatResolver("lvs_wheeldrive", function(vehicle)
+        local seats = {}
+        if not IsValid(vehicle) then return seats end
+
+        if vehicle.GetPassengerSeats then
+            for _, seat in pairs(vehicle:GetPassengerSeats()) do
+                if IsValid(seat) then
+                    seats[#seats + 1] = seat
+                end
+            end
+        end
+
+        if #seats == 0 and vehicle.GetGunnerSeats then
+            for _, seat in pairs(vehicle:GetGunnerSeats()) do
+                if IsValid(seat) then
+                    seats[#seats + 1] = seat
+                end
+            end
+        end
+
+        if #seats == 0 and vehicle.GetDriverSeat then
+            local driverSeat = vehicle:GetDriverSeat()
+            if IsValid(driverSeat) and not IsValid(driverSeat:GetDriver()) then
+                seats[#seats + 1] = driverSeat
+            end
+        end
+
+        return seats
+    end)
+end
+
+local function GetLVSCompatResolver(vehicle)
+    if not IsValid(vehicle) then return nil end
+    local className = string.lower(vehicle:GetClass() or "")
+    for pattern, resolver in pairs(NaiPassengers.LVSCompatResolvers) do
+        if string.find(className, pattern, 1, true) then
+            return resolver
+        end
+    end
+    return nil
+end
+
+local function SendClientCue(ply, success, msg)
+    if not IsValid(ply) or not ply:IsPlayer() then return end
+    net.Start("NaiPassengers_ClientCue")
+    net.WriteBool(success == true)
+    net.WriteString(msg or "")
+    net.Send(ply)
+end
+
+local function Phrase(key, ...)
+    if NaiPassengers.GetPhrase then
+        return NaiPassengers.GetPhrase(key, ...)
+    end
+    return key
 end
 
 -- Helper: Mark NPC as playing gesture to prevent sit pose reset
@@ -41,6 +224,7 @@ util.AddNetworkString("NaiPassengers_SetStatus")
 util.AddNetworkString("NaiPassengers_EjectPrompt")
 util.AddNetworkString("NaiPassengers_EjectDead")
 util.AddNetworkString("NaiMakeDriver")
+util.AddNetworkString("NaiPassengers_ClientCue")
 
 -- Debug test receiver (simplified - body sway is now client-side)
 net.Receive("NaiPassengers_DebugTest", function(len, ply)
@@ -190,81 +374,97 @@ local function GetPassengerCount(vehicle)
     return count
 end
 
-local function GetAvailableSeatCount(vehicle)
-    if not IsValid(vehicle) then return 0 end
-    local seats = {}
-    local class = vehicle:GetClass() or ""
-    
-    if vehicle.IsSimfphyscar then
-        -- Include driver seat if no player is driving
-        if vehicle.DriverSeat and IsValid(vehicle.DriverSeat) then
-            if not IsValid(vehicle.DriverSeat:GetDriver()) then
-                table.insert(seats, vehicle.DriverSeat)
+local function CollectLVSSeats(vehicle, seats)
+    local resolver = GetLVSCompatResolver(vehicle)
+    if resolver then
+        local ok, customSeats = pcall(resolver, vehicle)
+        if ok and istable(customSeats) and #customSeats > 0 then
+            for _, seat in ipairs(customSeats) do
+                if IsValid(seat) then
+                    seats[#seats + 1] = seat
+                end
             end
+            return
+        end
+    end
+
+    if vehicle.GetDriverSeat then
+        local driverSeat = vehicle:GetDriverSeat()
+        if IsValid(driverSeat) and not IsValid(driverSeat:GetDriver()) then
+            seats[#seats + 1] = driverSeat
+        end
+    end
+    if vehicle.GetPassengerSeats then
+        for _, seat in pairs(vehicle:GetPassengerSeats()) do
+            if IsValid(seat) then
+                seats[#seats + 1] = seat
+            end
+        end
+    end
+    if vehicle.GetGunnerSeats then
+        for _, seat in pairs(vehicle:GetGunnerSeats()) do
+            if IsValid(seat) then
+                seats[#seats + 1] = seat
+            end
+        end
+    end
+    if #seats == 0 then
+        for _, child in ipairs(vehicle:GetChildren()) do
+            if IsValid(child) and child:GetClass() == "prop_vehicle_prisoner_pod" then
+                seats[#seats + 1] = child
+            end
+        end
+    end
+end
+
+local function CollectVehicleSeats(vehicle)
+    local seats = {}
+    if not IsValid(vehicle) then return seats end
+    local class = vehicle:GetClass() or ""
+
+    if vehicle.IsSimfphyscar then
+        if vehicle.DriverSeat and IsValid(vehicle.DriverSeat) and not IsValid(vehicle.DriverSeat:GetDriver()) then
+            seats[#seats + 1] = vehicle.DriverSeat
         end
         if vehicle.pSeat then
             for _, seat in pairs(vehicle.pSeat) do
                 if IsValid(seat) then
-                    table.insert(seats, seat)
+                    seats[#seats + 1] = seat
                 end
             end
         end
     elseif vehicle.LVS or vehicle.IsLVS or string.find(class, "lvs_") then
-        -- For LVS, include ALL seats
-        if vehicle.GetDriverSeat then
-            local driverSeat = vehicle:GetDriverSeat()
-            if IsValid(driverSeat) and not IsValid(driverSeat:GetDriver()) then
-                table.insert(seats, driverSeat)
-            end
-        end
-        if vehicle.GetPassengerSeats then
-            for _, seat in pairs(vehicle:GetPassengerSeats()) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
-        -- Also get gunner seats
-        if vehicle.GetGunnerSeats then
-            for _, seat in pairs(vehicle:GetGunnerSeats()) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
+        CollectLVSSeats(vehicle, seats)
     elseif vehicle.IsGlideVehicle and vehicle.seats then
-        for i, seat in ipairs(vehicle.seats) do
+        for _, seat in ipairs(vehicle.seats) do
             if IsValid(seat) then
-                table.insert(seats, seat)
+                seats[#seats + 1] = seat
             end
         end
     elseif vehicle.IsSligWolf or vehicle.sligwolf or vehicle.SligWolf or string.find(class, "sligwolf_") or string.find(class, "sw_") then
-        -- SligWolf vehicles - check for seat groups and direct seats
         if vehicle.GetSeats then
             for _, seat in pairs(vehicle:GetSeats()) do
                 if IsValid(seat) then
-                    table.insert(seats, seat)
+                    seats[#seats + 1] = seat
                 end
             end
         end
         if vehicle.Seats then
             for _, seat in pairs(vehicle.Seats) do
                 if IsValid(seat) then
-                    table.insert(seats, seat)
+                    seats[#seats + 1] = seat
                 end
             end
         end
-        -- Check children for seat groups and pods
         for _, child in ipairs(vehicle:GetChildren()) do
             if IsValid(child) then
                 local childClass = child:GetClass()
                 if childClass == "prop_vehicle_prisoner_pod" then
-                    table.insert(seats, child)
+                    seats[#seats + 1] = child
                 elseif string.find(childClass, "sligwolf_seat") then
-                    -- Seat group - get its children
                     for _, seatChild in ipairs(child:GetChildren()) do
                         if IsValid(seatChild) and seatChild:GetClass() == "prop_vehicle_prisoner_pod" then
-                            table.insert(seats, seatChild)
+                            seats[#seats + 1] = seatChild
                         end
                     end
                 end
@@ -273,10 +473,23 @@ local function GetAvailableSeatCount(vehicle)
     else
         for _, child in ipairs(vehicle:GetChildren()) do
             if child:GetClass() == "prop_vehicle_prisoner_pod" then
-                table.insert(seats, child)
+                seats[#seats + 1] = child
             end
         end
     end
+
+    return seats
+end
+
+local function GetAvailableSeatCount(vehicle)
+    if not IsValid(vehicle) then return 0 end
+    if not IsAddonEnabled() then return 0 end
+    if not IsVehicleAllowedByFilters(vehicle) then return 0 end
+
+    local seats = CollectVehicleSeats(vehicle)
+    local limit = GetVehiclePassengerLimit()
+    local current = GetPassengerCount(vehicle)
+    if current >= limit then return 0 end
     
     local available = 0
     for _, seat in ipairs(seats) do
@@ -297,7 +510,7 @@ local function GetAvailableSeatCount(vehicle)
         end
     end
     
-    return available
+    return math.min(available, math.max(0, limit - current))
 end
 
 local function AddPendingPassenger(ply, npc)
@@ -520,99 +733,11 @@ local function GetVehicleOffsets(vehicleType)
 end
 
 local function CalculatePassengerPosition(vehicle, npc)
-    local seats = {}
+    if not IsAddonEnabled() then return nil, nil, nil, nil, nil end
+    if not IsVehicleAllowedByFilters(vehicle) then return nil, nil, nil, nil, nil end
+
+    local seats = CollectVehicleSeats(vehicle)
     local vehicleType = GetVehicleType(vehicle)
-    
-    if vehicle.IsSimfphyscar then
-        -- Include driver seat if available
-        if vehicle.DriverSeat and IsValid(vehicle.DriverSeat) then
-            if not IsValid(vehicle.DriverSeat:GetDriver()) then
-                table.insert(seats, vehicle.DriverSeat)
-            end
-        end
-        if vehicle.pSeat then
-            for _, seat in pairs(vehicle.pSeat) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
-    elseif vehicle.LVS or vehicle.IsLVS or string.find(vehicle:GetClass() or "", "lvs_") then
-        -- For LVS, include ALL seats (driver, passenger, gunner)
-        if vehicle.GetDriverSeat then
-            local driverSeat = vehicle:GetDriverSeat()
-            if IsValid(driverSeat) and not IsValid(driverSeat:GetDriver()) then
-                table.insert(seats, driverSeat)
-            end
-        end
-        if vehicle.GetPassengerSeats then
-            for _, seat in pairs(vehicle:GetPassengerSeats()) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
-        -- Also get gunner seats - these are the important ones!
-        if vehicle.GetGunnerSeats then
-            for _, seat in pairs(vehicle:GetGunnerSeats()) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
-        -- Fallback: search children for seats
-        if #seats == 0 then
-            for _, child in ipairs(vehicle:GetChildren()) do
-                if IsValid(child) and child:GetClass() == "prop_vehicle_prisoner_pod" then
-                    table.insert(seats, child)
-                end
-            end
-        end
-    elseif vehicle.IsGlideVehicle and vehicle.seats then
-        for i, seat in ipairs(vehicle.seats) do
-            if IsValid(seat) then
-                table.insert(seats, seat)
-            end
-        end
-    elseif vehicleType == VEHICLE_TYPE_SLIGWOLF then
-        -- SligWolf vehicles
-        local class = vehicle:GetClass() or ""
-        if vehicle.GetSeats then
-            for _, seat in pairs(vehicle:GetSeats()) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
-        if vehicle.Seats then
-            for _, seat in pairs(vehicle.Seats) do
-                if IsValid(seat) then
-                    table.insert(seats, seat)
-                end
-            end
-        end
-        -- Check children for seat groups and pods
-        for _, child in ipairs(vehicle:GetChildren()) do
-            if IsValid(child) then
-                local childClass = child:GetClass()
-                if childClass == "prop_vehicle_prisoner_pod" then
-                    table.insert(seats, child)
-                elseif string.find(childClass, "sligwolf_seat") then
-                    for _, seatChild in ipairs(child:GetChildren()) do
-                        if IsValid(seatChild) and seatChild:GetClass() == "prop_vehicle_prisoner_pod" then
-                            table.insert(seats, seatChild)
-                        end
-                    end
-                end
-            end
-        end
-    else
-        for _, child in ipairs(vehicle:GetChildren()) do
-            if child:GetClass() == "prop_vehicle_prisoner_pod" then
-                table.insert(seats, child)
-            end
-        end
-    end
     
     if #seats == 0 then
         local passengerAttachments = {"vehicle_feet_passenger1", "vehicle_feet_passenger0", "passenger"}
@@ -1635,10 +1760,16 @@ local function WalkNPCToVehicle(npc, vehicle, callback)
         if callback then callback(false) end
         return 
     end
+
+    if IsNPCBoardCooldownActive(npc) then
+        if callback then callback(false) end
+        return
+    end
     
     local vehiclePos = vehicle:GetPos()
     local vehicleRight = vehicle:GetRight()
     local targetPos = vehiclePos + vehicleRight * 80
+    local enterDistance = NaiPassengers.GetConVarFloat and NaiPassengers.GetConVarFloat("nai_npc_enter_distance", 80) or 80
     
     local dist = npc:GetPos():Distance(targetPos)
     
@@ -1647,7 +1778,7 @@ local function WalkNPCToVehicle(npc, vehicle, callback)
         return
     end
     
-    if dist < 100 then
+    if dist < enterDistance then
         if callback then callback(true) end
         return
     end
@@ -1668,12 +1799,12 @@ local function WalkNPCToVehicle(npc, vehicle, callback)
         
         if CurTime() - startTime > maxWalkTime then
             timer.Remove("NaiNPCWalk_" .. npcId)
-            if callback then callback(true) end
+            if callback then callback(false) end
             return
         end
         
         local currentDist = npc:GetPos():Distance(targetPos)
-        if currentDist < 80 then
+        if currentDist < enterDistance then
             timer.Remove("NaiNPCWalk_" .. npcId)
             npc:StopMoving()
             if callback then callback(true) end
@@ -1689,8 +1820,16 @@ end
 
 local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     if not IsValid(npc) or not IsValid(vehicle) then return false end
+    if not IsAddonEnabled() then return false end
+    if not IsVehicleAllowedByFilters(vehicle) then return false end
     if not skipPlayerCheck and not VehicleHasPlayer(vehicle) then return false end
     if friendlyPassengers[npc] or npc:Health() <= 0 then return false end
+    if IsNPCBoardCooldownActive(npc) then return false end
+
+    local maxPassengers = GetVehiclePassengerLimit()
+    if GetPassengerCount(vehicle) >= maxPassengers then
+        return false
+    end
     
     local vehicleId = vehicle:EntIndex()
     
@@ -1799,6 +1938,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     }
     
     vehicleCooldowns[vehicleId] = CurTime()
+    RegisterBoardSuccess(npc)
     
     -- DISABLED: Register NPC as turret gunner for LVS vehicles
     --[[ LVS TURRET DISABLED
@@ -1980,6 +2120,16 @@ DetachNPC = function(npc)
 end
 
 hook.Add("Think", "NaiPassengerThink", function()
+    local enabled = IsAddonEnabled()
+    if not enabled then
+        if addonWasEnabled then
+            ResetPassengerState("addon_disabled")
+            addonWasEnabled = false
+        end
+        return
+    end
+    addonWasEnabled = true
+
     local passengersCopy = {}
     for npc, data in pairs(friendlyPassengers) do
         passengersCopy[npc] = data
@@ -2223,11 +2373,13 @@ hook.Add("Think", "NaiPassengerThink", function()
 end)
 
 hook.Add("PlayerEnteredVehicle", "NaiPassengerAttach", function(ply, vehicle)
+    if not IsAddonEnabled() then return end
     timer.Simple(0.05, function()
         if not IsValid(ply) or not IsValid(vehicle) then return end
         
         local rootVehicle = GetRootVehicle(vehicle)
         if not IsValid(rootVehicle) or not VehicleHasPlayer(rootVehicle) then return end
+        if not IsVehicleAllowedByFilters(rootVehicle) then return end
         
         local pending = pendingPassengers[ply]
         if not pending or #pending == 0 then return end
@@ -2257,6 +2409,11 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAttach", function(ply, vehicle)
                 ProcessNextNPC(index + 1)
                 return
             end
+
+            if IsNPCBoardCooldownActive(npc) then
+                ProcessNextNPC(index + 1)
+                return
+            end
             
             if not allowMultiple and VehicleHasNPCAttached(rootVehicle) then
                 return
@@ -2270,8 +2427,20 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAttach", function(ply, vehicle)
                     local attached = AttachNPCToVehicle(npc, rootVehicle)
                     if attached and IsValid(ply) then
                         local total = GetPassengerCount(rootVehicle)
-                        ply:ChatPrint("Passenger boarded! (" .. total .. " total)")
+                        local msg = Phrase("passenger_boarded", total)
+                        ply:ChatPrint(msg)
+                        SendClientCue(ply, true, msg)
+                    else
+                        local cooldownStarted = RegisterBoardFailure(npc)
+                        if IsValid(ply) then
+                            local failMsg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
+                            SendClientCue(ply, false, failMsg)
+                        end
                     end
+                elseif IsValid(npc) and IsValid(ply) then
+                    local cooldownStarted = RegisterBoardFailure(npc)
+                    local failMsg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
+                    SendClientCue(ply, false, failMsg)
                 end
                 ProcessNextNPC(index + 1)
             end)
@@ -2285,6 +2454,7 @@ end)
     Auto-join: Friendly NPCs automatically board vehicles when player enters
 ]]
 hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
+    if not IsAddonEnabled() then return end
     -- Check if auto-join is enabled
     if not NaiPassengers.cv_auto_join:GetBool() then return end
     
@@ -2293,6 +2463,7 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
         
         local rootVehicle = GetRootVehicle(vehicle)
         if not IsValid(rootVehicle) then return end
+        if not IsVehicleAllowedByFilters(rootVehicle) then return end
         
         local allowMultiple = NaiPassengers.cv_multiple:GetBool()
         local maxAutoJoin = NaiPassengers.cv_auto_join_max:GetInt()
@@ -2380,6 +2551,10 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
             end
             
             local npc = npcData.npc
+            if IsNPCBoardCooldownActive(npc) then
+                ProcessAutoJoin(index + 1)
+                return
+            end
             
             -- Check again that we have space
             if not allowMultiple and GetPassengerCount(rootVehicle) > 0 then
@@ -2398,7 +2573,11 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
                     local attached = AttachNPCToVehicle(npc, rootVehicle)
                     if attached then
                         joinedCount = joinedCount + 1
+                    else
+                        RegisterBoardFailure(npc)
                     end
+                elseif IsValid(npc) then
+                    RegisterBoardFailure(npc)
                 end
                 ProcessAutoJoin(index + 1)
             end)
@@ -2409,6 +2588,7 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
 end)
 
 hook.Add("PlayerLeaveVehicle", "NaiPassengerDetach", function(ply, vehicle)
+    if not IsAddonEnabled() then return end
     local exitMode = NaiPassengers.cv_exit_mode:GetInt()
     if exitMode ~= 0 then return end
     
@@ -2436,6 +2616,7 @@ hook.Add("PlayerLeaveVehicle", "NaiPassengerDetach", function(ply, vehicle)
 end)
 
 hook.Add("EntityTakeDamage", "NaiPassengerDeathHandler", function(target, dmginfo)
+    if not IsAddonEnabled() then return end
     if friendlyPassengers[target] then
         -- Don't detach on crash damage - passengers should stay seated!
         local dmgType = dmginfo:GetDamageType()
@@ -2488,6 +2669,7 @@ hook.Add("EntityRemoved", "NaiPassengerCleanup", function(ent)
     if not IsValid(ent) then return end
     
     local entId = ent:EntIndex()
+    npcBoardRetryState[entId] = nil
     
     if friendlyPassengers[ent] then
         -- Unregister from turret control
@@ -2530,11 +2712,46 @@ hook.Add("EntityRemoved", "NaiPassengerCleanup", function(ent)
     timer.Remove("NaiPassengerDetach_" .. entId)
 end)
 
+ResetPassengerState = function(reason)
+    local detached = 0
+    local snapshot = {}
+    for npc in pairs(friendlyPassengers) do
+        snapshot[#snapshot + 1] = npc
+    end
+
+    for _, npc in ipairs(snapshot) do
+        if IsValid(npc) then
+            if DetachNPC(npc) then
+                detached = detached + 1
+            end
+        else
+            friendlyPassengers[npc] = nil
+        end
+    end
+
+    pendingPassengers = {}
+    vehicleCooldowns = {}
+    npcBoardRetryState = {}
+
+    if IsVerboseDebugEnabled() then
+        print("[npc passengers] reset state reason=" .. tostring(reason or "unknown") .. " detached=" .. tostring(detached))
+    end
+end
+
+hook.Add("PostCleanupMap", "NaiPassengers_ResetCleanupMap", function()
+    ResetPassengerState("post_cleanup_map")
+end)
+
+hook.Add("ShutDown", "NaiPassengers_ResetShutdown", function()
+    ResetPassengerState("shutdown")
+end)
+
 util.AddNetworkString("NaiMakePassenger")
 util.AddNetworkString("NaiRemovePassenger")
 util.AddNetworkString("NaiMakePassengerForVehicle")
 
 net.Receive("NaiMakePassenger", function(len, ply)
+    if not IsAddonEnabled() then return end
     local ent = net.ReadEntity()
     
     if not IsValid(ent) or not IsValid(ply) then return end
@@ -2546,7 +2763,20 @@ net.Receive("NaiMakePassenger", function(len, ply)
         if not IsValid(vehicle) then return end
         
         local rootVehicle = GetRootVehicle(vehicle)
+        if not IsVehicleAllowedByFilters(rootVehicle) then
+            local msg = "vehicle blocked by passenger filter settings"
+            ply:ChatPrint(msg)
+            SendClientCue(ply, false, msg)
+            return
+        end
         local allowMultiple = NaiPassengers.cv_multiple:GetBool()
+
+        if IsNPCBoardCooldownActive(ent) then
+            local msg = Phrase("passenger_cooldown")
+            ply:ChatPrint(msg)
+            SendClientCue(ply, false, msg)
+            return
+        end
         
         if not allowMultiple and VehicleHasNPCAttached(rootVehicle) then
             ply:ChatPrint("Vehicle already has a passenger! Enable multiple passengers in settings.")
@@ -2561,23 +2791,35 @@ net.Receive("NaiMakePassenger", function(len, ply)
         
         local success = AttachNPCToVehicle(ent, rootVehicle)
         if success then
+            RegisterBoardSuccess(ent)
             RemovePendingPassenger(ply, ent)
             local total = GetPassengerCount(rootVehicle)
             local remaining = GetAvailableSeatCount(rootVehicle)
-            ply:ChatPrint("Passenger added! (" .. total .. " passengers, " .. remaining .. " seats left)")
+            local msg = "passenger added! (" .. total .. " passengers, " .. remaining .. " seats left)"
+            ply:ChatPrint(msg)
+            SendClientCue(ply, true, msg)
         else
-            ply:ChatPrint("Failed to attach NPC to vehicle!")
+            local cooldownStarted = RegisterBoardFailure(ent)
+            local msg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
+            ply:ChatPrint(msg)
+            SendClientCue(ply, false, msg)
         end
     else
         if AddPendingPassenger(ply, ent) then
             local count = GetPendingCount(ply)
             if count == 1 then
-                ply:ChatPrint("NPC marked as passenger. Get in a vehicle!")
+                local msg = Phrase("passenger_queue_marked")
+                ply:ChatPrint(msg)
+                SendClientCue(ply, true, msg)
             else
-                ply:ChatPrint("NPC added to queue! (" .. count .. " pending passengers)")
+                local msg = Phrase("passenger_queue_added", count)
+                ply:ChatPrint(msg)
+                SendClientCue(ply, true, msg)
             end
         else
-            ply:ChatPrint("This NPC is already in the queue!")
+            local msg = Phrase("passenger_queue_duplicate")
+            ply:ChatPrint(msg)
+            SendClientCue(ply, false, msg)
         end
     end
 end)
@@ -2668,6 +2910,7 @@ end)
 
 -- New: Make NPC passenger for a specific vehicle (click NPC, then click vehicle)
 net.Receive("NaiMakePassengerForVehicle", function(len, ply)
+    if not IsAddonEnabled() then return end
     local npc = net.ReadEntity()
     local vehicle = net.ReadEntity()
     
@@ -2686,6 +2929,20 @@ net.Receive("NaiMakePassengerForVehicle", function(len, ply)
     if not IsValid(rootVehicle) then
         rootVehicle = vehicle
     end
+
+    if not IsVehicleAllowedByFilters(rootVehicle) then
+        local msg = "vehicle blocked by passenger filter settings"
+        ply:ChatPrint(msg)
+        SendClientCue(ply, false, msg)
+        return
+    end
+
+    if IsNPCBoardCooldownActive(npc) then
+        local msg = Phrase("passenger_cooldown")
+        ply:ChatPrint(msg)
+        SendClientCue(ply, false, msg)
+        return
+    end
     
     local allowMultiple = NaiPassengers.cv_multiple:GetBool()
     
@@ -2703,11 +2960,17 @@ net.Receive("NaiMakePassengerForVehicle", function(len, ply)
     -- Use skipPlayerCheck = true since we're manually assigning
     local success = AttachNPCToVehicle(npc, rootVehicle, true)
     if success then
+        RegisterBoardSuccess(npc)
         local total = GetPassengerCount(rootVehicle)
         local remaining = GetAvailableSeatCount(rootVehicle)
-        ply:ChatPrint("NPC added to vehicle! (" .. total .. " passengers, " .. remaining .. " seats left)")
+        local msg = "npc added to vehicle! (" .. total .. " passengers, " .. remaining .. " seats left)"
+        ply:ChatPrint(msg)
+        SendClientCue(ply, true, msg)
     else
-        ply:ChatPrint("Failed to attach NPC to vehicle!")
+        local cooldownStarted = RegisterBoardFailure(npc)
+        local msg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
+        ply:ChatPrint(msg)
+        SendClientCue(ply, false, msg)
     end
 end)
 
@@ -2736,6 +2999,42 @@ concommand.Add("nai_passengers_list", function(ply)
         totalPassengers = totalPassengers + 1
     end
     ply:ChatPrint("Total passengers in world: " .. totalPassengers)
+end)
+
+concommand.Add("nai_passengers_dump_nearby", function(ply)
+    if not IsValid(ply) or not ply:IsAdmin() then return end
+
+    local radius = 1000
+    ply:ChatPrint(Phrase("dump_header"))
+
+    local found = 0
+    for npc, data in pairs(friendlyPassengers) do
+        if not IsValid(npc) then continue end
+        if npc:GetPos():DistToSqr(ply:GetPos()) > (radius * radius) then continue end
+
+        local npcId = npc:EntIndex()
+        local state = npcLookState[npcId]
+        local stateName = "calm"
+        if state then
+            if state.isDrowsy then
+                stateName = "drowsy"
+            elseif (state.fearLevel or 0) > 0.5 then
+                stateName = "scared"
+            elseif (state.alertLevel or 0) > 0.3 then
+                stateName = "alert"
+            end
+        end
+
+        local hp = tostring(math.max(0, npc:Health()))
+        local vehClass = IsValid(data.vehicle) and (data.vehicle:GetClass() or "unknown") or "invalid"
+        local seatClass = IsValid(data.seat) and (data.seat:GetClass() or "seat") or "none"
+        ply:ChatPrint(Phrase("dump_line", npc:GetClass(), stateName, hp, vehClass, seatClass))
+        found = found + 1
+    end
+
+    if found == 0 then
+        ply:ChatPrint(Phrase("dump_none"))
+    end
 end)
 
 concommand.Add("nai_passengers_clear", function(ply)
