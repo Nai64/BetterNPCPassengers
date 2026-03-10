@@ -105,7 +105,7 @@ This addon allows NPCs to enter vehicles as passengers, complete with [b]lifelik
 [hr][/hr]
 
 [h2]⚙️ Settings[/h2]
-Press [b]F7[/b] or [b]Spawnmenu ➜ Utilities ➜ Nai's Addons[/b]
+Press [b]F7[/b] or [b]Spawnmenu ➜ Utilities ➜ NPC Passengers[/b]
 
 [hr][/hr]
 
@@ -119,6 +119,5 @@ Press [b]F7[/b] or [b]Spawnmenu ➜ Utilities ➜ Nai's Addons[/b]
 
 [i]Enjoy the ride! Please report any bugs in the comments.[/i]
 
-[url=https://steamcommunity.com/id/nai_dev/myworkshopfiles/?appid=4000][img]https://i.imgur.com/fSOorUG.png[/img][/url]  
 [url=https://youtube.com/@naidev5][img]https://i.imgur.com/KodsicM.png[/img][/url]  
 [url=https://discord.gg/RYbnePuvZE][img]https://i.imgur.com/jnStz39.png[/img][/url]

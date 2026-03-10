@@ -1,8 +1,8 @@
 if CLIENT then return end
 
-NaiPassengers = NaiPassengers or {}
-NaiPassengers.Modules = NaiPassengers.Modules or {}
-NaiPassengers.Modules.main = true
+NPCPassengers = NPCPassengers or {}
+NPCPassengers.Modules = NPCPassengers.Modules or {}
+NPCPassengers.Modules.main = true
 
 local friendlyPassengers = {}
 local pendingPassengers = {}
@@ -10,9 +10,15 @@ local vehicleCooldowns = {}
 local animationTimers = {}
 local npcLookState = {}
 local npcBoardRetryState = {}
+local vehicleSeatCache = {}
 local addonWasEnabled = true
 
-NaiPassengers.LVSCompatResolvers = NaiPassengers.LVSCompatResolvers or {}
+local PASSENGER_ANIM_INTERVAL = 0.05
+local PASSENGER_MAINTENANCE_INTERVAL = 0.35
+local PASSENGER_HEADLOOK_INTERVAL = 0.05
+local PASSENGER_TRANSFORM_SYNC_INTERVAL = 0.1
+
+NPCPassengers.LVSCompatResolvers = NPCPassengers.LVSCompatResolvers or {}
 
 -- Forward declare StartAnimationEnforcement
 local StartAnimationEnforcement
@@ -20,31 +26,31 @@ local DetachNPC
 local ResetPassengerState
 
 local function IsDebugModeEnabled()
-    if NaiPassengers.GetConVarBool then
-        return NaiPassengers.GetConVarBool("nai_npc_debug_mode", false)
+    if NPCPassengers.GetConVarBool then
+        return NPCPassengers.GetConVarBool("nai_npc_debug_mode", false)
     end
-    if NaiPassengers.cv_debug_mode then
-        return NaiPassengers.cv_debug_mode:GetBool()
+    if NPCPassengers.cv_debug_mode then
+        return NPCPassengers.cv_debug_mode:GetBool()
     end
     return false
 end
 
 local function IsVerboseDebugEnabled()
-    if NaiPassengers.GetConVarBool then
-        return NaiPassengers.GetConVarBool("nai_npc_debug_verbose", false)
+    if NPCPassengers.GetConVarBool then
+        return NPCPassengers.GetConVarBool("nai_npc_debug_verbose", false)
     end
-    if NaiPassengers.cv_debug_verbose then
-        return NaiPassengers.cv_debug_verbose:GetBool()
+    if NPCPassengers.cv_debug_verbose then
+        return NPCPassengers.cv_debug_verbose:GetBool()
     end
     return false
 end
 
 local function IsAddonEnabled()
-    if NaiPassengers.GetConVarBool then
-        return NaiPassengers.GetConVarBool("nai_npc_enabled", true)
+    if NPCPassengers.GetConVarBool then
+        return NPCPassengers.GetConVarBool("nai_npc_enabled", true)
     end
-    if NaiPassengers.cv_enabled then
-        return NaiPassengers.cv_enabled:GetBool()
+    if NPCPassengers.cv_enabled then
+        return NPCPassengers.cv_enabled:GetBool()
     end
     return true
 end
@@ -79,10 +85,10 @@ local function IsVehicleAllowedByFilters(vehicle)
     local className = string.lower(vehicle:GetClass() or "")
     local modelName = string.lower(vehicle:GetModel() or "")
 
-    local allowClasses = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_allow_classes", "") or (GetConVar("nai_npc_allow_classes") and GetConVar("nai_npc_allow_classes"):GetString() or ""))
-    local denyClasses = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_deny_classes", "") or (GetConVar("nai_npc_deny_classes") and GetConVar("nai_npc_deny_classes"):GetString() or ""))
-    local allowModels = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_allow_models", "") or (GetConVar("nai_npc_allow_models") and GetConVar("nai_npc_allow_models"):GetString() or ""))
-    local denyModels = ParseCSVPatterns(NaiPassengers.GetConVarString and NaiPassengers.GetConVarString("nai_npc_deny_models", "") or (GetConVar("nai_npc_deny_models") and GetConVar("nai_npc_deny_models"):GetString() or ""))
+    local allowClasses = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_allow_classes", "") or (GetConVar("nai_npc_allow_classes") and GetConVar("nai_npc_allow_classes"):GetString() or ""))
+    local denyClasses = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_deny_classes", "") or (GetConVar("nai_npc_deny_classes") and GetConVar("nai_npc_deny_classes"):GetString() or ""))
+    local allowModels = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_allow_models", "") or (GetConVar("nai_npc_allow_models") and GetConVar("nai_npc_allow_models"):GetString() or ""))
+    local denyModels = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_deny_models", "") or (GetConVar("nai_npc_deny_models") and GetConVar("nai_npc_deny_models"):GetString() or ""))
 
     if ValueMatchesPatterns(className, denyClasses) or ValueMatchesPatterns(modelName, denyModels) then
         return false
@@ -100,17 +106,17 @@ local function IsVehicleAllowedByFilters(vehicle)
 end
 
 local function GetVehiclePassengerLimit()
-    local cap = NaiPassengers.GetConVarInt and NaiPassengers.GetConVarInt("nai_npc_max_passengers", 8) or 8
+    local cap = NPCPassengers.GetConVarInt and NPCPassengers.GetConVarInt("nai_npc_max_passengers", 8) or 8
     return math.max(1, cap)
 end
 
 local function GetRetryAttemptsLimit()
-    local tries = NaiPassengers.GetConVarInt and NaiPassengers.GetConVarInt("nai_npc_retry_attempts", 3) or 3
+    local tries = NPCPassengers.GetConVarInt and NPCPassengers.GetConVarInt("nai_npc_retry_attempts", 3) or 3
     return math.max(1, tries)
 end
 
 local function GetRetryCooldownSeconds()
-    local seconds = NaiPassengers.GetConVarFloat and NaiPassengers.GetConVarFloat("nai_npc_retry_cooldown", 6) or 6
+    local seconds = NPCPassengers.GetConVarFloat and NPCPassengers.GetConVarFloat("nai_npc_retry_cooldown", 6) or 6
     return math.max(0.5, seconds)
 end
 
@@ -143,14 +149,14 @@ local function RegisterBoardFailure(npc)
     return false
 end
 
-function NaiPassengers.RegisterLVSSeatResolver(pattern, resolverFn)
+function NPCPassengers.RegisterLVSSeatResolver(pattern, resolverFn)
     if not pattern or pattern == "" or not isfunction(resolverFn) then return false end
-    NaiPassengers.LVSCompatResolvers[string.lower(pattern)] = resolverFn
+    NPCPassengers.LVSCompatResolvers[string.lower(pattern)] = resolverFn
     return true
 end
 
-if not NaiPassengers.LVSCompatResolvers["lvs_wheeldrive"] then
-    NaiPassengers.RegisterLVSSeatResolver("lvs_wheeldrive", function(vehicle)
+if not NPCPassengers.LVSCompatResolvers["lvs_wheeldrive"] then
+    NPCPassengers.RegisterLVSSeatResolver("lvs_wheeldrive", function(vehicle)
         local seats = {}
         if not IsValid(vehicle) then return seats end
 
@@ -184,7 +190,7 @@ end
 local function GetLVSCompatResolver(vehicle)
     if not IsValid(vehicle) then return nil end
     local className = string.lower(vehicle:GetClass() or "")
-    for pattern, resolver in pairs(NaiPassengers.LVSCompatResolvers) do
+    for pattern, resolver in pairs(NPCPassengers.LVSCompatResolvers) do
         if string.find(className, pattern, 1, true) then
             return resolver
         end
@@ -194,15 +200,15 @@ end
 
 local function SendClientCue(ply, success, msg)
     if not IsValid(ply) or not ply:IsPlayer() then return end
-    net.Start("NaiPassengers_ClientCue")
+    net.Start("NPCPassengers_ClientCue")
     net.WriteBool(success == true)
     net.WriteString(msg or "")
     net.Send(ply)
 end
 
 local function Phrase(key, ...)
-    if NaiPassengers.GetPhrase then
-        return NaiPassengers.GetPhrase(key, ...)
+    if NPCPassengers.GetPhrase then
+        return NPCPassengers.GetPhrase(key, ...)
     end
     return key
 end
@@ -218,16 +224,16 @@ local function MarkGesturePlaying(npc, duration)
 end
 
 -- Network strings for debug testing and HUD
-util.AddNetworkString("NaiPassengers_DebugTest")
-util.AddNetworkString("NaiPassengers_HUDUpdate")
-util.AddNetworkString("NaiPassengers_SetStatus")
-util.AddNetworkString("NaiPassengers_EjectPrompt")
-util.AddNetworkString("NaiPassengers_EjectDead")
-util.AddNetworkString("NaiMakeDriver")
-util.AddNetworkString("NaiPassengers_ClientCue")
+util.AddNetworkString("NPCPassengers_DebugTest")
+util.AddNetworkString("NPCPassengers_HUDUpdate")
+util.AddNetworkString("NPCPassengers_SetStatus")
+util.AddNetworkString("NPCPassengers_EjectPrompt")
+util.AddNetworkString("NPCPassengers_EjectDead")
+util.AddNetworkString("NPCPassengers_MakeDriver")
+util.AddNetworkString("NPCPassengers_ClientCue")
 
 -- Debug test receiver (simplified - body sway is now client-side)
-net.Receive("NaiPassengers_DebugTest", function(len, ply)
+net.Receive("NPCPassengers_DebugTest", function(len, ply)
     if not IsValid(ply) or not ply:IsAdmin() then return end
     if not IsDebugModeEnabled() then return end
     
@@ -320,7 +326,7 @@ net.Receive("NaiPassengers_DebugTest", function(len, ply)
 end)
 
 -- Debug: Set passenger status
-net.Receive("NaiPassengers_SetStatus", function(len, ply)
+net.Receive("NPCPassengers_SetStatus", function(len, ply)
     if not IsValid(ply) or not ply:IsAdmin() then return end
     if not IsDebugModeEnabled() then return end
     
@@ -374,6 +380,16 @@ local function GetPassengerCount(vehicle)
     return count
 end
 
+local function ClearVehicleSeatCache(vehicle)
+    if isnumber(vehicle) then
+        vehicleSeatCache[vehicle] = nil
+        return
+    end
+
+    if not IsValid(vehicle) then return end
+    vehicleSeatCache[vehicle:EntIndex()] = nil
+end
+
 local function CollectLVSSeats(vehicle, seats)
     local resolver = GetLVSCompatResolver(vehicle)
     if resolver then
@@ -418,9 +434,29 @@ local function CollectLVSSeats(vehicle, seats)
 end
 
 local function CollectVehicleSeats(vehicle)
-    local seats = {}
-    if not IsValid(vehicle) then return seats end
+    if not IsValid(vehicle) then return {} end
+
     local class = vehicle:GetClass() or ""
+    local vehicleId = vehicle:EntIndex()
+    local children = vehicle:GetChildren()
+    local childCount = #children
+    local cached = vehicleSeatCache[vehicleId]
+
+    if cached and cached.childCount == childCount and cached.className == class then
+        local seats = cached.seats
+        local validSeats = true
+        for index = 1, #seats do
+            if not IsValid(seats[index]) then
+                validSeats = false
+                break
+            end
+        end
+        if validSeats then
+            return seats
+        end
+    end
+
+    local seats = {}
 
     if vehicle.IsSimfphyscar then
         if vehicle.DriverSeat and IsValid(vehicle.DriverSeat) and not IsValid(vehicle.DriverSeat:GetDriver()) then
@@ -471,12 +507,24 @@ local function CollectVehicleSeats(vehicle)
             end
         end
     else
-        for _, child in ipairs(vehicle:GetChildren()) do
+        for _, child in ipairs(children) do
             if child:GetClass() == "prop_vehicle_prisoner_pod" then
                 seats[#seats + 1] = child
             end
         end
     end
+
+    table.sort(seats, function(a, b)
+        local posA = vehicle:WorldToLocal(a:GetPos())
+        local posB = vehicle:WorldToLocal(b:GetPos())
+        return posA.x > posB.x
+    end)
+
+    vehicleSeatCache[vehicleId] = {
+        seats = seats,
+        childCount = childCount,
+        className = class,
+    }
 
     return seats
 end
@@ -561,7 +609,7 @@ local function CleanupNPCTimers(npc)
     end
     
     if animationTimers[npcId] then
-        timer.Remove("NaiNPCAnim_" .. npcId)
+        timer.Remove("NPCPassengerAnim_" .. npcId)
         animationTimers[npcId] = nil
     end
 end
@@ -767,12 +815,6 @@ local function CalculatePassengerPosition(vehicle, npc)
         return nil, nil, nil, nil, nil
     end
     
-    table.sort(seats, function(a, b)
-        local posA = vehicle:WorldToLocal(a:GetPos())
-        local posB = vehicle:WorldToLocal(b:GetPos())
-        return posA.x > posB.x
-    end)
-    
     for _, seat in ipairs(seats) do
         if not IsValid(seat:GetDriver()) then
             local isOccupied = false
@@ -796,8 +838,8 @@ end
 
 local function SetNoTalkFlag(npc, enable)
     if not IsValid(npc) then return end
-    npc:SetNWBool("NaiPassengerNoTalk", false)
-    npc.NaiIsPassengerNoTalk = false
+    npc:SetNWBool("NPCPassengerNoTalk", false)
+    npc.NPCPassengerNoTalk = false
 end
 
 local function DisableNPCAI(npc)
@@ -1067,10 +1109,10 @@ end
 local function ProcessEmotionActions(npc, state, vehicle)
     if not IsValid(npc) or not state then return end
     
-    local alertThreshold = NaiPassengers.cv_hud_alert_threshold:GetFloat()
-    local fearThreshold = NaiPassengers.cv_hud_fear_threshold:GetFloat()
-    local drowsyThreshold = NaiPassengers.cv_hud_drowsy_threshold:GetFloat()
-    local drowsyTime = NaiPassengers.cv_drowsy_time:GetFloat()
+    local alertThreshold = NPCPassengers.cv_hud_alert_threshold:GetFloat()
+    local fearThreshold = NPCPassengers.cv_hud_fear_threshold:GetFloat()
+    local drowsyThreshold = NPCPassengers.cv_hud_drowsy_threshold:GetFloat()
+    local drowsyTime = NPCPassengers.cv_drowsy_time:GetFloat()
     
     local alertLevel = state.alertLevel or 0
     local fearLevel = state.fearLevel or 0
@@ -1078,17 +1120,17 @@ local function ProcessEmotionActions(npc, state, vehicle)
     
     -- Determine dominant emotion (highest priority: scared > alert > drowsy > calm)
     local emotion = "calm"
-    local action = NaiPassengers.cv_action_calm:GetInt()
+    local action = NPCPassengers.cv_action_calm:GetInt()
     
     if fearLevel >= fearThreshold then
         emotion = "scared"
-        action = NaiPassengers.cv_action_scared:GetInt()
+        action = NPCPassengers.cv_action_scared:GetInt()
     elseif alertLevel >= alertThreshold then
         emotion = "alert"
-        action = NaiPassengers.cv_action_alert:GetInt()
+        action = NPCPassengers.cv_action_alert:GetInt()
     elseif state.isDrowsy or calmRatio >= drowsyThreshold then
         emotion = "drowsy"
-        action = NaiPassengers.cv_action_drowsy:GetInt()
+        action = NPCPassengers.cv_action_drowsy:GetInt()
     end
     
     -- Execute the action if it's not "do nothing"
@@ -1230,27 +1272,27 @@ local function UpdateNPCHeadLook(npc, pdata)
     if dt <= 0 then dt = 0.016 end
     
     local vehicle = pdata.vehicle
-    local headSmoothTime = NaiPassengers.cv_head_smooth:GetFloat()
+    local headSmoothTime = NPCPassengers.cv_head_smooth:GetFloat()
     local eyeSmoothTime = headSmoothTime * 0.375
-    local blinkEnabled = NaiPassengers.cv_blink_enabled:GetBool()
-    local breathingEnabled = NaiPassengers.cv_breathing:GetBool()
+    local blinkEnabled = NPCPassengers.cv_blink_enabled:GetBool()
+    local breathingEnabled = NPCPassengers.cv_breathing:GetBool()
     
     -- Advanced realism settings (body sway handled client-side)
-    local threatAwareness = NaiPassengers.cv_threat_awareness:GetBool()
-    local threatRange = NaiPassengers.cv_threat_range:GetFloat()
-    local combatAlert = NaiPassengers.cv_combat_alert:GetBool()
-    local fearReactions = NaiPassengers.cv_fear_reactions:GetBool()
-    local fearSpeedThreshold = NaiPassengers.cv_fear_speed_threshold:GetFloat()
-    local drowsinessEnabled = NaiPassengers.cv_drowsiness:GetBool()
-    local drowsyTime = NaiPassengers.cv_drowsy_time:GetFloat()
-    local passengerInteraction = NaiPassengers.cv_passenger_interaction:GetBool()
+    local threatAwareness = NPCPassengers.cv_threat_awareness:GetBool()
+    local threatRange = NPCPassengers.cv_threat_range:GetFloat()
+    local combatAlert = NPCPassengers.cv_combat_alert:GetBool()
+    local fearReactions = NPCPassengers.cv_fear_reactions:GetBool()
+    local fearSpeedThreshold = NPCPassengers.cv_fear_speed_threshold:GetFloat()
+    local drowsinessEnabled = NPCPassengers.cv_drowsiness:GetBool()
+    local drowsyTime = NPCPassengers.cv_drowsy_time:GetFloat()
+    local passengerInteraction = NPCPassengers.cv_passenger_interaction:GetBool()
     
     -- Gesture animation settings
-    local talkingGestures = NaiPassengers.cv_talking_gestures:GetBool()
-    local gestureChance = NaiPassengers.cv_gesture_chance:GetFloat()
-    local gestureInterval = NaiPassengers.cv_gesture_interval:GetFloat()
-    local crashFlinch = NaiPassengers.cv_crash_flinch:GetBool()
-    local crashThreshold = NaiPassengers.cv_crash_threshold:GetFloat()
+    local talkingGestures = NPCPassengers.cv_talking_gestures:GetBool()
+    local gestureChance = NPCPassengers.cv_gesture_chance:GetFloat()
+    local gestureInterval = NPCPassengers.cv_gesture_interval:GetFloat()
+    local crashFlinch = NPCPassengers.cv_crash_flinch:GetBool()
+    local crashThreshold = NPCPassengers.cv_crash_threshold:GetFloat()
     
     -- Crash flinch detection - play HUGE flinch gesture on sudden deceleration
     if crashFlinch and IsValid(vehicle) then
@@ -1656,9 +1698,9 @@ StartAnimationEnforcement = function(npc)
     
     InitializeLookState(npcId)
     
-    timer.Create("NaiNPCAnim_" .. npcId, 0.03, 0, function()
+    timer.Create("NPCPassengerAnim_" .. npcId, PASSENGER_ANIM_INTERVAL, 0, function()
         if not IsValid(npc) or not friendlyPassengers[npc] then
-            timer.Remove("NaiNPCAnim_" .. npcId)
+            timer.Remove("NPCPassengerAnim_" .. npcId)
             animationTimers[npcId] = nil
             CleanupNPCLookState(npcId)
             return
@@ -1666,23 +1708,35 @@ StartAnimationEnforcement = function(npc)
         
         local pdata = friendlyPassengers[npc]
         if not pdata or not IsValid(pdata.vehicle) then return end
-        
-        npc:SetEnemy(nil)
-        npc:ClearEnemyMemory()
-        npc:StopMoving()
-        npc:SetNPCState(NPC_STATE_SCRIPT)
-        npc:CapabilitiesClear()
-        npc:SetSaveValue("m_bNPCFreeze", true)
-        npc:SetMoveType(MOVETYPE_NONE)
-        
-        if npc.SetAutomaticFrameAdvance then
-            npc:SetAutomaticFrameAdvance(false)
+
+        local curTime = CurTime()
+
+        if curTime >= (pdata.nextMaintenanceAt or 0) then
+            npc:SetEnemy(nil)
+            npc:ClearEnemyMemory()
+            npc:StopMoving()
+            npc:SetNPCState(NPC_STATE_SCRIPT)
+            npc:CapabilitiesClear()
+            npc:SetSaveValue("m_bNPCFreeze", true)
+            npc:SetMoveType(MOVETYPE_NONE)
+
+            if npc.SetAutomaticFrameAdvance then
+                npc:SetAutomaticFrameAdvance(false)
+            end
+
+            for _, ply in ipairs(player.GetAll()) do
+                if IsValid(ply) then
+                    npc:AddEntityRelationship(ply, D_LI, 99)
+                end
+            end
+
+            pdata.nextMaintenanceAt = curTime + PASSENGER_MAINTENANCE_INTERVAL
         end
         
         -- Don't interfere with gestures while they're playing
         local npcId = npc:EntIndex()
         local state = npcLookState[npcId]
-        local isPlayingGesture = state and state.isPlayingGesture and CurTime() < (state.gestureEndTime or 0)
+        local isPlayingGesture = state and state.isPlayingGesture and curTime < (state.gestureEndTime or 0)
         
         if not isPlayingGesture then
             if npc.RemoveAllGestures then
@@ -1698,26 +1752,22 @@ StartAnimationEnforcement = function(npc)
         end
         
         -- Head/eye looking behavior (can be disabled in settings)
-        if NaiPassengers.cv_head_look:GetBool() then
+        if NPCPassengers.cv_head_look:GetBool() and curTime >= (pdata.nextHeadLookAt or 0) then
             UpdateNPCHeadLook(npc, pdata)
+            pdata.nextHeadLookAt = curTime + PASSENGER_HEADLOOK_INTERVAL
         end
-        
-        for _, ply in pairs(player.GetAll()) do
-            if IsValid(ply) then
-                npc:AddEntityRelationship(ply, D_LI, 99)
-            end
-        end
-        
+
         local expectedParent = pdata.seat or pdata.vehicle
-        if npc:GetParent() ~= expectedParent then
-            npc:SetParent(expectedParent)
-        end
-        
-        if IsValid(expectedParent) then
+        local shouldSyncTransform = npc:GetParent() ~= expectedParent or curTime >= (pdata.nextTransformSyncAt or 0)
+
+        if shouldSyncTransform and IsValid(expectedParent) then
+            if npc:GetParent() ~= expectedParent then
+                npc:SetParent(expectedParent)
+            end
+
             local basePos = pdata.baseLocalPos or Vector(0,0,0)
-            
             local vehOffsets = GetVehicleOffsets(pdata.vehicleType or VEHICLE_TYPE_GENERIC)
-            
+
             local baseAng
             if pdata.vehicleType == VEHICLE_TYPE_LVS and IsValid(pdata.vehicle) then
                 local vehicleForwardAng = pdata.vehicle:GetAngles()
@@ -1727,18 +1777,20 @@ StartAnimationEnforcement = function(npc)
             end
 
             local offsetPos = Vector(
-                vehOffsets.forward + NaiPassengers.cv_forward_offset:GetFloat(),
-                vehOffsets.right + NaiPassengers.cv_right_offset:GetFloat(),
-                vehOffsets.height + NaiPassengers.cv_height_offset:GetFloat()
+                vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
+                vehOffsets.right + NPCPassengers.cv_right_offset:GetFloat(),
+                vehOffsets.height + NPCPassengers.cv_height_offset:GetFloat()
             )
             npc:SetLocalPos(basePos + offsetPos)
             
             local offsetAng = Angle(
-                vehOffsets.pitch + NaiPassengers.cv_pitch_offset:GetFloat(),
-                vehOffsets.baseYaw + vehOffsets.yaw + NaiPassengers.cv_yaw_offset:GetFloat(),
-                vehOffsets.roll + NaiPassengers.cv_roll_offset:GetFloat()
+                vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
+                vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
+                vehOffsets.roll + NPCPassengers.cv_roll_offset:GetFloat()
             )
             npc:SetLocalAngles(baseAng + offsetAng)
+
+            pdata.nextTransformSyncAt = curTime + PASSENGER_TRANSFORM_SYNC_INTERVAL
         end
     end)
     
@@ -1769,11 +1821,11 @@ local function WalkNPCToVehicle(npc, vehicle, callback)
     local vehiclePos = vehicle:GetPos()
     local vehicleRight = vehicle:GetRight()
     local targetPos = vehiclePos + vehicleRight * 80
-    local enterDistance = NaiPassengers.GetConVarFloat and NaiPassengers.GetConVarFloat("nai_npc_enter_distance", 80) or 80
+    local enterDistance = NPCPassengers.GetConVarFloat and NPCPassengers.GetConVarFloat("nai_npc_enter_distance", 80) or 80
     
     local dist = npc:GetPos():Distance(targetPos)
     
-    if dist > NaiPassengers.cv_max_dist:GetFloat() then
+    if dist > NPCPassengers.cv_max_dist:GetFloat() then
         if callback then callback(true) end
         return
     end
@@ -1788,24 +1840,24 @@ local function WalkNPCToVehicle(npc, vehicle, callback)
     
     local npcId = npc:EntIndex()
     local startTime = CurTime()
-    local maxWalkTime = NaiPassengers.cv_walk_timeout:GetFloat()
+    local maxWalkTime = NPCPassengers.cv_walk_timeout:GetFloat()
     
-    timer.Create("NaiNPCWalk_" .. npcId, 0.2, 0, function()
+    timer.Create("NPCPassengerWalk_" .. npcId, 0.2, 0, function()
         if not IsValid(npc) or not IsValid(vehicle) then
-            timer.Remove("NaiNPCWalk_" .. npcId)
+            timer.Remove("NPCPassengerWalk_" .. npcId)
             if callback then callback(false) end
             return
         end
         
         if CurTime() - startTime > maxWalkTime then
-            timer.Remove("NaiNPCWalk_" .. npcId)
+            timer.Remove("NPCPassengerWalk_" .. npcId)
             if callback then callback(false) end
             return
         end
         
         local currentDist = npc:GetPos():Distance(targetPos)
         if currentDist < enterDistance then
-            timer.Remove("NaiNPCWalk_" .. npcId)
+            timer.Remove("NPCPassengerWalk_" .. npcId)
             npc:StopMoving()
             if callback then callback(true) end
             return
@@ -1833,11 +1885,11 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     
     local vehicleId = vehicle:EntIndex()
     
-    if not NaiPassengers.cv_multiple:GetBool() and VehicleHasNPCAttached(vehicle) then
+    if not NPCPassengers.cv_multiple:GetBool() and VehicleHasNPCAttached(vehicle) then
         return false
     end
     
-    if vehicleCooldowns[vehicleId] and CurTime() - vehicleCooldowns[vehicleId] < NaiPassengers.cv_cooldown:GetFloat() then
+    if vehicleCooldowns[vehicleId] and CurTime() - vehicleCooldowns[vehicleId] < NPCPassengers.cv_cooldown:GetFloat() then
         return false
     end
     
@@ -1866,16 +1918,16 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     local vehOffsets = GetVehicleOffsets(vehicleType)
     
     local offsetPos = Vector(
-        vehOffsets.forward + NaiPassengers.cv_forward_offset:GetFloat(),
-        vehOffsets.right + NaiPassengers.cv_right_offset:GetFloat(),
-        vehOffsets.height + NaiPassengers.cv_height_offset:GetFloat()
+        vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
+        vehOffsets.right + NPCPassengers.cv_right_offset:GetFloat(),
+        vehOffsets.height + NPCPassengers.cv_height_offset:GetFloat()
     )
     npc:SetLocalPos(baseLocalPos + offsetPos)
     
     local offsetAng = Angle(
-        vehOffsets.pitch + NaiPassengers.cv_pitch_offset:GetFloat(),
-        vehOffsets.baseYaw + vehOffsets.yaw + NaiPassengers.cv_yaw_offset:GetFloat(),
-        vehOffsets.roll + NaiPassengers.cv_roll_offset:GetFloat()
+        vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
+        vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
+        vehOffsets.roll + NPCPassengers.cv_roll_offset:GetFloat()
     )
     npc:SetLocalAngles(baseLocalAng + offsetAng)
     
@@ -1885,7 +1937,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     npc:SetNotSolid(true)
     
     -- Hide NPC if inside an enclosed vehicle (tank, APC, etc.) and setting is enabled
-    local isEnclosed = NaiPassengers.cv_hide_in_tanks:GetBool() and IsEnclosedVehicle(vehicle)
+    local isEnclosed = NPCPassengers.cv_hide_in_tanks:GetBool() and IsEnclosedVehicle(vehicle)
     if isEnclosed then
         -- Multiple methods to ensure NPC is hidden
         npc:SetNoDraw(true)
@@ -1895,7 +1947,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
         -- Also set render FX
         npc:SetRenderFX(kRenderFxNone)
         -- Network the visibility state
-        npc:SetNWBool("NaiHidden", true)
+        npc:SetNWBool("NPCPassengerHidden", true)
     else
         npc:SetNoDraw(false)
     end
@@ -1917,7 +1969,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     StartAnimationEnforcement(npc)
     
     -- Mark as passenger for client-side bone manipulation
-    npc:SetNWBool("IsNaiPassenger", true)
+    npc:SetNWBool("IsNPCPassenger", true)
     
     friendlyPassengers[npc] = {
         vehicle = vehicle,
@@ -1942,26 +1994,26 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     
     -- DISABLED: Register NPC as turret gunner for LVS vehicles
     --[[ LVS TURRET DISABLED
-    if vehicleType == VEHICLE_TYPE_LVS and NaiPassengers.RegisterTurretNPC then
+    if vehicleType == VEHICLE_TYPE_LVS and NPCPassengers.RegisterTurretNPC then
         timer.Simple(0.1, function()
             if IsValid(npc) and friendlyPassengers[npc] then
-                NaiPassengers.RegisterTurretNPC(npc, friendlyPassengers[npc])
+                NPCPassengers.RegisterTurretNPC(npc, friendlyPassengers[npc])
             end
         end)
     end
     --]]
     
     -- Register NPC as driver if in driver seat
-    if NaiPassengers.RegisterDriverNPC then
+    if NPCPassengers.RegisterDriverNPC then
         timer.Simple(0.1, function()
             if IsValid(npc) and friendlyPassengers[npc] then
-                NaiPassengers.RegisterDriverNPC(npc, vehicle, parentEntity)
+                NPCPassengers.RegisterDriverNPC(npc, vehicle, parentEntity)
             end
         end)
     end
     
     -- Boarding sound
-    if NaiPassengers.cv_speech_enabled:GetBool() and NaiPassengers.cv_speech_board_enabled:GetBool() then
+    if NPCPassengers.cv_speech_enabled:GetBool() and NPCPassengers.cv_speech_board_enabled:GetBool() then
         timer.Simple(0.3, function()
             if not IsValid(npc) then return end
             local model = npc:GetModel() or ""
@@ -1983,8 +2035,8 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
                 "vo/npc/male01/letsgo01.wav",
                 "vo/npc/male01/letsgo02.wav",
             }
-            local vol = NaiPassengers.cv_speech_volume:GetFloat()
-            local pitchVar = NaiPassengers.cv_speech_pitch_variation:GetInt()
+            local vol = NPCPassengers.cv_speech_volume:GetFloat()
+            local pitchVar = NPCPassengers.cv_speech_pitch_variation:GetInt()
             local pitch = 100 + math.random(-pitchVar, pitchVar)
             npc:EmitSound(boardSounds[math.random(#boardSounds)], vol, pitch)
         end)
@@ -1999,7 +2051,7 @@ DetachNPC = function(npc)
     local data = friendlyPassengers[npc]
     
     -- Exit sound (before detaching while NPC is still valid)
-    if NaiPassengers.cv_speech_enabled:GetBool() and NaiPassengers.cv_speech_board_enabled:GetBool() then
+    if NPCPassengers.cv_speech_enabled:GetBool() and NPCPassengers.cv_speech_board_enabled:GetBool() then
         local model = npc:GetModel() or ""
         local isFemale = string.find(model, "female") or string.find(model, "alyx") or string.find(model, "mossman")
         local exitSounds = isFemale and {
@@ -2015,25 +2067,25 @@ DetachNPC = function(npc)
             "vo/npc/male01/readywhenyouare01.wav",
             "vo/npc/male01/readywhenyouare02.wav",
         }
-        local vol = NaiPassengers.cv_speech_volume:GetFloat()
-        local pitchVar = NaiPassengers.cv_speech_pitch_variation:GetInt()
+        local vol = NPCPassengers.cv_speech_volume:GetFloat()
+        local pitchVar = NPCPassengers.cv_speech_pitch_variation:GetInt()
         local pitch = 100 + math.random(-pitchVar, pitchVar)
         npc:EmitSound(exitSounds[math.random(#exitSounds)], vol, pitch)
     end
     
     -- DISABLED: Unregister from turret control
     --[[ LVS TURRET DISABLED
-    if NaiPassengers.UnregisterTurretNPC then
-        NaiPassengers.UnregisterTurretNPC(npc)
+    if NPCPassengers.UnregisterTurretNPC then
+        NPCPassengers.UnregisterTurretNPC(npc)
     end
     --]]
     
     -- Unregister from driver control
-    if NaiPassengers.UnregisterDriverNPC then
-        NaiPassengers.UnregisterDriverNPC(npc)
+    if NPCPassengers.UnregisterDriverNPC then
+        NPCPassengers.UnregisterDriverNPC(npc)
     end
     
-    timer.Remove("NaiNPCAnim_" .. data.npcId)
+    timer.Remove("NPCPassengerAnim_" .. data.npcId)
     animationTimers[data.npcId] = nil
     CleanupNPCLookState(data.npcId)
     
@@ -2053,7 +2105,7 @@ DetachNPC = function(npc)
     npc:SetRenderMode(RENDERMODE_NORMAL)
     npc:DrawShadow(true)
     npc:SetColor(Color(255, 255, 255, 255))
-    npc:SetNWBool("NaiHidden", false)
+    npc:SetNWBool("NPCPassengerHidden", false)
     
     local phys = npc:GetPhysicsObject()
     if IsValid(phys) then
@@ -2112,14 +2164,14 @@ DetachNPC = function(npc)
     end
     
     -- Clear passenger flag for client-side cleanup
-    npc:SetNWBool("IsNaiPassenger", false)
+    npc:SetNWBool("IsNPCPassenger", false)
     
     friendlyPassengers[npc] = nil
     
     return true
 end
 
-hook.Add("Think", "NaiPassengerThink", function()
+hook.Add("Think", "NPCPassengerThink", function()
     local enabled = IsAddonEnabled()
     if not enabled then
         if addonWasEnabled then
@@ -2138,21 +2190,21 @@ hook.Add("Think", "NaiPassengerThink", function()
     local curTime = CurTime()
     
     -- Speech settings cache
-    local speechEnabled = NaiPassengers.cv_speech_enabled:GetBool()
-    local speechVolume = NaiPassengers.cv_speech_volume:GetFloat()
-    local crashEnabled = speechEnabled and NaiPassengers.cv_speech_crash_enabled:GetBool()
-    local crashThreshold = NaiPassengers.cv_speech_crash_threshold:GetFloat()
-    local crashCooldown = NaiPassengers.cv_speech_crash_cooldown:GetFloat()
-    local pitchVar = NaiPassengers.cv_speech_pitch_variation:GetInt()
-    local idleEnabled = speechEnabled and NaiPassengers.cv_speech_idle_enabled:GetBool()
-    local idleChance = NaiPassengers.cv_speech_idle_chance:GetFloat()
-    local idleInterval = NaiPassengers.cv_speech_idle_interval:GetFloat()
+    local speechEnabled = NPCPassengers.cv_speech_enabled:GetBool()
+    local speechVolume = NPCPassengers.cv_speech_volume:GetFloat()
+    local crashEnabled = speechEnabled and NPCPassengers.cv_speech_crash_enabled:GetBool()
+    local crashThreshold = NPCPassengers.cv_speech_crash_threshold:GetFloat()
+    local crashCooldown = NPCPassengers.cv_speech_crash_cooldown:GetFloat()
+    local pitchVar = NPCPassengers.cv_speech_pitch_variation:GetInt()
+    local idleEnabled = speechEnabled and NPCPassengers.cv_speech_idle_enabled:GetBool()
+    local idleChance = NPCPassengers.cv_speech_idle_chance:GetFloat()
+    local idleInterval = NPCPassengers.cv_speech_idle_interval:GetFloat()
     
     -- Advanced realism settings cache
-    local ambientEnabled = speechEnabled and NaiPassengers.cv_ambient_sounds:GetBool()
-    local ambientInterval = NaiPassengers.cv_ambient_interval:GetFloat()
-    local fearReactions = NaiPassengers.cv_fear_reactions:GetBool()
-    local fearSpeedThreshold = NaiPassengers.cv_fear_speed_threshold:GetFloat()
+    local ambientEnabled = speechEnabled and NPCPassengers.cv_ambient_sounds:GetBool()
+    local ambientInterval = NPCPassengers.cv_ambient_interval:GetFloat()
+    local fearReactions = NPCPassengers.cv_fear_reactions:GetBool()
+    local fearSpeedThreshold = NPCPassengers.cv_fear_speed_threshold:GetFloat()
     
     for npc, data in pairs(passengersCopy) do
         if not IsValid(npc) or npc:Health() <= 0 then
@@ -2360,10 +2412,10 @@ hook.Add("Think", "NaiPassengerThink", function()
             local npcId = npc:EntIndex()
             local state = npcLookState[npcId]
             if state then
-                npc:SetNWFloat("NaiAlertLevel", state.alertLevel or 0)
-                npc:SetNWFloat("NaiFearLevel", state.fearLevel or 0)
-                npc:SetNWBool("NaiIsDrowsy", state.isDrowsy or false)
-                npc:SetNWFloat("NaiCalmTime", state.calmTime or 0)
+                npc:SetNWFloat("NPCPassengerAlertLevel", state.alertLevel or 0)
+                npc:SetNWFloat("NPCPassengerFearLevel", state.fearLevel or 0)
+                npc:SetNWBool("NPCPassengerIsDrowsy", state.isDrowsy or false)
+                npc:SetNWFloat("NPCPassengerCalmTime", state.calmTime or 0)
                 
                 -- Process emotion-triggered actions
                 ProcessEmotionActions(npc, state, data.vehicle)
@@ -2372,7 +2424,7 @@ hook.Add("Think", "NaiPassengerThink", function()
     end
 end)
 
-hook.Add("PlayerEnteredVehicle", "NaiPassengerAttach", function(ply, vehicle)
+hook.Add("PlayerEnteredVehicle", "NPCPassengerAttach", function(ply, vehicle)
     if not IsAddonEnabled() then return end
     timer.Simple(0.05, function()
         if not IsValid(ply) or not IsValid(vehicle) then return end
@@ -2384,7 +2436,7 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAttach", function(ply, vehicle)
         local pending = pendingPassengers[ply]
         if not pending or #pending == 0 then return end
         
-        local allowMultiple = NaiPassengers.cv_multiple:GetBool()
+        local allowMultiple = NPCPassengers.cv_multiple:GetBool()
         local toProcess = {}
         
         for i = #pending, 1, -1 do
@@ -2453,10 +2505,10 @@ end)
 --[[
     Auto-join: Friendly NPCs automatically board vehicles when player enters
 ]]
-hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
+hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
     if not IsAddonEnabled() then return end
     -- Check if auto-join is enabled
-    if not NaiPassengers.cv_auto_join:GetBool() then return end
+    if not NPCPassengers.cv_auto_join:GetBool() then return end
     
     timer.Simple(0.2, function()
         if not IsValid(ply) or not IsValid(vehicle) then return end
@@ -2465,10 +2517,10 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
         if not IsValid(rootVehicle) then return end
         if not IsVehicleAllowedByFilters(rootVehicle) then return end
         
-        local allowMultiple = NaiPassengers.cv_multiple:GetBool()
-        local maxAutoJoin = NaiPassengers.cv_auto_join_max:GetInt()
-        local autoJoinRange = NaiPassengers.cv_auto_join_range:GetFloat()
-        local squadOnly = NaiPassengers.cv_auto_join_squad_only:GetBool()
+        local allowMultiple = NPCPassengers.cv_multiple:GetBool()
+        local maxAutoJoin = NPCPassengers.cv_auto_join_max:GetInt()
+        local autoJoinRange = NPCPassengers.cv_auto_join_range:GetFloat()
+        local squadOnly = NPCPassengers.cv_auto_join_squad_only:GetBool()
         
         -- Get available seat count
         local availableSeats = GetAvailableSeatCount(rootVehicle)
@@ -2587,9 +2639,9 @@ hook.Add("PlayerEnteredVehicle", "NaiPassengerAutoJoin", function(ply, vehicle)
     end)
 end)
 
-hook.Add("PlayerLeaveVehicle", "NaiPassengerDetach", function(ply, vehicle)
+hook.Add("PlayerLeaveVehicle", "NPCPassengerDetach", function(ply, vehicle)
     if not IsAddonEnabled() then return end
-    local exitMode = NaiPassengers.cv_exit_mode:GetInt()
+    local exitMode = NPCPassengers.cv_exit_mode:GetInt()
     if exitMode ~= 0 then return end
     
     local rootVehicle = GetRootVehicle(vehicle)
@@ -2597,7 +2649,7 @@ hook.Add("PlayerLeaveVehicle", "NaiPassengerDetach", function(ply, vehicle)
         rootVehicle = vehicle
     end
     
-    local delay = NaiPassengers.cv_detach_delay:GetFloat()
+    local delay = NPCPassengers.cv_detach_delay:GetFloat()
     
     timer.Simple(delay, function()
         if VehicleHasPlayer(rootVehicle) then return end
@@ -2615,7 +2667,7 @@ hook.Add("PlayerLeaveVehicle", "NaiPassengerDetach", function(ply, vehicle)
     end)
 end)
 
-hook.Add("EntityTakeDamage", "NaiPassengerDeathHandler", function(target, dmginfo)
+hook.Add("EntityTakeDamage", "NPCPassengerDeathHandler", function(target, dmginfo)
     if not IsAddonEnabled() then return end
     if friendlyPassengers[target] then
         -- Don't detach on crash damage - passengers should stay seated!
@@ -2629,7 +2681,7 @@ hook.Add("EntityTakeDamage", "NaiPassengerDeathHandler", function(target, dmginf
         return
     end
     
-    local exitMode = NaiPassengers.cv_exit_mode:GetInt()
+    local exitMode = NPCPassengers.cv_exit_mode:GetInt()
     if exitMode == 2 then return end
     if exitMode == 0 then return end
     
@@ -2665,16 +2717,22 @@ hook.Add("EntityTakeDamage", "NaiPassengerDeathHandler", function(target, dmginf
     end
 end)
 
-hook.Add("EntityRemoved", "NaiPassengerCleanup", function(ent)
+hook.Add("EntityRemoved", "NPCPassengerCleanup", function(ent)
     if not IsValid(ent) then return end
     
     local entId = ent:EntIndex()
     npcBoardRetryState[entId] = nil
+    ClearVehicleSeatCache(entId)
+
+    local parent = ent:GetParent()
+    if IsValid(parent) then
+        ClearVehicleSeatCache(parent)
+    end
     
     if friendlyPassengers[ent] then
         -- Unregister from turret control
-        if NaiPassengers.UnregisterTurretNPC then
-            NaiPassengers.UnregisterTurretNPC(ent)
+        if NPCPassengers.UnregisterTurretNPC then
+            NPCPassengers.UnregisterTurretNPC(ent)
         end
         friendlyPassengers[ent] = nil
         CleanupNPCTimers(entId)
@@ -2701,7 +2759,7 @@ hook.Add("EntityRemoved", "NaiPassengerCleanup", function(ent)
     end
     
     if animationTimers[entId] then
-        timer.Remove("NaiNPCAnim_" .. entId)
+        timer.Remove("NPCPassengerAnim_" .. entId)
         animationTimers[entId] = nil
     end
     
@@ -2709,7 +2767,7 @@ hook.Add("EntityRemoved", "NaiPassengerCleanup", function(ent)
         vehicleCooldowns[entId] = nil
     end
     
-    timer.Remove("NaiPassengerDetach_" .. entId)
+    timer.Remove("NPCPassengerDetach_" .. entId)
 end)
 
 ResetPassengerState = function(reason)
@@ -2732,25 +2790,26 @@ ResetPassengerState = function(reason)
     pendingPassengers = {}
     vehicleCooldowns = {}
     npcBoardRetryState = {}
+    vehicleSeatCache = {}
 
     if IsVerboseDebugEnabled() then
         print("[npc passengers] reset state reason=" .. tostring(reason or "unknown") .. " detached=" .. tostring(detached))
     end
 end
 
-hook.Add("PostCleanupMap", "NaiPassengers_ResetCleanupMap", function()
+hook.Add("PostCleanupMap", "NPCPassengers_ResetCleanupMap", function()
     ResetPassengerState("post_cleanup_map")
 end)
 
-hook.Add("ShutDown", "NaiPassengers_ResetShutdown", function()
+hook.Add("ShutDown", "NPCPassengers_ResetShutdown", function()
     ResetPassengerState("shutdown")
 end)
 
-util.AddNetworkString("NaiMakePassenger")
-util.AddNetworkString("NaiRemovePassenger")
-util.AddNetworkString("NaiMakePassengerForVehicle")
+util.AddNetworkString("NPCPassengers_MakePassenger")
+util.AddNetworkString("NPCPassengers_RemovePassenger")
+util.AddNetworkString("NPCPassengers_MakePassengerForVehicle")
 
-net.Receive("NaiMakePassenger", function(len, ply)
+net.Receive("NPCPassengers_MakePassenger", function(len, ply)
     if not IsAddonEnabled() then return end
     local ent = net.ReadEntity()
     
@@ -2769,7 +2828,7 @@ net.Receive("NaiMakePassenger", function(len, ply)
             SendClientCue(ply, false, msg)
             return
         end
-        local allowMultiple = NaiPassengers.cv_multiple:GetBool()
+        local allowMultiple = NPCPassengers.cv_multiple:GetBool()
 
         if IsNPCBoardCooldownActive(ent) then
             local msg = Phrase("passenger_cooldown")
@@ -2824,7 +2883,7 @@ net.Receive("NaiMakePassenger", function(len, ply)
     end
 end)
 
-net.Receive("NaiRemovePassenger", function(len, ply)
+net.Receive("NPCPassengers_RemovePassenger", function(len, ply)
     local ent = net.ReadEntity()
     
     if not IsValid(ent) or not IsValid(ply) then return end
@@ -2856,7 +2915,7 @@ net.Receive("NaiRemovePassenger", function(len, ply)
 end)
 
 -- Make NPC driver via context menu
-net.Receive("NaiMakeDriver", function(len, ply)
+net.Receive("NPCPassengers_MakeDriver", function(len, ply)
     local npc = net.ReadEntity()
     
     if not IsValid(npc) or not IsValid(ply) then return end
@@ -2865,7 +2924,7 @@ net.Receive("NaiMakeDriver", function(len, ply)
         return 
     end
     
-    if not NaiPassengers.cv_driver_enabled:GetBool() then
+    if not NPCPassengers.cv_driver_enabled:GetBool() then
         ply:ChatPrint("[NPC Driver] Driver system is disabled in settings!")
         return
     end
@@ -2888,7 +2947,7 @@ net.Receive("NaiMakeDriver", function(len, ply)
         return
     end
     
-    local success, msg = NaiPassengers.MakeNPCDriver(npc, vehicle)
+    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle)
     if success then
         local behaviorNames = {
             [0] = "Random Cruise",
@@ -2897,7 +2956,7 @@ net.Receive("NaiMakeDriver", function(len, ply)
             [3] = "Flee Danger",
             [4] = "Stay Parked"
         }
-        local behavior = NaiPassengers.cv_driver_behavior:GetInt()
+        local behavior = NPCPassengers.cv_driver_behavior:GetInt()
         ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " is now a driver!")
         ply:ChatPrint("[NPC Driver] Behavior: " .. behaviorNames[behavior])
         if behavior == 4 then
@@ -2909,7 +2968,7 @@ net.Receive("NaiMakeDriver", function(len, ply)
 end)
 
 -- New: Make NPC passenger for a specific vehicle (click NPC, then click vehicle)
-net.Receive("NaiMakePassengerForVehicle", function(len, ply)
+net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
     if not IsAddonEnabled() then return end
     local npc = net.ReadEntity()
     local vehicle = net.ReadEntity()
@@ -2944,7 +3003,7 @@ net.Receive("NaiMakePassengerForVehicle", function(len, ply)
         return
     end
     
-    local allowMultiple = NaiPassengers.cv_multiple:GetBool()
+    local allowMultiple = NPCPassengers.cv_multiple:GetBool()
     
     if not allowMultiple and VehicleHasNPCAttached(rootVehicle) then
         ply:ChatPrint("Vehicle already has a passenger! Enable multiple passengers in settings.")
@@ -2971,6 +3030,244 @@ net.Receive("NaiMakePassengerForVehicle", function(len, ply)
         local msg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
         ply:ChatPrint(msg)
         SendClientCue(ply, false, msg)
+    end
+end)
+
+-- Attach the nearest friendly NPC to the player's current vehicle
+concommand.Add("nai_npc_attach_nearest", function(ply)
+    if not IsValid(ply) then return end
+    if not ply:InVehicle() then
+        ply:ChatPrint("[NPC Passengers] You must be in a vehicle!")
+        return
+    end
+
+    local vehicle = GetRootVehicle(ply:GetVehicle())
+    if not IsValid(vehicle) then return end
+
+    if not IsAddonEnabled() then
+        ply:ChatPrint("[NPC Passengers] Addon is disabled.")
+        return
+    end
+
+    if not IsVehicleAllowedByFilters(vehicle) then
+        ply:ChatPrint("[NPC Passengers] This vehicle is blocked by filter settings.")
+        return
+    end
+
+    local maxDist = NPCPassengers.cv_max_dist:GetFloat()
+    local nearestNPC, nearestDistSq = nil, math.huge
+
+    for _, npc in ipairs(ents.FindInSphere(ply:GetPos(), maxDist)) do
+        if not IsValid(npc) or not npc:IsNPC() then continue end
+        if npc:Health() <= 0 then continue end
+        if friendlyPassengers[npc] then continue end
+        if not IsFriendlyNPC(npc, vehicle) then continue end
+        local distSq = ply:GetPos():DistToSqr(npc:GetPos())
+        if distSq < nearestDistSq then
+            nearestDistSq = distSq
+            nearestNPC = npc
+        end
+    end
+
+    if not IsValid(nearestNPC) then
+        ply:ChatPrint("[NPC Passengers] No nearby friendly NPC found within " .. maxDist .. " units.")
+        return
+    end
+
+    if IsNPCBoardCooldownActive(nearestNPC) then
+        ply:ChatPrint("[NPC Passengers] " .. Phrase("passenger_cooldown"))
+        return
+    end
+
+    WalkNPCToVehicle(nearestNPC, vehicle, function(success)
+        if success and IsValid(nearestNPC) and IsValid(vehicle) then
+            if AttachNPCToVehicle(nearestNPC, vehicle) then
+                local msg = Phrase("passenger_boarded", GetPassengerCount(vehicle))
+                if IsValid(ply) then
+                    ply:ChatPrint("[NPC Passengers] " .. msg)
+                    SendClientCue(ply, true, msg)
+                end
+            else
+                local cooldownStarted = RegisterBoardFailure(nearestNPC)
+                local msg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
+                if IsValid(ply) then
+                    ply:ChatPrint("[NPC Passengers] " .. msg)
+                    SendClientCue(ply, false, msg)
+                end
+            end
+        else
+            if IsValid(nearestNPC) then RegisterBoardFailure(nearestNPC) end
+            if IsValid(ply) then
+                local msg = Phrase("passenger_attach_failed")
+                ply:ChatPrint("[NPC Passengers] " .. msg)
+                SendClientCue(ply, false, msg)
+            end
+        end
+    end)
+end)
+
+-- Immediately detach all NPCs from the player's current vehicle
+concommand.Add("nai_npc_detach_all", function(ply)
+    if not IsValid(ply) then return end
+    if not ply:InVehicle() then
+        ply:ChatPrint("[NPC Passengers] You must be in a vehicle!")
+        return
+    end
+
+    local vehicle = GetRootVehicle(ply:GetVehicle())
+    if not IsValid(vehicle) then return end
+
+    local toDetach = {}
+    for npc, data in pairs(friendlyPassengers) do
+        if data.vehicle == vehicle then
+            table.insert(toDetach, npc)
+        end
+    end
+
+    local count = 0
+    for _, npc in ipairs(toDetach) do
+        if IsValid(npc) then
+            DetachNPC(npc)
+            count = count + 1
+        end
+    end
+
+    ply:ChatPrint("[NPC Passengers] Detached " .. count .. " passenger(s).")
+    if count > 0 then SendClientCue(ply, true, "Detached " .. count .. " passenger(s).") end
+end)
+
+-- Command all passengers to exit the player's current vehicle
+concommand.Add("nai_npc_exit_all", function(ply)
+    if not IsValid(ply) then return end
+    if not ply:InVehicle() then
+        ply:ChatPrint("[NPC Passengers] You must be in a vehicle!")
+        return
+    end
+
+    local vehicle = GetRootVehicle(ply:GetVehicle())
+    if not IsValid(vehicle) then return end
+
+    local toExit = {}
+    for npc, data in pairs(friendlyPassengers) do
+        if data.vehicle == vehicle then
+            table.insert(toExit, npc)
+        end
+    end
+
+    local count = 0
+    for _, npc in ipairs(toExit) do
+        if IsValid(npc) then
+            DetachNPC(npc)
+            count = count + 1
+        end
+    end
+
+    ply:ChatPrint("[NPC Passengers] " .. count .. " passenger(s) exited the vehicle.")
+    if count > 0 then SendClientCue(ply, true, count .. " passenger(s) exited.") end
+end)
+
+-- Server-side reset of all replicated/server-controlled ConVars
+-- Called by nai_npc_reset on the client so the server can actually apply the changes
+concommand.Add("nai_npc_server_reset", function(ply)
+    if IsValid(ply) and not ply:IsAdmin() then
+        ply:ChatPrint("[NPC Passengers] You must be an admin to reset server settings.")
+        return
+    end
+    -- General
+    RunConsoleCommand("nai_npc_max_attach_dist", "500")
+    RunConsoleCommand("nai_npc_detach_delay", "0.5")
+    RunConsoleCommand("nai_npc_ai_delay", "2")
+    RunConsoleCommand("nai_npc_cooldown", "1")
+    RunConsoleCommand("nai_npc_allow_multiple", "1")
+    RunConsoleCommand("nai_npc_exit_mode", "0")
+    RunConsoleCommand("nai_npc_hide_in_tanks", "1")
+    -- Auto-join
+    RunConsoleCommand("nai_npc_auto_join", "1")
+    RunConsoleCommand("nai_npc_auto_join_range", "500")
+    RunConsoleCommand("nai_npc_auto_join_max", "4")
+    RunConsoleCommand("nai_npc_auto_join_squad_only", "0")
+    -- Position
+    RunConsoleCommand("nai_npc_height_offset", "-3")
+    RunConsoleCommand("nai_npc_forward_offset", "0")
+    RunConsoleCommand("nai_npc_right_offset", "0")
+    RunConsoleCommand("nai_npc_yaw_offset", "0")
+    RunConsoleCommand("nai_npc_pitch_offset", "0")
+    RunConsoleCommand("nai_npc_roll_offset", "0")
+    -- Speech
+    RunConsoleCommand("nai_npc_speech_enabled", "1")
+    RunConsoleCommand("nai_npc_speech_volume", "75")
+    RunConsoleCommand("nai_npc_speech_crash", "1")
+    RunConsoleCommand("nai_npc_speech_crash_threshold", "400")
+    RunConsoleCommand("nai_npc_speech_crash_cooldown", "1.5")
+    RunConsoleCommand("nai_npc_speech_idle", "1")
+    RunConsoleCommand("nai_npc_speech_idle_chance", "0.3")
+    RunConsoleCommand("nai_npc_speech_idle_interval", "15")
+    RunConsoleCommand("nai_npc_speech_board", "1")
+    RunConsoleCommand("nai_npc_speech_pitch_var", "5")
+    RunConsoleCommand("nai_npc_ambient_sounds", "1")
+    RunConsoleCommand("nai_npc_ambient_interval", "30")
+    -- Animation
+    RunConsoleCommand("nai_npc_head_look", "1")
+    RunConsoleCommand("nai_npc_head_smooth", "0.4")
+    RunConsoleCommand("nai_npc_blink", "1")
+    RunConsoleCommand("nai_npc_breathing", "1")
+    RunConsoleCommand("nai_npc_walk_timeout", "5")
+    -- Advanced Realism
+    RunConsoleCommand("nai_npc_talking_gestures", "1")
+    RunConsoleCommand("nai_npc_gesture_chance", "15")
+    RunConsoleCommand("nai_npc_gesture_interval", "8")
+    RunConsoleCommand("nai_npc_crash_flinch", "1")
+    RunConsoleCommand("nai_npc_crash_threshold", "400")
+    RunConsoleCommand("nai_npc_body_sway", "1")
+    RunConsoleCommand("nai_npc_body_sway_amount", "1")
+    RunConsoleCommand("nai_npc_threat_awareness", "1")
+    RunConsoleCommand("nai_npc_threat_range", "1500")
+    RunConsoleCommand("nai_npc_combat_alert", "1")
+    RunConsoleCommand("nai_npc_fear_reactions", "1")
+    RunConsoleCommand("nai_npc_fear_speed", "800")
+    RunConsoleCommand("nai_npc_drowsiness", "1")
+    RunConsoleCommand("nai_npc_drowsy_time", "60")
+    RunConsoleCommand("nai_npc_passenger_interaction", "1")
+    -- HUD
+    RunConsoleCommand("nai_npc_hud_enabled", "1")
+    RunConsoleCommand("nai_npc_hud_position", "1")
+    RunConsoleCommand("nai_npc_hud_scale", "1")
+    RunConsoleCommand("nai_npc_hud_opacity", "0.85")
+    RunConsoleCommand("nai_npc_hud_show_calm", "1")
+    RunConsoleCommand("nai_npc_hud_only_vehicle", "1")
+    RunConsoleCommand("nai_npc_hud_hints", "1")
+    RunConsoleCommand("nai_npc_hud_target_debug", "0")
+    RunConsoleCommand("nai_npc_client_cues", "1")
+    RunConsoleCommand("nai_npc_hud_alert_threshold", "0.3")
+    RunConsoleCommand("nai_npc_hud_fear_threshold", "0.5")
+    RunConsoleCommand("nai_npc_hud_drowsy_threshold", "0.7")
+    -- Addon controls
+    RunConsoleCommand("nai_npc_enabled", "1")
+    RunConsoleCommand("nai_npc_max_passengers", "8")
+    RunConsoleCommand("nai_npc_enter_distance", "80")
+    RunConsoleCommand("nai_npc_retry_attempts", "3")
+    RunConsoleCommand("nai_npc_retry_cooldown", "6")
+    RunConsoleCommand("nai_npc_allow_classes", "")
+    RunConsoleCommand("nai_npc_deny_classes", "")
+    RunConsoleCommand("nai_npc_allow_models", "")
+    RunConsoleCommand("nai_npc_deny_models", "")
+    RunConsoleCommand("nai_npc_debug_verbose", "0")
+    -- Tank/LVS
+    RunConsoleCommand("nai_npc_driver_enabled", "1")
+    RunConsoleCommand("nai_npc_driver_range", "4000")
+    RunConsoleCommand("nai_npc_driver_engage_distance", "800")
+    RunConsoleCommand("nai_npc_driver_speed", "0.7")
+    RunConsoleCommand("nai_npc_driver_reverse_distance", "300")
+    RunConsoleCommand("nai_npc_turret_enabled", "1")
+    RunConsoleCommand("nai_npc_turret_range", "3000")
+    RunConsoleCommand("nai_npc_turret_accuracy", "0.85")
+    RunConsoleCommand("nai_npc_turret_reaction_time", "0.5")
+    RunConsoleCommand("nai_npc_turret_fire_delay", "0.15")
+    RunConsoleCommand("nai_npc_turret_aim_speed", "5")
+    RunConsoleCommand("nai_npc_turret_lead_targets", "1")
+    RunConsoleCommand("nai_npc_turret_friendly_fire", "0")
+    if IsValid(ply) then
+        ply:ChatPrint("[NPC Passengers] All server settings reset to defaults.")
     end
 end)
 
@@ -3122,7 +3419,7 @@ concommand.Add("nai_passengers_eject_dead", function(ply)
 end)
 
 -- Interactive dead passenger ejection system
-hook.Add("Think", "NaiPassengers_DeadEjectionPrompt", function()
+hook.Add("Think", "NPCPassengers_DeadEjectionPrompt", function()
     for _, ply in ipairs(player.GetAll()) do
         if not IsValid(ply) or ply:InVehicle() then continue end
         
@@ -3157,28 +3454,28 @@ hook.Add("Think", "NaiPassengers_DeadEjectionPrompt", function()
             
             if deadCount > 0 then
                 -- Store vehicle reference for this player
-                ply.NaiDeadPassengerVehicle = rootVehicle
-                ply.NaiDeadPassengerCount = deadCount
+                ply.NPCDeadPassengerVehicle = rootVehicle
+                ply.NPCDeadPassengerCount = deadCount
                 
                 -- Send prompt to client
-                net.Start("NaiPassengers_EjectPrompt")
+                net.Start("NPCPassengers_EjectPrompt")
                 net.WriteInt(deadCount, 8)
                 net.WriteBool(lookingAt)
                 net.Send(ply)
             else
-                ply.NaiDeadPassengerVehicle = nil
+                ply.NPCDeadPassengerVehicle = nil
             end
         else
-            ply.NaiDeadPassengerVehicle = nil
+            ply.NPCDeadPassengerVehicle = nil
         end
     end
 end)
 
 -- Receive eject request from client
-net.Receive("NaiPassengers_EjectDead", function(len, ply)
+net.Receive("NPCPassengers_EjectDead", function(len, ply)
     if not IsValid(ply) then return end
     
-    local rootVehicle = ply.NaiDeadPassengerVehicle
+    local rootVehicle = ply.NPCDeadPassengerVehicle
     if not IsValid(rootVehicle) then return end
     
     -- Count dead passengers
@@ -3211,11 +3508,11 @@ net.Receive("NaiPassengers_EjectDead", function(len, ply)
         ply:ChatPrint("✓ Removed " .. #deadPassengers .. " dead passenger" .. (#deadPassengers > 1 and "s" or "") .. " from vehicle")
     end
     
-    ply.NaiDeadPassengerVehicle = nil
+    ply.NPCDeadPassengerVehicle = nil
 end)
 
 -- Prevent passengers from unparenting during collisions/physics events
-hook.Add("Think", "NaiPassengers_PreventUnparenting", function()
+hook.Add("Think", "NPCPassengers_PreventUnparenting", function()
     for npc, pdata in pairs(friendlyPassengers) do
         if IsValid(npc) and IsValid(pdata.vehicle) then
             local expectedParent = pdata.seat or pdata.vehicle
@@ -3298,14 +3595,14 @@ local function GetDriverSeat(vehicle)
 end
 
 -- Make NPC enter vehicle as driver (no manual destination needed - behavior is automatic)
-function NaiPassengers.MakeNPCDriver(npc, vehicle)
+function NPCPassengers.MakeNPCDriver(npc, vehicle)
     if not IsValid(npc) or not IsValid(vehicle) then return false end
-    if not NaiPassengers.cv_driver_enabled:GetBool() then 
+    if not NPCPassengers.cv_driver_enabled:GetBool() then 
         return false, "NPC Driver system is disabled"
     end
     
     -- Check if NPC type is allowed
-    if not NaiPassengers.cv_driver_allow_all_npcs:GetBool() then
+    if not NPCPassengers.cv_driver_allow_all_npcs:GetBool() then
         local class = npc:GetClass()
         if class ~= "npc_citizen" and class ~= "npc_alyx" and class ~= "npc_barney" and 
            class ~= "npc_monk" and class ~= "npc_kleiner" and class ~= "npc_eli" and
@@ -3354,16 +3651,16 @@ function NaiPassengers.MakeNPCDriver(npc, vehicle)
     local vehOffsets = GetVehicleOffsets(vehicleType)
     
     local offsetPos = Vector(
-        vehOffsets.forward + NaiPassengers.cv_forward_offset:GetFloat(),
-        vehOffsets.right + NaiPassengers.cv_right_offset:GetFloat(),
-        vehOffsets.height + NaiPassengers.cv_height_offset:GetFloat()
+        vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
+        vehOffsets.right + NPCPassengers.cv_right_offset:GetFloat(),
+        vehOffsets.height + NPCPassengers.cv_height_offset:GetFloat()
     )
     npc:SetLocalPos(baseLocalPos + offsetPos)
     
     local offsetAng = Angle(
-        vehOffsets.pitch + NaiPassengers.cv_pitch_offset:GetFloat(),
-        vehOffsets.baseYaw + vehOffsets.yaw + NaiPassengers.cv_yaw_offset:GetFloat(),
-        vehOffsets.roll + NaiPassengers.cv_roll_offset:GetFloat()
+        vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
+        vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
+        vehOffsets.roll + NPCPassengers.cv_roll_offset:GetFloat()
     )
     npc:SetLocalAngles(baseLocalAng + offsetAng)
     
@@ -3389,7 +3686,7 @@ function NaiPassengers.MakeNPCDriver(npc, vehicle)
     StartAnimationEnforcement(npc)
     
     -- Mark as passenger for client-side systems
-    npc:SetNWBool("IsNaiPassenger", true)
+    npc:SetNWBool("IsNPCPassenger", true)
     
     -- Create passenger data entry (so driver gets all passenger behaviors)
     friendlyPassengers[npc] = {
@@ -3411,7 +3708,7 @@ function NaiPassengers.MakeNPCDriver(npc, vehicle)
     }
     
     -- Get behavior mode from settings
-    local behavior = NaiPassengers.cv_driver_behavior:GetInt()
+    local behavior = NPCPassengers.cv_driver_behavior:GetInt()
     
     -- Initialize driver data
     npcDrivers[npc] = {
@@ -3432,7 +3729,7 @@ function NaiPassengers.MakeNPCDriver(npc, vehicle)
     }
     
     -- Pick initial destination based on behavior
-    NaiPassengers.PickNewDestination(npc)
+    NPCPassengers.PickNewDestination(npc)
     
     -- Wake up vehicle physics so it can move
     local vehPhys = vehicle:GetPhysicsObject()
@@ -3445,7 +3742,7 @@ function NaiPassengers.MakeNPCDriver(npc, vehicle)
 end
 
 -- Pick new destination based on behavior mode
-function NaiPassengers.PickNewDestination(npc)
+function NPCPassengers.PickNewDestination(npc)
     local data = npcDrivers[npc]
     if not data or not IsValid(data.vehicle) then return end
     
@@ -3455,7 +3752,7 @@ function NaiPassengers.PickNewDestination(npc)
     
     if behavior == 0 then
         -- Random Cruise: Pick random point within wander distance
-        local wanderDist = NaiPassengers.cv_driver_wander_dist:GetFloat()
+        local wanderDist = NPCPassengers.cv_driver_wander_dist:GetFloat()
         local randomAngle = math.random() * math.pi * 2
         local randomDist = math.random(wanderDist * 0.5, wanderDist)
         data.destination = vehPos + Vector(math.cos(randomAngle) * randomDist, math.sin(randomAngle) * randomDist, 0)
@@ -3528,8 +3825,8 @@ function NaiPassengers.PickNewDestination(npc)
 end
 
 -- Main driver think loop - controls vehicle physics
-hook.Add("Think", "NaiPassengers_NPCDriver", function()
-    if not NaiPassengers.cv_driver_enabled:GetBool() then return end
+hook.Add("Think", "NPCPassengers_NPCDriver", function()
+    if not NPCPassengers.cv_driver_enabled:GetBool() then return end
     
     local curTime = CurTime()
     
@@ -3545,15 +3842,15 @@ hook.Add("Think", "NaiPassengers_NPCDriver", function()
         
         -- Update every frame
         if data.state == "driving" then
-            NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
+            NPCPassengers.UpdateNPCDriver(npc, data, phys, curTime)
         elseif data.state == "arriving" then
-            NaiPassengers.HandleArrival(npc, data, vehicle)
+            NPCPassengers.HandleArrival(npc, data, vehicle)
         end
     end
 end)
 
 -- Update driver AI and vehicle control
-function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
+function NPCPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     local vehicle = data.vehicle
     local vehPos = vehicle:GetPos()
     local vehAng = vehicle:GetAngles()
@@ -3567,7 +3864,7 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     
     -- If no destination, pick one now
     if not data.destination then
-        NaiPassengers.PickNewDestination(npc)
+        NPCPassengers.PickNewDestination(npc)
         if not data.destination then
             data.targetSpeed = 0
             return
@@ -3584,7 +3881,7 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     
     -- Check if time to pick new destination
     if curTime > data.nextDestTime then
-        NaiPassengers.PickNewDestination(npc)
+        NPCPassengers.PickNewDestination(npc)
     end
     
     -- If parked, don't drive
@@ -3598,10 +3895,10 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     local distToDest = vehPos:Distance(data.destination)
     
     -- Check if arrived at current waypoint
-    local stopDist = NaiPassengers.cv_driver_stop_distance:GetFloat()
+    local stopDist = NPCPassengers.cv_driver_stop_distance:GetFloat()
     if distToDest < stopDist then
         -- Pick new destination immediately
-        NaiPassengers.PickNewDestination(npc)
+        NPCPassengers.PickNewDestination(npc)
         if not data.destination then return end
         targetDir = (data.destination - vehPos):GetNormalized()
         distToDest = vehPos:Distance(data.destination)
@@ -3617,16 +3914,16 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     local targetSteering = math.Clamp(angleDiff * 2, -1, 1)
     
     -- Smooth steering
-    if NaiPassengers.cv_driver_smooth_steering:GetBool() then
+    if NPCPassengers.cv_driver_smooth_steering:GetBool() then
         data.steering = math.Approach(data.steering, targetSteering, FrameTime() * 3)
     else
         data.steering = targetSteering
     end
     
     -- Calculate target speed
-    local speedMult = NaiPassengers.cv_driver_speed:GetFloat()
-    local skill = NaiPassengers.cv_driver_skill:GetInt() / 100
-    local aggression = NaiPassengers.cv_driver_aggression:GetInt() / 100
+    local speedMult = NPCPassengers.cv_driver_speed:GetFloat()
+    local skill = NPCPassengers.cv_driver_skill:GetInt() / 100
+    local aggression = NPCPassengers.cv_driver_aggression:GetInt() / 100
     
     local baseSpeed = 500 * speedMult
     local turnSharpness = math.abs(angleDiff)
@@ -3642,7 +3939,7 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     baseSpeed = baseSpeed * (0.7 + aggression * 0.6)
     
     -- Brake distance check
-    local brakeDistance = NaiPassengers.cv_driver_brake_distance:GetFloat()
+    local brakeDistance = NPCPassengers.cv_driver_brake_distance:GetFloat()
     if distToDest < brakeDistance then
         baseSpeed = baseSpeed * (distToDest / brakeDistance)
     end
@@ -3651,7 +3948,7 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     data.braking = false
     
     -- Collision avoidance
-    if NaiPassengers.cv_driver_avoid_collisions:GetBool() then
+    if NPCPassengers.cv_driver_avoid_collisions:GetBool() then
         local trace = util.TraceLine({
             start = vehPos + Vector(0, 0, 50),
             endpos = vehPos + forward * 400,
@@ -3664,7 +3961,7 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
             data.braking = true
             
             -- Honking
-            if NaiPassengers.cv_driver_honk:GetBool() and curTime > data.honkCooldown then
+            if NPCPassengers.cv_driver_honk:GetBool() and curTime > data.honkCooldown then
                 vehicle:EmitSound("vehicles/v8/vehicle_horn_1.wav", 75, 100)
                 data.honkCooldown = curTime + 2
             end
@@ -3720,7 +4017,7 @@ function NaiPassengers.UpdateNPCDriver(npc, data, phys, curTime)
 end
 
 -- Handle arrival at destination
-function NaiPassengers.HandleArrival(npc, data, vehicle)
+function NPCPassengers.HandleArrival(npc, data, vehicle)
     local phys = vehicle:GetPhysicsObject()
     if IsValid(phys) then
         -- Stop vehicle
@@ -3732,10 +4029,10 @@ function NaiPassengers.HandleArrival(npc, data, vehicle)
             data.state = "parked"
             
             -- Exit if configured
-            if NaiPassengers.cv_driver_exit_on_arrival:GetBool() then
+            if NPCPassengers.cv_driver_exit_on_arrival:GetBool() then
                 timer.Simple(1, function()
                     if IsValid(npc) and npcDrivers[npc] then
-                        NaiPassengers.StopNPCDriver(npc, true)
+                        NPCPassengers.StopNPCDriver(npc, true)
                     end
                 end)
             end
@@ -3744,7 +4041,7 @@ function NaiPassengers.HandleArrival(npc, data, vehicle)
 end
 
 -- Stop NPC from driving
-function NaiPassengers.StopNPCDriver(npc, exitVehicle)
+function NPCPassengers.StopNPCDriver(npc, exitVehicle)
     if not npcDrivers[npc] then return end
     
     -- Remove driver flag from passenger data
@@ -3761,7 +4058,7 @@ function NaiPassengers.StopNPCDriver(npc, exitVehicle)
 end
 
 -- Calculate path (simplified - just stores destination)
-function NaiPassengers.CalculateDriverPath(npc)
+function NPCPassengers.CalculateDriverPath(npc)
     -- Path calculation is simplified - NPCs just drive straight to destination
     -- This could be expanded with waypoint system in the future
 end
@@ -3803,7 +4100,7 @@ concommand.Add("nai_npc_driver_force", function(ply)
         filter = ply
     })
     
-    local success, msg = NaiPassengers.MakeNPCDriver(npc, vehicle, destTrace.HitPos)
+    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle, destTrace.HitPos)
     if success then
         ply:ChatPrint("[NPC Driver] NPC will drive to destination!")
     else
@@ -3816,7 +4113,7 @@ concommand.Add("nai_npc_driver_stop_all", function(ply)
     
     local count = 0
     for npc, data in pairs(npcDrivers) do
-        NaiPassengers.StopNPCDriver(npc, true)
+        NPCPassengers.StopNPCDriver(npc, true)
         count = count + 1
     end
     

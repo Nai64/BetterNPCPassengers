@@ -4,4 +4,4 @@
 ]]
 
 -- Register custom font for clients to download
-resource.AddFile("resource/fonts/Metropolis.ttf")
+resource.AddFile("resource/fonts/metropolis.ttf")

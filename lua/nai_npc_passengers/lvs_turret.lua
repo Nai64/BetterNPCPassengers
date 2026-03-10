@@ -1,23 +1,23 @@
 
 if CLIENT then return end
 
-NaiPassengers = NaiPassengers or {}
-NaiPassengers.Modules = NaiPassengers.Modules or {}
-NaiPassengers.Modules.lvs_turret = true
-NaiPassengers.TurretNPCs = NaiPassengers.TurretNPCs or {}
+NPCPassengers = NPCPassengers or {}
+NPCPassengers.Modules = NPCPassengers.Modules or {}
+NPCPassengers.Modules.lvs_turret = true
+NPCPassengers.TurretNPCs = NPCPassengers.TurretNPCs or {}
 
 -- Configuration convars for turret control
-NaiPassengers.cv_turret_enabled = CreateConVar("nai_npc_turret_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC turret control on LVS vehicles")
-NaiPassengers.cv_turret_range = CreateConVar("nai_npc_turret_range", "3000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Maximum targeting range for NPC turret gunners")
-NaiPassengers.cv_turret_accuracy = CreateConVar("nai_npc_turret_accuracy", "0.85", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPC turret accuracy (0-1, higher = more accurate)")
-NaiPassengers.cv_turret_reaction_time = CreateConVar("nai_npc_turret_reaction_time", "0.5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Time before NPC starts tracking new targets")
-NaiPassengers.cv_turret_fire_delay = CreateConVar("nai_npc_turret_fire_delay", "0.15", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Delay between NPC trigger pulls")
-NaiPassengers.cv_turret_aim_speed = CreateConVar("nai_npc_turret_aim_speed", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "How fast NPCs aim the turret (degrees per tick)")
-NaiPassengers.cv_turret_friendly_fire = CreateConVar("nai_npc_turret_friendly_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to target friendlies")
-NaiPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs lead moving targets")
+NPCPassengers.cv_turret_enabled = CreateConVar("nai_npc_turret_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC turret control on LVS vehicles")
+NPCPassengers.cv_turret_range = CreateConVar("nai_npc_turret_range", "3000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Maximum targeting range for NPC turret gunners")
+NPCPassengers.cv_turret_accuracy = CreateConVar("nai_npc_turret_accuracy", "0.85", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPC turret accuracy (0-1, higher = more accurate)")
+NPCPassengers.cv_turret_reaction_time = CreateConVar("nai_npc_turret_reaction_time", "0.5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Time before NPC starts tracking new targets")
+NPCPassengers.cv_turret_fire_delay = CreateConVar("nai_npc_turret_fire_delay", "0.15", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Delay between NPC trigger pulls")
+NPCPassengers.cv_turret_aim_speed = CreateConVar("nai_npc_turret_aim_speed", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "How fast NPCs aim the turret (degrees per tick)")
+NPCPassengers.cv_turret_friendly_fire = CreateConVar("nai_npc_turret_friendly_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to target friendlies")
+NPCPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs lead moving targets")
 
 -- Cache for performance
-local turretNPCs = NaiPassengers.TurretNPCs
+local turretNPCs = NPCPassengers.TurretNPCs
 local activeGunners = {}
 
 --[[
@@ -129,7 +129,7 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
     
     local enemies = {}
     local vehiclePos = vehicle:GetPos()
-    local allowFriendlyFire = NaiPassengers.cv_turret_friendly_fire:GetBool()
+    local allowFriendlyFire = NPCPassengers.cv_turret_friendly_fire:GetBool()
     
     -- Get all potential targets (NPCs and NextBots)
     local potentialTargets = {}
@@ -139,7 +139,7 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
         if IsValid(ent) and ent ~= npc and ent:IsNPC() and ent:Health() > 0 then
             -- Skip other passengers
             local isPassenger = false
-            if NaiPassengers.TurretNPCs then
+            if NPCPassengers.TurretNPCs then
                 for passengerNPC, _ in pairs(activeGunners) do
                     if passengerNPC == ent then
                         isPassenger = true
@@ -257,7 +257,7 @@ end
     Calculate lead position for moving targets
 ]]
 local function CalculateLeadPosition(targetPos, targetVel, muzzlePos, projectileSpeed)
-    if not NaiPassengers.cv_turret_lead_targets:GetBool() then
+    if not NPCPassengers.cv_turret_lead_targets:GetBool() then
         return targetPos
     end
     
@@ -360,7 +360,7 @@ local function UpdateTurretAim(controller, dt)
     
     if not IsValid(vehicle) or not IsValid(npc) then return end
     
-    local aimSpeed = NaiPassengers.cv_turret_aim_speed:GetFloat() * dt * 60
+    local aimSpeed = NPCPassengers.cv_turret_aim_speed:GetFloat() * dt * 60
     
     if target and IsValid(target.entity) then
         local muzzlePos = GetWeaponMuzzlePos(vehicle, controller.weaponInfo)
@@ -455,7 +455,7 @@ end
 ]]
 local function TryFireTurret(controller)
     local curTime = CurTime()
-    local fireDelay = NaiPassengers.cv_turret_fire_delay:GetFloat()
+    local fireDelay = NPCPassengers.cv_turret_fire_delay:GetFloat()
     
     if curTime - controller.lastFireTime < fireDelay then
         return false
@@ -473,7 +473,7 @@ local function TryFireTurret(controller)
     local aimDiff = math.abs(controller.aimYaw - controller.targetYaw) + 
                     math.abs(controller.aimPitch - controller.targetPitch)
     
-    local accuracy = NaiPassengers.cv_turret_accuracy:GetFloat()
+    local accuracy = NPCPassengers.cv_turret_accuracy:GetFloat()
     local maxAimDiff = (1 - accuracy) * 20 + 5 -- 5-25 degrees depending on accuracy
     
     if aimDiff > maxAimDiff then
@@ -717,7 +717,7 @@ local function TurretNPCThink(controller, dt)
     if controller.scanTimer <= 0 then
         controller.scanTimer = 0.25 -- Scan 4 times per second
         
-        local range = NaiPassengers.cv_turret_range:GetFloat()
+        local range = NPCPassengers.cv_turret_range:GetFloat()
         local enemies = FindEnemiesInRange(npc, vehicle, range, controller.originalRelationships)
         
         if #enemies > 0 then
@@ -747,7 +747,7 @@ local function TurretNPCThink(controller, dt)
     
     -- Fire if target acquired and reaction time passed
     if controller.currentTarget then
-        local reactionTime = NaiPassengers.cv_turret_reaction_time:GetFloat()
+        local reactionTime = NPCPassengers.cv_turret_reaction_time:GetFloat()
         if curTime - controller.targetAcquiredTime >= reactionTime then
             TryFireTurret(controller)
         end
@@ -759,7 +759,7 @@ end
 --[[
     Register an NPC as a turret gunner
 ]]
-function NaiPassengers.RegisterTurretNPC(npc, passengerData)
+function NPCPassengers.RegisterTurretNPC(npc, passengerData)
     -- DISABLED: LVS turret control temporarily disabled
     return false
 end
@@ -767,7 +767,7 @@ end
 --[[
     Unregister an NPC from turret control
 ]]
-function NaiPassengers.UnregisterTurretNPC(npc)
+function NPCPassengers.UnregisterTurretNPC(npc)
     local controller = activeGunners[npc]
     if controller then
         StopFiring(controller)
@@ -778,14 +778,14 @@ end
 --[[
     Check if an NPC is registered as a turret gunner
 ]]
-function NaiPassengers.IsTurretNPC(npc)
+function NPCPassengers.IsTurretNPC(npc)
     return activeGunners[npc] ~= nil
 end
 
 --[[
     Get turret controller for an NPC
 ]]
-function NaiPassengers.GetTurretController(npc)
+function NPCPassengers.GetTurretController(npc)
     return activeGunners[npc]
 end
 
@@ -794,11 +794,11 @@ end
 ]]
 local lastThinkTime = CurTime()
 
-hook.Add("Think", "NaiPassengerTurretThink", function()
+hook.Add("Think", "NPCPassengerTurretThink", function()
     -- DISABLED: LVS turret control temporarily disabled
     return
     --[[ LVS TURRET DISABLED
-    if not NaiPassengers.cv_turret_enabled:GetBool() then return end
+    if not NPCPassengers.cv_turret_enabled:GetBool() then return end
     
     local curTime = CurTime()
     local dt = curTime - lastThinkTime
@@ -815,13 +815,13 @@ hook.Add("Think", "NaiPassengerTurretThink", function()
     end
     
     for _, npc in ipairs(toRemove) do
-        NaiPassengers.UnregisterTurretNPC(npc)
+        NPCPassengers.UnregisterTurretNPC(npc)
     end
     --]]
 end)
 
 -- Cleanup when NPC dies
-hook.Add("OnNPCKilled", "NaiPassengers_TurretDeathCleanup", function(npc, attacker, inflictor)
+hook.Add("OnNPCKilled", "NPCPassengers_TurretDeathCleanup", function(npc, attacker, inflictor)
     if not IsValid(npc) then return end
     
     local controller = activeGunners[npc]

@@ -1,8 +1,8 @@
 if SERVER then return end
 
-NaiPassengers = NaiPassengers or {}
-NaiPassengers.Modules = NaiPassengers.Modules or {}
-NaiPassengers.Modules.ui = true
+NPCPassengers = NPCPassengers or {}
+NPCPassengers.Modules = NPCPassengers.Modules or {}
+NPCPassengers.Modules.ui = true
 
 -- NPC Passengers UI
 -- Dark theme settings panel with custom Metropolis font
@@ -11,8 +11,8 @@ NaiPassengers.Modules.ui = true
 local keyStates = {}
 
 local function GetConVarIntSafe(name, default)
-    if NaiPassengers.GetConVarInt then
-        return NaiPassengers.GetConVarInt(name, default or 0)
+    if NPCPassengers.GetConVarInt then
+        return NPCPassengers.GetConVarInt(name, default or 0)
     end
     local cv = GetConVar(name)
     if not cv then return default or 0 end
@@ -20,8 +20,8 @@ local function GetConVarIntSafe(name, default)
 end
 
 local function GetConVarBoolSafe(name, default)
-    if NaiPassengers.GetConVarBool then
-        return NaiPassengers.GetConVarBool(name, default == true)
+    if NPCPassengers.GetConVarBool then
+        return NPCPassengers.GetConVarBool(name, default == true)
     end
     local cv = GetConVar(name)
     if not cv then return default == true end
@@ -29,15 +29,15 @@ local function GetConVarBoolSafe(name, default)
 end
 
 local function GetConVarFloatSafe(name, default)
-    if NaiPassengers.GetConVarFloat then
-        return NaiPassengers.GetConVarFloat(name, default or 0)
+    if NPCPassengers.GetConVarFloat then
+        return NPCPassengers.GetConVarFloat(name, default or 0)
     end
     local cv = GetConVar(name)
     if not cv then return default or 0 end
     return cv:GetFloat()
 end
 
-hook.Add("Think", "NaiPassengers_Keybinds", function()
+hook.Add("Think", "NPCPassengers_Keybinds", function()
     -- Helper function to check if a key was just pressed
     local function WasKeyJustPressed(keyCode)
         if keyCode <= 0 then return false end
@@ -81,14 +81,14 @@ hook.Add("Think", "NaiPassengers_Keybinds", function()
     if GetConVarBoolSafe("nai_npc_debug_mode", false) then
         local keyTestGesture = GetConVarIntSafe("nai_npc_key_test_gesture", 0)
         if WasKeyJustPressed(keyTestGesture) then
-            net.Start("NaiPassengers_DebugTest")
+            net.Start("NPCPassengers_DebugTest")
             net.WriteString("gesture")
             net.SendToServer()
         end
         
         local keyResetAll = GetConVarIntSafe("nai_npc_key_reset_all", 0)
         if WasKeyJustPressed(keyResetAll) then
-            net.Start("NaiPassengers_DebugTest")
+            net.Start("NPCPassengers_DebugTest")
             net.WriteString("reset")
             net.SendToServer()
         end
@@ -101,6 +101,27 @@ local selectionExpireTime = 0
 -- Client-side bone manipulation for body sway
 local spineBoneCache = {}
 local clientSwayState = {}
+local trackedPassengerNPCs = {}
+local nextPassengerRefresh = 0
+
+local cvBodySway = GetConVar("nai_npc_body_sway")
+local cvBodySwayAmount = GetConVar("nai_npc_body_sway_amount")
+local cvCrashFlinch = GetConVar("nai_npc_crash_flinch")
+local cvCrashThreshold = GetConVar("nai_npc_crash_threshold")
+
+local function RefreshTrackedPassengers()
+    for ent in pairs(trackedPassengerNPCs) do
+        if not IsValid(ent) or not ent:IsNPC() or not ent:GetNWBool("IsNPCPassenger", false) then
+            trackedPassengerNPCs[ent] = nil
+        end
+    end
+
+    for _, ent in ipairs(ents.GetAll()) do
+        if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
+            trackedPassengerNPCs[ent] = true
+        end
+    end
+end
 
 -- Get spine bones for an NPC (cached)
 local function GetSpineBones(npc)
@@ -126,23 +147,24 @@ local function LerpAngle(t, current, target)
 end
 
 -- Client-side body sway - calculates from vehicle velocity directly
-hook.Add("Think", "NaiPassengers_ClientBodySway", function()
+hook.Add("Think", "NPCPassengers_ClientBodySway", function()
     local dt = FrameTime()
     if dt <= 0 then return end
-    
-    local bodySwayCV = GetConVar("nai_npc_body_sway")
-    local bodySwayAmountCV = GetConVar("nai_npc_body_sway_amount")
-    local crashFlinchCV = GetConVar("nai_npc_crash_flinch")
-    local crashThresholdCV = GetConVar("nai_npc_crash_threshold")
-    
-    if not bodySwayCV or not bodySwayCV:GetBool() then return end
-    
-    local swayAmount = bodySwayAmountCV and bodySwayAmountCV:GetFloat() or 1
-    local crashFlinchEnabled = crashFlinchCV and crashFlinchCV:GetBool() or true
-    local crashThreshold = crashThresholdCV and crashThresholdCV:GetFloat() or 400
-    
-    for _, ent in ipairs(ents.GetAll()) do
-        if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNaiPassenger", false) then
+
+    if not cvBodySway or not cvBodySway:GetBool() then return end
+
+    local curTime = CurTime()
+    if curTime >= nextPassengerRefresh then
+        RefreshTrackedPassengers()
+        nextPassengerRefresh = curTime + 1
+    end
+
+    local swayAmount = cvBodySwayAmount and cvBodySwayAmount:GetFloat() or 1
+    local crashFlinchEnabled = cvCrashFlinch and cvCrashFlinch:GetBool() or true
+    local crashThreshold = cvCrashThreshold and cvCrashThreshold:GetFloat() or 400
+
+    for ent in pairs(trackedPassengerNPCs) do
+        if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
             local entIdx = ent:EntIndex()
             
             -- Get vehicle the NPC is parented to
@@ -231,11 +253,12 @@ hook.Add("Think", "NaiPassengers_ClientBodySway", function()
 end)
 
 -- Clean up when NPCs are removed
-hook.Add("EntityRemoved", "NaiPassengers_CleanBoneCache", function(ent)
+hook.Add("EntityRemoved", "NPCPassengers_CleanBoneCache", function(ent)
     if ent:IsNPC() then
         local entIdx = ent:EntIndex()
         spineBoneCache[entIdx] = nil
         clientSwayState[entIdx] = nil
+        trackedPassengerNPCs[ent] = nil
     end
 end)
 
@@ -263,50 +286,59 @@ local Theme = {
     glow = Color(88, 166, 255, 30),
 }
 
--- Custom fonts (requires Metropolis.otf in resource/fonts/)
+-- Custom fonts (requires metropolis.ttf in resource/fonts/)
 local fontName = "Metropolis"
 
-surface.CreateFont("NaiFont_Small", {
-    font = fontName,
-    size = 14,
-    weight = 400,
-    antialias = true,
-})
+local function CreateNaiFonts()
+    surface.CreateFont("NaiFont_Small", {
+        font = fontName,
+        size = 14,
+        weight = 400,
+        antialias = true,
+    })
 
-surface.CreateFont("NaiFont_Normal", {
-    font = fontName,
-    size = 16,
-    weight = 400,
-    antialias = true,
-})
+    surface.CreateFont("NaiFont_Normal", {
+        font = fontName,
+        size = 16,
+        weight = 400,
+        antialias = true,
+    })
 
-surface.CreateFont("NaiFont_Medium", {
-    font = fontName,
-    size = 18,
-    weight = 500,
-    antialias = true,
-})
+    surface.CreateFont("NaiFont_Medium", {
+        font = fontName,
+        size = 18,
+        weight = 500,
+        antialias = true,
+    })
 
-surface.CreateFont("NaiFont_Large", {
-    font = fontName,
-    size = 22,
-    weight = 600,
-    antialias = true,
-})
+    surface.CreateFont("NaiFont_Large", {
+        font = fontName,
+        size = 22,
+        weight = 600,
+        antialias = true,
+    })
 
-surface.CreateFont("NaiFont_Title", {
-    font = fontName,
-    size = 26,
-    weight = 700,
-    antialias = true,
-})
+    surface.CreateFont("NaiFont_Title", {
+        font = fontName,
+        size = 26,
+        weight = 700,
+        antialias = true,
+    })
 
-surface.CreateFont("NaiFont_Bold", {
-    font = fontName,
-    size = 16,
-    weight = 700,
-    antialias = true,
-})
+    surface.CreateFont("NaiFont_Bold", {
+        font = fontName,
+        size = 16,
+        weight = 700,
+        antialias = true,
+    })
+end
+
+-- Create fonts inside Initialize so the renderer is fully ready
+hook.Add("Initialize", "NPCPassengers_CreateFonts", function()
+    CreateNaiFonts()
+end)
+-- Also create them immediately in case Initialize already fired (e.g. Lua file refresh)
+CreateNaiFonts()
 
 local function Lerp(t, a, b)
     return a + (b - a) * t
@@ -705,7 +737,7 @@ local function OpenSettingsPanel()
         local versionX = w - versionW - 50
         local versionY = 15
         draw.RoundedBox(10, versionX, versionY, versionW, versionH, Theme.accentDark)
-        draw.SimpleText("v2.3 PreAlpha Test", "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("v2.4", "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     
     settingsFrame.btnClose:SetVisible(false)
@@ -1477,7 +1509,7 @@ local function OpenSettingsPanel()
         -- Request passenger list from server
         local passengers = {}
         for _, ent in ipairs(ents.GetAll()) do
-            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNaiPassenger", false) then
+            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
                 table.insert(passengers, ent)
             end
         end
@@ -1546,7 +1578,7 @@ local function OpenSettingsPanel()
                     draw.RoundedBox(4, 0, 0, w, h, col)
                 end
                 statusBtn.DoClick = function()
-                    net.Start("NaiPassengers_SetStatus")
+                    net.Start("NPCPassengers_SetStatus")
                     net.WriteInt(npc:EntIndex(), 32)
                     net.WriteString(btnData.status)
                     net.SendToServer()
@@ -1563,19 +1595,19 @@ local function OpenSettingsPanel()
     CreateSectionHeader(debugPanel, "Quick Test Buttons")
     
     CreateButton(debugPanel, "Test Flinch Gesture", function()
-        net.Start("NaiPassengers_DebugTest")
+        net.Start("NPCPassengers_DebugTest")
         net.WriteString("flinch")
         net.SendToServer()
     end)
     
     CreateButton(debugPanel, "Test Random Gesture", function()
-        net.Start("NaiPassengers_DebugTest")
+        net.Start("NPCPassengers_DebugTest")
         net.WriteString("gesture")
         net.SendToServer()
     end)
     
     CreateButton(debugPanel, "Reset All States", function()
-        net.Start("NaiPassengers_DebugTest")
+        net.Start("NPCPassengers_DebugTest")
         net.WriteString("reset")
         net.SendToServer()
     end)
@@ -1921,7 +1953,7 @@ local function OpenSettingsPanel()
     local aboutBtn = CreateNavButton("About", "icon16/information.png")
     aboutBtn.DoClick = function() SwitchToPanel(aboutPanel, aboutBtn) end
     
-    CreateSectionHeader(aboutPanel, "About NPC Passengers v2.3")
+    CreateSectionHeader(aboutPanel, "About NPC Passengers v2.4")
     
     local aboutText = vgui.Create("DPanel", aboutPanel)
     aboutText:SetTall(160)
@@ -1947,9 +1979,9 @@ local function OpenSettingsPanel()
         
         -- Feature highlights
         local features = {
-            "Status System: CALM/ALERT/SCARED/DROWSY/DEAD",
-            "Auto-Join: Squad behavior for automatic boarding",
-            "Crash Damage: Realistic injury system with body removal"
+            "Status System: CALM / ALERT / SCARED / DROWSY / DEAD",
+            "Performance: seat caching, throttled timers, optimized client hooks",
+            "Vehicle filtering, boarding retry cooldown, squad-only auto-join"
         }
         
         for _, feature in ipairs(features) do
@@ -1959,10 +1991,10 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(aboutPanel, 10)
-    CreateSectionHeader(aboutPanel, "What's New in v2.3")
+    CreateSectionHeader(aboutPanel, "What's New in v2.4")
     
     local whatsNew = vgui.Create("DPanel", aboutPanel)
-    whatsNew:SetTall(110)
+    whatsNew:SetTall(155)
     whatsNew:Dock(TOP)
     whatsNew:DockMargin(5, 0, 5, 5)
     whatsNew.Paint = function(self, w, h)
@@ -1970,11 +2002,13 @@ local function OpenSettingsPanel()
         
         local y = 12
         local updates = {
-            "Passenger status system with real-time HUD",
-            "Crash damage mechanics with varying injury",
-            "Dead body management (hold R to remove)",
-            "Body physics: sway, flinch, drowsy animations",
-            "Modern UI with help system (17+ FAQs)"
+            "Performance: vehicle seat layout cached per vehicle",
+            "Performance: per-passenger animation maintenance throttled",
+            "Performance: client body-sway no longer scans all entities per frame",
+            "Vehicle allow/deny filter convars with wildcard support",
+            "Boarding retry cooldown on repeated failures",
+            "Squad-only auto-join mode",
+            "Fix: first-board failures due to uninitialized seat list"
         }
         
         for i, update in ipairs(updates) do
@@ -2065,105 +2099,14 @@ end
 concommand.Add("nai_passengers_menu", OpenSettingsPanel)
 
 concommand.Add("nai_npc_reset", function()
-    -- General
-    RunConsoleCommand("nai_npc_max_attach_dist", "500")
-    RunConsoleCommand("nai_npc_detach_delay", "0.5")
-    RunConsoleCommand("nai_npc_ai_delay", "2")
-    RunConsoleCommand("nai_npc_cooldown", "1")
-    RunConsoleCommand("nai_npc_allow_multiple", "1")
-    RunConsoleCommand("nai_npc_exit_mode", "0")
-    RunConsoleCommand("nai_npc_hide_in_tanks", "1")
-    -- Auto-join
-    RunConsoleCommand("nai_npc_auto_join", "1")
-    RunConsoleCommand("nai_npc_auto_join_range", "500")
-    RunConsoleCommand("nai_npc_auto_join_max", "4")
-    RunConsoleCommand("nai_npc_auto_join_squad_only", "0")
-    -- Position
-    RunConsoleCommand("nai_npc_height_offset", "-3")
-    RunConsoleCommand("nai_npc_forward_offset", "0")
-    RunConsoleCommand("nai_npc_right_offset", "0")
-    RunConsoleCommand("nai_npc_yaw_offset", "0")
-    RunConsoleCommand("nai_npc_pitch_offset", "0")
-    RunConsoleCommand("nai_npc_roll_offset", "0")
-    -- Speech
-    RunConsoleCommand("nai_npc_speech_enabled", "1")
-    RunConsoleCommand("nai_npc_speech_volume", "75")
-    RunConsoleCommand("nai_npc_speech_crash", "1")
-    RunConsoleCommand("nai_npc_speech_crash_threshold", "400")
-    RunConsoleCommand("nai_npc_speech_crash_cooldown", "1.5")
-    RunConsoleCommand("nai_npc_speech_idle", "1")
-    RunConsoleCommand("nai_npc_speech_idle_chance", "0.3")
-    RunConsoleCommand("nai_npc_speech_idle_interval", "15")
-    RunConsoleCommand("nai_npc_speech_board", "1")
-    RunConsoleCommand("nai_npc_speech_pitch_var", "5")
-    RunConsoleCommand("nai_npc_ambient_sounds", "1")
-    RunConsoleCommand("nai_npc_ambient_interval", "30")
-    -- Animation
-    RunConsoleCommand("nai_npc_head_look", "1")
-    RunConsoleCommand("nai_npc_head_smooth", "0.4")
-    RunConsoleCommand("nai_npc_blink", "1")
-    RunConsoleCommand("nai_npc_breathing", "1")
-    RunConsoleCommand("nai_npc_walk_timeout", "5")
-    -- Advanced Realism
-    RunConsoleCommand("nai_npc_talking_gestures", "1")
-    RunConsoleCommand("nai_npc_gesture_chance", "15")
-    RunConsoleCommand("nai_npc_gesture_interval", "8")
-    RunConsoleCommand("nai_npc_crash_flinch", "1")
-    RunConsoleCommand("nai_npc_crash_threshold", "400")
-    RunConsoleCommand("nai_npc_body_sway", "1")
-    RunConsoleCommand("nai_npc_body_sway_amount", "1")
-    RunConsoleCommand("nai_npc_threat_awareness", "1")
-    RunConsoleCommand("nai_npc_threat_range", "1500")
-    RunConsoleCommand("nai_npc_combat_alert", "1")
-    RunConsoleCommand("nai_npc_fear_reactions", "1")
-    RunConsoleCommand("nai_npc_fear_speed", "800")
-    RunConsoleCommand("nai_npc_drowsiness", "1")
-    RunConsoleCommand("nai_npc_drowsy_time", "60")
-    RunConsoleCommand("nai_npc_passenger_interaction", "1")
-    -- HUD
-    RunConsoleCommand("nai_npc_hud_enabled", "1")
-    RunConsoleCommand("nai_npc_hud_position", "1")
-    RunConsoleCommand("nai_npc_hud_scale", "1")
-    RunConsoleCommand("nai_npc_hud_opacity", "0.85")
-    RunConsoleCommand("nai_npc_hud_show_calm", "1")
-    RunConsoleCommand("nai_npc_hud_only_vehicle", "1")
-    RunConsoleCommand("nai_npc_hud_hints", "1")
-    RunConsoleCommand("nai_npc_hud_target_debug", "0")
-    RunConsoleCommand("nai_npc_client_cues", "1")
-    RunConsoleCommand("nai_npc_hud_alert_threshold", "0.3")
-    RunConsoleCommand("nai_npc_hud_fear_threshold", "0.5")
-    RunConsoleCommand("nai_npc_hud_drowsy_threshold", "0.7")
-
-    -- Addon controls
-    RunConsoleCommand("nai_npc_enabled", "1")
-    RunConsoleCommand("nai_npc_max_passengers", "8")
-    RunConsoleCommand("nai_npc_enter_distance", "80")
-    RunConsoleCommand("nai_npc_retry_attempts", "3")
-    RunConsoleCommand("nai_npc_retry_cooldown", "6")
-    RunConsoleCommand("nai_npc_allow_classes", "")
-    RunConsoleCommand("nai_npc_deny_classes", "")
-    RunConsoleCommand("nai_npc_allow_models", "")
-    RunConsoleCommand("nai_npc_deny_models", "")
-    RunConsoleCommand("nai_npc_debug_verbose", "0")
-    -- Tank/LVS
-    RunConsoleCommand("nai_npc_driver_enabled", "1")
-    RunConsoleCommand("nai_npc_driver_range", "4000")
-    RunConsoleCommand("nai_npc_driver_engage_distance", "800")
-    RunConsoleCommand("nai_npc_driver_speed", "0.7")
-    RunConsoleCommand("nai_npc_driver_reverse_distance", "300")
-    RunConsoleCommand("nai_npc_turret_enabled", "1")
-    RunConsoleCommand("nai_npc_turret_range", "3000")
-    RunConsoleCommand("nai_npc_turret_accuracy", "0.85")
-    RunConsoleCommand("nai_npc_turret_reaction_time", "0.5")
-    RunConsoleCommand("nai_npc_turret_fire_delay", "0.15")
-    RunConsoleCommand("nai_npc_turret_aim_speed", "5")
-    RunConsoleCommand("nai_npc_turret_lead_targets", "1")
-    RunConsoleCommand("nai_npc_turret_friendly_fire", "0")
+    -- Delegate all ConVar resets to the server-side handler so that
+    -- replicated ConVars are actually changed (clients cannot change them directly)
+    RunConsoleCommand("nai_npc_server_reset")
 end)
 
 -- Spawn menu entry
-hook.Add("PopulateToolMenu", "NaiNPCPassengerOptions", function()
-    spawnmenu.AddToolMenuOption("Utilities", "Nai's Addons", "NPCPassengers", "NPC Passengers", "", "", function(panel)
+hook.Add("PopulateToolMenu", "NPCPassengerOptions", function()
+        spawnmenu.AddToolMenuOption("Utilities", "NPC Passengers", "NPCPassengers", "NPC Passengers", "", "", function(panel)
         panel:ClearControls()
         
         panel:Help("NPC Passengers lets friendly NPCs ride in your vehicles!")
@@ -2180,7 +2123,7 @@ hook.Add("PopulateToolMenu", "NaiNPCPassengerOptions", function()
 end)
 
 -- Q menu bar dropdown
-hook.Add("PopulateMenuBar", "NaiNPCPassengersMenuBar", function(menubar)
+hook.Add("PopulateMenuBar", "NPCPassengersMenuBar", function(menubar)
     local m = menubar:AddOrGetMenu("NPC Passengers")
     
     m:AddOption("Open Settings", function()
@@ -2208,7 +2151,7 @@ properties.Add("nai_make_passenger", {
     end,
 
     Action = function(self, ent)
-        net.Start("NaiMakePassenger")
+        net.Start("NPCPassengers_MakePassenger")
             net.WriteEntity(ent)
         net.SendToServer()
     end
@@ -2228,7 +2171,7 @@ properties.Add("nai_make_driver", {
     end,
 
     Action = function(self, ent)
-        net.Start("NaiMakeDriver")
+        net.Start("NPCPassengers_MakeDriver")
             net.WriteEntity(ent)
         net.SendToServer()
     end
@@ -2281,7 +2224,7 @@ properties.Add("nai_add_selected_to_vehicle", {
 
     Action = function(self, ent)
         if IsValid(selectedNPCForVehicle) then
-            net.Start("NaiMakePassengerForVehicle")
+            net.Start("NPCPassengers_MakePassengerForVehicle")
                 net.WriteEntity(selectedNPCForVehicle)
                 net.WriteEntity(ent)
             net.SendToServer()
@@ -2324,21 +2267,21 @@ properties.Add("nai_remove_passenger", {
     end,
 
     Action = function(self, ent)
-        net.Start("NaiRemovePassenger")
+        net.Start("NPCPassengers_RemovePassenger")
             net.WriteEntity(ent)
         net.SendToServer()
     end
 })
 
 -- F7 hotkey
-hook.Add("PlayerButtonDown", "NaiPassengersQuickMenu", function(ply, button)
+hook.Add("PlayerButtonDown", "NPCPassengersQuickMenu", function(ply, button)
     if button == KEY_F7 and IsFirstTimePredicted() then
         OpenSettingsPanel()
     end
 end)
 
 -- C menu icon (top left corner)
-list.Set("DesktopWindows", "NaiNPCPassengers", {
+list.Set("DesktopWindows", "NPCPassengersDesktop", {
     title = "NPC Passengers",
     icon = "icon64/npc_passengers.png",
     init = function(icon, window)
@@ -2471,21 +2414,22 @@ function ShowWelcomePanel(forceShow)
     end
     
     local changelog = vgui.Create("DPanel", content)
-    changelog:SetTall(170)
+    changelog:SetTall(185)
     changelog:Dock(TOP)
     changelog:DockMargin(0, 0, 0, 10)
     changelog.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
         local changes = {
-            "+ Passenger status system: CALM/ALERT/SCARED/DROWSY/DEAD",
-            "+ Crash damage with realistic injury system",
-            "+ Dead body management (Hold R to remove)",
-            "+ Advanced body physics: sway, flinch, drowsy states",
-            "+ Real-time passenger HUD",
-            "+ Modern settings UI with help system",
-            "+ Make Passenger For Vehicle context option",
-            "* Improved vehicle compatibility (Simfphys/LVS/SligWolf)",
-            "* Enhanced NPC look system with threat tracking",
+            "+ Performance: vehicle seat layout cached, rebuilt only on change",
+            "+ Performance: animation maintenance throttled per passenger",
+            "+ Performance: client body-sway uses tracked table, no ents.GetAll()",
+            "+ Vehicle allow/deny filter convars with CSV wildcard support",
+            "+ Boarding retry cooldown on repeated board failures",
+            "+ Squad-only auto-join mode (nai_npc_auto_join_squad_only)",
+            "+ Global enable/disable toggle (nai_npc_enabled)",
+            "* Fix: first-board failures due to uninitialized seat list",
+            "* Removed Nai Base API dependency (internal rename only)",
+            "* ConVar names (nai_npc_*) unchanged - existing configs preserved",
         }
         for i, line in ipairs(changes) do
             local col = Theme.text
@@ -2554,7 +2498,7 @@ function ShowWelcomePanel(forceShow)
 end
 
 -- Show welcome panel shortly after game loads
-hook.Add("InitPostEntity", "NaiPassengersWelcome", function()
+hook.Add("InitPostEntity", "NPCPassengersWelcome", function()
     timer.Simple(3, ShowWelcomePanel)
 end)
 
@@ -2600,10 +2544,10 @@ local function GetPassengerStatus(npc)
     local fearThreshold = GetConVar("nai_npc_hud_fear_threshold")
     local drowsyThreshold = GetConVar("nai_npc_hud_drowsy_threshold")
     
-    local alertLevel = npc:GetNWFloat("NaiAlertLevel", 0)
-    local fearLevel = npc:GetNWFloat("NaiFearLevel", 0)
-    local isDrowsy = npc:GetNWBool("NaiIsDrowsy", false)
-    local calmTime = npc:GetNWFloat("NaiCalmTime", 0)
+    local alertLevel = npc:GetNWFloat("NPCPassengerAlertLevel", 0)
+    local fearLevel = npc:GetNWFloat("NPCPassengerFearLevel", 0)
+    local isDrowsy = npc:GetNWBool("NPCPassengerIsDrowsy", false)
+    local calmTime = npc:GetNWFloat("NPCPassengerCalmTime", 0)
     local drowsyTime = GetConVar("nai_npc_drowsy_time")
     
     -- Priority: Dead > Scared > Alert > Drowsy > Calm
@@ -2728,7 +2672,7 @@ local clientCueData = {
     expireAt = 0
 }
 
-net.Receive("NaiPassengers_ClientCue", function()
+net.Receive("NPCPassengers_ClientCue", function()
     local success = net.ReadBool()
     local msg = net.ReadString()
 
@@ -2741,14 +2685,14 @@ net.Receive("NaiPassengers_ClientCue", function()
     clientCueData.expireAt = CurTime() + 2.2
 end)
 
-net.Receive("NaiPassengers_EjectPrompt", function()
+net.Receive("NPCPassengers_EjectPrompt", function()
     ejectPromptData.count = net.ReadInt(8)
     ejectPromptData.lookingAt = net.ReadBool()
     ejectPromptData.showTime = CurTime()
 end)
 
 -- Detect R key HOLD to eject dead passengers
-hook.Add("Think", "NaiPassengers_EjectKeyCheck", function()
+hook.Add("Think", "NPCPassengers_EjectKeyCheck", function()
     local ply = LocalPlayer()
     if not IsValid(ply) then 
         ejectPromptData.isHolding = false
@@ -2797,7 +2741,7 @@ hook.Add("Think", "NaiPassengers_EjectKeyCheck", function()
             -- If held long enough, eject!
             if ejectPromptData.holdProgress >= 1 then
                 -- Send eject request to server
-                net.Start("NaiPassengers_EjectDead")
+                net.Start("NPCPassengers_EjectDead")
                 net.SendToServer()
                 
                 -- Clear prompt and reset
@@ -2820,7 +2764,7 @@ hook.Add("Think", "NaiPassengers_EjectKeyCheck", function()
 end)
 
 -- Draw ejection prompt
-hook.Add("HUDPaint", "NaiPassengers_EjectPrompt", function()
+hook.Add("HUDPaint", "NPCPassengers_EjectPrompt", function()
     if CurTime() - ejectPromptData.showTime > 0.5 then return end
     if ejectPromptData.count <= 0 then return end
     
@@ -2886,7 +2830,7 @@ hook.Add("HUDPaint", "NaiPassengers_EjectPrompt", function()
     end
 end)
 
-hook.Add("HUDPaint", "NaiPassengers_StatusHUD", function()
+hook.Add("HUDPaint", "NPCPassengers_StatusHUD", function()
     -- Check if HUD is enabled
     local hudEnabled = GetConVar("nai_npc_hud_enabled")
     if not hudEnabled or not hudEnabled:GetBool() then return end
@@ -2923,7 +2867,7 @@ hook.Add("HUDPaint", "NaiPassengers_StatusHUD", function()
         local validNPCs = {}
         
         for _, ent in ipairs(ents.GetAll()) do
-            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNaiPassenger", false) then
+            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
                 local status, intensity = GetPassengerStatus(ent)
                 if showCalm or status ~= "calm" then
                     local health = ent:Health()
@@ -3095,7 +3039,7 @@ hook.Add("HUDPaint", "NaiPassengers_StatusHUD", function()
     end
 end)
 
-hook.Add("HUDPaint", "NaiPassengers_ClientHints", function()
+hook.Add("HUDPaint", "NPCPassengers_ClientHints", function()
     local ply = LocalPlayer()
     if not IsValid(ply) then return end
 
@@ -3118,13 +3062,13 @@ hook.Add("HUDPaint", "NaiPassengers_ClientHints", function()
         local ent = tr and tr.Entity
         if IsValid(ent) and ent:IsNPC() then
             local status = "none"
-            if ent:GetNWBool("IsNaiPassenger", false) then
+            if ent:GetNWBool("IsNPCPassenger", false) then
                 local emotion = "calm"
-                if ent:GetNWBool("NaiIsDrowsy", false) then
+                if ent:GetNWBool("NPCPassengerIsDrowsy", false) then
                     emotion = "drowsy"
-                elseif ent:GetNWFloat("NaiFearLevel", 0) > 0.5 then
+                elseif ent:GetNWFloat("NPCPassengerFearLevel", 0) > 0.5 then
                     emotion = "scared"
-                elseif ent:GetNWFloat("NaiAlertLevel", 0) > 0.3 then
+                elseif ent:GetNWFloat("NPCPassengerAlertLevel", 0) > 0.3 then
                     emotion = "alert"
                 end
                 status = "passenger:" .. emotion
@@ -3138,7 +3082,7 @@ hook.Add("HUDPaint", "NaiPassengers_ClientHints", function()
 end)
 
 -- NPC Driver Debug HUD
-hook.Add("HUDPaint", "NaiPassengers_DriverDebug", function()
+hook.Add("HUDPaint", "NPCPassengers_DriverDebug", function()
     if not GetConVar("nai_npc_driver_debug"):GetBool() then return end
     if not GetConVar("nai_npc_driver_enabled"):GetBool() then return end
     

@@ -1,4 +1,4 @@
-NaiPassengers = NaiPassengers or {}
+NPCPassengers = NPCPassengers or {}
 
 if SERVER then
     AddCSLuaFile("nai_npc_passengers/settings.lua")

@@ -5,19 +5,19 @@
 
 if CLIENT then return end
 
-NaiPassengers = NaiPassengers or {}
-NaiPassengers.Modules = NaiPassengers.Modules or {}
-NaiPassengers.Modules.lvs_driver = true
-NaiPassengers.DriverNPCs = NaiPassengers.DriverNPCs or {}
+NPCPassengers = NPCPassengers or {}
+NPCPassengers.Modules = NPCPassengers.Modules or {}
+NPCPassengers.Modules.lvs_driver = true
+NPCPassengers.DriverNPCs = NPCPassengers.DriverNPCs or {}
 
 -- Configuration convars
-NaiPassengers.cv_driver_enabled = CreateConVar("nai_npc_driver_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC auto-driving")
-NaiPassengers.cv_driver_range = CreateConVar("nai_npc_driver_range", "4000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Range to detect enemies for driving")
-NaiPassengers.cv_driver_engage_distance = CreateConVar("nai_npc_driver_engage_distance", "800", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Distance to maintain from enemy")
-NaiPassengers.cv_driver_speed = CreateConVar("nai_npc_driver_speed", "0.7", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Throttle amount (0-1)")
-NaiPassengers.cv_driver_reverse_distance = CreateConVar("nai_npc_driver_reverse_distance", "300", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Distance at which to reverse away")
+NPCPassengers.cv_driver_enabled = CreateConVar("nai_npc_driver_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC auto-driving")
+NPCPassengers.cv_driver_range = CreateConVar("nai_npc_driver_range", "4000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Range to detect enemies for driving")
+NPCPassengers.cv_driver_engage_distance = CreateConVar("nai_npc_driver_engage_distance", "800", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Distance to maintain from enemy")
+NPCPassengers.cv_driver_speed = CreateConVar("nai_npc_driver_speed", "0.7", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Throttle amount (0-1)")
+NPCPassengers.cv_driver_reverse_distance = CreateConVar("nai_npc_driver_reverse_distance", "300", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Distance at which to reverse away")
 
-local driverNPCs = NaiPassengers.DriverNPCs
+local driverNPCs = NPCPassengers.DriverNPCs
 
 -- Known hostile NPC classes
 local hostileClasses = {
@@ -51,7 +51,7 @@ local function IsEnemy(ent, npc)
     if ent:Health() <= 0 then return false end
     
     -- Check if it's a passenger (don't target other passengers)
-    if NaiPassengers.IsPassenger and NaiPassengers.IsPassenger(ent) then
+    if NPCPassengers.IsPassenger and NPCPassengers.IsPassenger(ent) then
         return false
     end
     
@@ -458,7 +458,7 @@ local function DriverThink(controller, dt)
         return false -- Remove controller
     end
     
-    if not NaiPassengers.cv_driver_enabled:GetBool() then
+    if not NPCPassengers.cv_driver_enabled:GetBool() then
         return true
     end
     
@@ -472,7 +472,7 @@ local function DriverThink(controller, dt)
     if controller.scanTimer <= 0 then
         controller.scanTimer = 0.5
         
-        local range = NaiPassengers.cv_driver_range:GetFloat()
+        local range = NPCPassengers.cv_driver_range:GetFloat()
         local enemies = FindEnemiesInRange(vehPos, range, npc)
         
         if #enemies > 0 then
@@ -492,9 +492,9 @@ local function DriverThink(controller, dt)
         local targetPos = controller.currentTarget.entity:GetPos()
         local dist = vehPos:Distance(targetPos)
         
-        local engageDistance = NaiPassengers.cv_driver_engage_distance:GetFloat()
-        local reverseDistance = NaiPassengers.cv_driver_reverse_distance:GetFloat()
-        local maxSpeed = NaiPassengers.cv_driver_speed:GetFloat()
+        local engageDistance = NPCPassengers.cv_driver_engage_distance:GetFloat()
+        local reverseDistance = NPCPassengers.cv_driver_reverse_distance:GetFloat()
+        local maxSpeed = NPCPassengers.cv_driver_speed:GetFloat()
         
         -- Calculate steering
         local isFacingTarget
@@ -602,7 +602,7 @@ end
 --[[
     Register an NPC as a driver
 ]]
-function NaiPassengers.RegisterDriverNPC(npc, vehicle, seat)
+function NPCPassengers.RegisterDriverNPC(npc, vehicle, seat)
     if not IsValid(npc) or not IsValid(vehicle) then return end
     
     -- Check if this is the driver seat
@@ -642,7 +642,7 @@ end
 --[[
     Unregister an NPC driver
 ]]
-function NaiPassengers.UnregisterDriverNPC(npc)
+function NPCPassengers.UnregisterDriverNPC(npc)
     if not IsValid(npc) then return end
     
     local npcId = npc:EntIndex()
@@ -669,8 +669,8 @@ end
     Main think hook
 ]]
 local lastThink = CurTime()
-hook.Add("Think", "NaiPassengers_DriverThink", function()
-    if not NaiPassengers.cv_driver_enabled:GetBool() then return end
+hook.Add("Think", "NPCPassengers_DriverThink", function()
+    if not NPCPassengers.cv_driver_enabled:GetBool() then return end
     
     local curTime = CurTime()
     local dt = curTime - lastThink
@@ -693,7 +693,7 @@ hook.Add("Think", "NaiPassengers_DriverThink", function()
 end)
 
 -- Cleanup on entity removal
-hook.Add("EntityRemoved", "NaiPassengers_DriverCleanup", function(ent)
+hook.Add("EntityRemoved", "NPCPassengers_DriverCleanup", function(ent)
     if ent:IsNPC() then
         local npcId = ent:EntIndex()
         if driverNPCs[npcId] then
@@ -715,7 +715,7 @@ hook.Add("EntityRemoved", "NaiPassengers_DriverCleanup", function(ent)
 end)
 
 -- Cleanup when NPC dies (but entity still exists)
-hook.Add("OnNPCKilled", "NaiPassengers_DriverDeathCleanup", function(npc, attacker, inflictor)
+hook.Add("OnNPCKilled", "NPCPassengers_DriverDeathCleanup", function(npc, attacker, inflictor)
     if not IsValid(npc) then return end
     
     local npcId = npc:EntIndex()
