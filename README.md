@@ -1,4 +1,4 @@
-﻿# Better NPC Passengers
+﻿*Better NPC Passengers*
 
 <div align="center">
 
