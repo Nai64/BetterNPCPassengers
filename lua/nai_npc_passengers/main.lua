@@ -1543,6 +1543,79 @@ end
         return origin
     end
 
+    local function BuildPassengerBulletFilter(npc, pdata)
+        local filter = {npc}
+
+        if pdata and IsValid(pdata.vehicle) then
+            filter[#filter + 1] = pdata.vehicle
+            for _, child in ipairs(pdata.vehicle:GetChildren()) do
+                if IsValid(child) then
+                    filter[#filter + 1] = child
+                end
+            end
+        end
+
+        return filter
+    end
+
+    local function GetPassengerShotDirection(baseDir, spread)
+        if spread <= 0 then
+            return baseDir
+        end
+
+        local ang = baseDir:Angle()
+        local shotDir = baseDir
+            + ang:Right() * math.Rand(-spread, spread)
+            + ang:Up() * math.Rand(-spread, spread)
+
+        return shotDir:GetNormalized()
+    end
+
+    local function FirePassengerShots(npc, pdata, weaponProfile, origin, targetPos, spreadScale, damageScale)
+        if not IsValid(npc) or not pdata or not weaponProfile then return end
+
+        local filter = BuildPassengerBulletFilter(npc, pdata)
+        local baseDir = (targetPos - origin):GetNormalized()
+        local shotDistance = math.max(NPCPassengers.cv_passenger_combat_range:GetFloat(), 4096)
+        local bulletCount = math.max(1, weaponProfile.bullets or 1)
+        local spread = math.max(0, (weaponProfile.spread or 0) * spreadScale)
+        local damagePerShot = (weaponProfile.damage or 0) * damageScale
+
+        for shotIndex = 1, bulletCount do
+            local shotDir = GetPassengerShotDirection(baseDir, spread)
+            local tr = util.TraceLine({
+                start = origin,
+                endpos = origin + shotDir * shotDistance,
+                filter = filter,
+                mask = MASK_SHOT,
+            })
+
+            if weaponProfile.tracer and weaponProfile.tracer > 0 and (shotIndex % weaponProfile.tracer == 0) then
+                local tracer = EffectData()
+                tracer:SetStart(origin)
+                tracer:SetOrigin(tr.HitPos)
+                tracer:SetEntity(npc)
+                util.Effect("Tracer", tracer, true, true)
+            end
+
+            if IsValid(tr.Entity) then
+                local dmgInfo = DamageInfo()
+                dmgInfo:SetAttacker(npc)
+                dmgInfo:SetInflictor(npc)
+                dmgInfo:SetDamageType(DMG_BULLET)
+                dmgInfo:SetDamage(damagePerShot)
+                dmgInfo:SetDamageForce(shotDir * damagePerShot * 25)
+                dmgInfo:SetDamagePosition(tr.HitPos)
+
+                if tr.Entity.DispatchTraceAttack then
+                    tr.Entity:DispatchTraceAttack(dmgInfo, tr, shotDir)
+                else
+                    tr.Entity:TakeDamageInfo(dmgInfo)
+                end
+            end
+        end
+    end
+
     local function TryPlayPassengerGesture(npc, activityNames, sequenceNames, fallbackActivity, fallbackDuration)
         if not IsValid(npc) then return false end
 
@@ -1669,16 +1742,7 @@ end
         local spreadScale = math.max(0.15, 1.05 - accuracy)
         local damageScale = math.max(0.1, NPCPassengers.cv_passenger_combat_damage:GetFloat())
 
-        npc:FireBullets({
-            Attacker = npc,
-            Damage = weaponProfile.damage * damageScale,
-            Dir = direction,
-            Force = weaponProfile.damage * damageScale,
-            Num = weaponProfile.bullets,
-            Spread = Vector(weaponProfile.spread * spreadScale, weaponProfile.spread * spreadScale, 0),
-            Src = origin,
-            Tracer = weaponProfile.tracer,
-        })
+        FirePassengerShots(npc, pdata, weaponProfile, origin, targetPos, spreadScale, damageScale)
 
         npc:EmitSound(weaponProfile.sound, 75, math.random(98, 102))
         if npc.MuzzleFlash then
