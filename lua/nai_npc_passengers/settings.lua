@@ -18,7 +18,7 @@ NPCPassengers.IsFirstApril = NPCPassengers.IsFirstApril or function()
     return dateInfo and dateInfo.month == 4 and dateInfo.day == 1
 end
 
-NPCPassengers.Version = NPCPassengers.Version or "2.5.0"
+NPCPassengers.Version = NPCPassengers.Version or "2.5.1"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-28"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
