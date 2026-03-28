@@ -356,6 +356,16 @@ local function LerpColor(t, col1, col2)
     )
 end
 
+local function DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
+    if borderColor then
+        draw.RoundedBox(radius, x, y, w, h, borderColor)
+        draw.RoundedBox(math.max(radius - 1, 0), x + 1, y + 1, math.max(w - 2, 0), math.max(h - 2, 0), fillColor)
+        return
+    end
+
+    draw.RoundedBox(radius, x, y, w, h, fillColor)
+end
+
 -- UI Components
 local function CreateLabel(parent, text, font, color)
     local label = vgui.Create("DLabel", parent)
@@ -1144,10 +1154,7 @@ local function OpenSettingsPanel()
 
         result.Paint = function(self, w, h)
             local bgCol = self:IsHovered() and Theme.bgLighter or Theme.bgDark
-            draw.RoundedBox(6, 0, 0, w, h, bgCol)
-
-            surface.SetDrawColor(self:IsHovered() and Theme.accentHover or Theme.border)
-            surface.DrawOutlinedRect(0, 0, w, h, 1)
+            DrawRoundedSurface(0, 0, w, h, 8, bgCol, self:IsHovered() and Theme.accentHover or Theme.border)
 
             draw.SimpleText(tostring(rank), "NaiFont_Small", 14, h / 2, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             draw.SimpleText(entry.title, "NaiFont_Normal", 34, 17, Theme.textBright)
@@ -1179,7 +1186,7 @@ local function OpenSettingsPanel()
             emptyState:SetTall(34)
             emptyState:Dock(TOP)
             emptyState.Paint = function(self, w, h)
-                draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
+                DrawRoundedSurface(0, 0, w, h, 8, Theme.bgDark, Theme.border)
                 draw.SimpleText("No matching settings", "NaiFont_Small", 12, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             end
 
@@ -1205,9 +1212,7 @@ local function OpenSettingsPanel()
     searchBox:DockMargin(8, 10, 8, 12)
     searchBox:SetTall(42)
     searchBox.Paint = function(self, w, h)
-        draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
-        surface.SetDrawColor(self:IsHovered() and Theme.accentHover or Theme.border)
-        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        DrawRoundedSurface(0, 0, w, h, 10, Theme.bgLight, self:IsHovered() and Theme.accentHover or Theme.border)
     end
     searchBox.PaintOver = function(self, w, h)
         surface.SetDrawColor(Theme.textDim)
@@ -1234,8 +1239,9 @@ local function OpenSettingsPanel()
     searchSuggestions:SetTall(0)
     searchSuggestions:SetWide(0)
     searchSuggestions:SetVisible(false)
+    searchSuggestions:DockPadding(6, 6, 6, 6)
     searchSuggestions.Paint = function(self, w, h)
-        draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
+        DrawRoundedSurface(0, 0, w, h, 10, Theme.bgLight, Theme.border)
     end
     UpdateSearchSuggestionsLayout()
 
