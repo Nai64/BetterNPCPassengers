@@ -1656,13 +1656,11 @@ local function UpdateNPCHeadLook(npc, pdata)
     npc:SetPoseParameter("aim_yaw", state.currentYaw * 0.1)
     npc:SetPoseParameter("aim_pitch", state.currentPitch * 0.08)
     
-    -- Set eye target for proper eye tracking
-    if state.lastTargetPos and state.lookType == "player" then
-        npc:SetEyeTarget(state.lastTargetPos)
-    else
-        local lookDir = Angle(-state.eyeCurrentPitch, npc:GetAngles().y + state.eyeCurrentYaw, 0)
-        npc:SetEyeTarget(npc:EyePos() + lookDir:Forward() * 500)
-    end
+    -- Set eye target consistent with our smoothed pose params.
+    -- Using the same pitch sign as head_pitch (positive = down in Source Engine)
+    -- prevents the engine's head-look IK from fighting SetPoseParameter and causing jitter.
+    local lookDir = Angle(state.eyeCurrentPitch, npc:GetAngles().y + state.eyeCurrentYaw, 0)
+    npc:SetEyeTarget(npc:EyePos() + lookDir:Forward() * 500)
 end
 
 local function CleanupNPCLookState(npcId)
