@@ -778,7 +778,25 @@ local function OpenSettingsPanel()
         settingsFrame:Close()
     end
 
-    local navContainer, sidebar, contentArea
+    local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches
+
+    local function UpdateSearchSuggestionsLayout()
+        if not IsValid(searchSuggestions) or not IsValid(sidebar) then
+            return
+        end
+
+        local suggestionX = 8
+        local suggestionY = 56
+        local suggestionW = math.max(sidebar:GetWide() - 24, 120)
+
+        if IsValid(searchBox) then
+            suggestionY = searchBox:GetY() + searchBox:GetTall() + 4
+        end
+
+        searchSuggestions:SetPos(suggestionX, suggestionY)
+        searchSuggestions:SetWide(suggestionW)
+        searchSuggestions:MoveToFront()
+    end
 
     -- Live resize: reflow all major child panels when the frame dimensions change
     settingsFrame.PerformLayout = function(self, w, h)
@@ -794,6 +812,8 @@ local function OpenSettingsPanel()
         if IsValid(closeBtn) then
             closeBtn:SetPos(w - 38, 12)
         end
+
+        UpdateSearchSuggestionsLayout()
     end
 
     -- Side panel navigation system
@@ -825,9 +845,7 @@ local function OpenSettingsPanel()
     
     local currentPanel = nil
     local navButtons = {}
-    local searchEntry = nil
-    local searchSuggestions = nil
-    local searchMatches = {}
+    searchMatches = {}
     
     -- Function to create nav button
     local function CreateNavButton(label, icon)
@@ -1164,6 +1182,7 @@ local function OpenSettingsPanel()
 
             searchSuggestions:SetVisible(true)
             searchSuggestions:SetTall(34)
+            UpdateSearchSuggestionsLayout()
             return
         end
 
@@ -1175,9 +1194,10 @@ local function OpenSettingsPanel()
 
         searchSuggestions:SetVisible(true)
         searchSuggestions:SetTall(totalHeight)
+        UpdateSearchSuggestionsLayout()
     end
 
-    local searchBox = vgui.Create("DPanel", sidebar)
+    searchBox = vgui.Create("DPanel", sidebar)
     searchBox:Dock(TOP)
     searchBox:DockMargin(8, 10, 8, 12)
     searchBox:SetTall(42)
@@ -1198,6 +1218,7 @@ local function OpenSettingsPanel()
     searchEntry:SetFont("NaiFont_Normal")
     searchEntry:SetTextColor(Theme.text)
     searchEntry:SetDrawBackground(false)
+    searchEntry:SetUpdateOnType(true)
     searchEntry.Paint = function(self, w, h)
         self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
 
@@ -1206,17 +1227,17 @@ local function OpenSettingsPanel()
         end
     end
 
-    searchSuggestions = vgui.Create("DPanel", sidebar)
-    searchSuggestions:Dock(TOP)
-    searchSuggestions:DockMargin(8, 0, 8, 12)
+    searchSuggestions = vgui.Create("DPanel", navContainer)
     searchSuggestions:SetTall(0)
+    searchSuggestions:SetWide(0)
     searchSuggestions:SetVisible(false)
     searchSuggestions.Paint = function(self, w, h)
         draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
     end
+    UpdateSearchSuggestionsLayout()
 
-    searchEntry.OnValueChange = function(self, value)
-        UpdateSearchSuggestions(value)
+    searchEntry.OnChange = function(self)
+        UpdateSearchSuggestions(self:GetValue())
     end
     searchEntry.OnEnter = function(self)
         if searchMatches[1] then
