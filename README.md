@@ -1,4 +1,4 @@
-﻿# 🚗 NPC Passengers — Garry's Mod Addon
+﻿# Better NPC Passengers
 
 <div align="center">
 
