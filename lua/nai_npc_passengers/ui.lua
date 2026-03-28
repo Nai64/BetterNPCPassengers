@@ -2069,6 +2069,10 @@ local function OpenSettingsPanel()
         settingsFrame:Close()
         timer.Simple(0.1, function() ShowWelcomePanel(true) end)
     end)
+
+    CreateButton(aboutPanel, "Open GitHub Page", function()
+        gui.OpenURL("https://github.com/Nai64/BetterNPCPassengers")
+    end)
     
     CreateButton(aboutPanel, "Reset ALL Settings to Defaults", function()
         RunConsoleCommand("nai_npc_reset")
