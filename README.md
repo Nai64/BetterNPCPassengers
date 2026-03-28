@@ -1,5 +1,7 @@
-﻿<div align="center">
-# Better NPC Passengers
+﻿# Better NPC Passengers
+
+<div align="center">
+
 
 [![Version](https://img.shields.io/badge/version-v2.4-blue?style=for-the-badge)](https://github.com/naidev5/BetterNPCPassengers-gmod/releases)
 [![GMod](https://img.shields.io/badge/Garry's%20Mod-Addon-black?style=for-the-badge&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
