@@ -2,8 +2,8 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.4.4"
-NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-07-04"
+NPCPassengers.Version = NPCPassengers.Version or "2.4.5"
+NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-28"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
     local cv = GetConVar(name)
@@ -100,7 +100,7 @@ NPCPassengers.cv_body_sway_amount = CreateConVar("nai_npc_body_sway_amount", "1"
 NPCPassengers.cv_threat_awareness = CreateConVar("nai_npc_threat_awareness", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs look toward nearby enemies")
 NPCPassengers.cv_threat_range = CreateConVar("nai_npc_threat_range", "1500", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Range to detect threats for head tracking")
 NPCPassengers.cv_combat_alert = CreateConVar("nai_npc_combat_alert", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs become alert when enemies are near")
-NPCPassengers.cv_passenger_combat = CreateConVar("nai_npc_passenger_combat", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Armed passengers aim and shoot at nearby enemies")
+NPCPassengers.cv_passenger_combat = CreateConVar("nai_npc_passenger_combat", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs shoot from vehicles (Experimental)")
 NPCPassengers.cv_passenger_combat_range = CreateConVar("nai_npc_passenger_combat_range", "1800", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Range for armed passengers to acquire targets")
 NPCPassengers.cv_passenger_combat_accuracy = CreateConVar("nai_npc_passenger_combat_accuracy", "0.72", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Accuracy for armed passenger firing (0-1)")
 NPCPassengers.cv_passenger_combat_damage = CreateConVar("nai_npc_passenger_combat_damage", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Damage multiplier for armed passenger shots")
