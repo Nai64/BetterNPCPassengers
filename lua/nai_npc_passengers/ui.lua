@@ -957,7 +957,40 @@ local function OpenSettingsPanel()
         settingsFrame:Close()
     end
 
-    local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches
+    local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches, searchStatus, searchClearBtn
+    local ClearSearchSuggestions
+
+    local function FocusSearchEntry()
+        if not IsValid(searchEntry) then
+            return
+        end
+
+        searchEntry:RequestFocus()
+        searchEntry:SetCaretPos(string.len(searchEntry:GetValue() or ""))
+    end
+
+    local function ClearSearchQuery(keepFocus)
+        if not IsValid(searchEntry) then
+            return
+        end
+
+        searchEntry:SetText("")
+        ClearSearchSuggestions()
+
+        if IsValid(searchStatus) then
+            searchStatus:SetText("Ctrl+F to focus search")
+            searchStatus:SetTextColor(Theme.textDim)
+            searchStatus:SizeToContents()
+        end
+
+        if IsValid(searchClearBtn) then
+            searchClearBtn:SetVisible(false)
+        end
+
+        if keepFocus then
+            FocusSearchEntry()
+        end
+    end
 
     local function UpdateSearchSuggestionsLayout()
         if not IsValid(searchSuggestions) or not IsValid(sidebar) then
@@ -1285,7 +1318,7 @@ local function OpenSettingsPanel()
         return matches
     end
 
-    local function ClearSearchSuggestions()
+    ClearSearchSuggestions = function()
         searchMatches = {}
 
         if not IsValid(searchSuggestions) then
@@ -1308,7 +1341,7 @@ local function OpenSettingsPanel()
         ClearSearchSuggestions()
 
         if IsValid(searchEntry) then
-            searchEntry:SetText("")
+            ClearSearchQuery(false)
         end
 
         SwitchToPanel(entry.panel, entry.button)
@@ -1348,7 +1381,33 @@ local function OpenSettingsPanel()
 
         ClearSearchSuggestions()
 
-        searchMatches = GetSearchMatches(rawQuery, SEARCH_SUGGESTION_LIMIT)
+        local allMatches = GetSearchMatches(rawQuery)
+        local totalMatches = #allMatches
+
+        if IsValid(searchStatus) then
+            if NormalizeSearchText(rawQuery) == "" then
+                searchStatus:SetText("Ctrl+F to focus search")
+                searchStatus:SetTextColor(Theme.textDim)
+            elseif totalMatches == 0 then
+                searchStatus:SetText("No matching settings")
+                searchStatus:SetTextColor(Theme.textDim)
+            else
+                searchStatus:SetText(string.format("Showing top %d of %d matches", math.min(totalMatches, SEARCH_SUGGESTION_LIMIT), totalMatches))
+                searchStatus:SetTextColor(Theme.textDim)
+            end
+            searchStatus:SizeToContents()
+        end
+
+        if IsValid(searchClearBtn) then
+            searchClearBtn:SetVisible(NormalizeSearchText(rawQuery) ~= "")
+        end
+
+        searchMatches = allMatches
+        if #searchMatches > SEARCH_SUGGESTION_LIMIT then
+            for index = #searchMatches, SEARCH_SUGGESTION_LIMIT + 1, -1 do
+                searchMatches[index] = nil
+            end
+        end
 
         if #searchMatches == 0 then
             if NormalizeSearchText(rawQuery) == "" then
@@ -1402,7 +1461,7 @@ local function OpenSettingsPanel()
 
     searchEntry = vgui.Create("DTextEntry", searchBox)
     searchEntry:Dock(FILL)
-    searchEntry:DockMargin(36, 6, 10, 6)
+    searchEntry:DockMargin(36, 6, 34, 6)
     searchEntry:SetFont("NaiFont_Normal")
     searchEntry:SetTextColor(Theme.text)
     searchEntry:SetDrawBackground(false)
@@ -1414,6 +1473,38 @@ local function OpenSettingsPanel()
             draw.SimpleText("Search settings...", "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
     end
+    searchEntry.OnKeyCodeTyped = function(self, key)
+        if key == KEY_ESCAPE and self:GetValue() ~= "" then
+            ClearSearchQuery(true)
+            return true
+        end
+    end
+
+    searchClearBtn = vgui.Create("DButton", searchBox)
+    searchClearBtn:SetText("")
+    searchClearBtn:SetSize(18, 18)
+    searchClearBtn:SetVisible(false)
+    searchClearBtn.Paint = function(self, w, h)
+        local color = self:IsHovered() and Theme.textBright or Theme.textDim
+        draw.SimpleText("x", "NaiFont_Bold", w / 2, h / 2 - 1, color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+    searchClearBtn.DoClick = function()
+        ClearSearchQuery(true)
+    end
+
+    searchBox.PerformLayout = function(self, w, h)
+        if IsValid(searchClearBtn) then
+            searchClearBtn:SetPos(w - 24, math.floor((h - searchClearBtn:GetTall()) / 2))
+        end
+    end
+
+    searchStatus = vgui.Create("DLabel", sidebar)
+    searchStatus:SetText("Ctrl+F to focus search")
+    searchStatus:SetFont("NaiFont_Small")
+    searchStatus:SetTextColor(Theme.textDim)
+    searchStatus:Dock(TOP)
+    searchStatus:DockMargin(12, -6, 12, 10)
+    searchStatus:SizeToContents()
 
     searchSuggestions = vgui.Create("DPanel", navContainer)
     searchSuggestions:SetTall(0)
@@ -1436,6 +1527,16 @@ local function OpenSettingsPanel()
     searchEntry.OnEnter = function(self)
         if searchMatches[1] then
             OpenSearchMatch(searchMatches[1])
+        end
+    end
+    settingsFrame.OnKeyCodePressed = function(self, key)
+        if key == KEY_F and (input.IsKeyDown(KEY_LCONTROL) or input.IsKeyDown(KEY_RCONTROL)) then
+            FocusSearchEntry()
+            return
+        end
+
+        if key == KEY_ESCAPE and IsValid(searchEntry) and searchEntry:GetValue() ~= "" then
+            ClearSearchQuery(false)
         end
     end
     
@@ -2041,6 +2142,29 @@ local function OpenSettingsPanel()
     end
 
     CreateSpacer(keybindsPanel, 8)
+    CreateButton(keybindsPanel, "Apply Recommended Keybinds", function()
+        local recommendedKeys = {
+            nai_npc_key_attach = KEY_G,
+            nai_npc_key_detach_all = KEY_J,
+            nai_npc_key_toggle_autojoin = KEY_H,
+            nai_npc_key_menu = KEY_F6,
+            nai_npc_key_exit_all = KEY_Y,
+            nai_npc_key_cycle_view = KEY_V,
+        }
+
+        for convar, keyCode in pairs(recommendedKeys) do
+            RunConsoleCommand(convar, tostring(keyCode))
+            local button = keybindButtons[convar]
+            if IsValid(button) then
+                button.isBinding = false
+                button:SetText(input.GetKeyName(keyCode) or ("Key " .. keyCode))
+            end
+        end
+
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Recommended keybinds applied.")
+    end)
+
+    CreateSpacer(keybindsPanel, 4)
     CreateButton(keybindsPanel, "Clear All Keybinds", function()
         for convar, button in pairs(keybindButtons) do
             RunConsoleCommand(convar, "0")
@@ -2262,6 +2386,20 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(interfacePanel, "Show 'Detach Passenger'", "nai_npc_context_detach")
     CreateHelpText(interfacePanel, "Remove NPC from vehicle")
+
+    CreateButton(interfacePanel, "Enable All Context Menu Options", function()
+        RunConsoleCommand("nai_npc_context_make_passenger", "1")
+        RunConsoleCommand("nai_npc_context_make_passenger_vehicle", "1")
+        RunConsoleCommand("nai_npc_context_detach", "1")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All context menu options enabled.")
+    end)
+
+    CreateButton(interfacePanel, "Hide All Context Menu Options", function()
+        RunConsoleCommand("nai_npc_context_make_passenger", "0")
+        RunConsoleCommand("nai_npc_context_make_passenger_vehicle", "0")
+        RunConsoleCommand("nai_npc_context_detach", "0")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All context menu options hidden.")
+    end)
     
     CreateSpacer(interfacePanel, 10)
     CreateSectionHeader(interfacePanel, "Settings Panel Preferences")
@@ -2305,6 +2443,48 @@ local function OpenSettingsPanel()
             settingsFrame:InvalidateLayout(true)
         end
     end
+
+    local function ApplyPanelSizePreset(width, height)
+        RunConsoleCommand("nai_npc_ui_panel_width", tostring(width))
+        RunConsoleCommand("nai_npc_ui_panel_height", tostring(height))
+
+        if IsValid(widthSlider) then
+            widthSlider:SetValue(width)
+        end
+
+        if IsValid(heightSlider) then
+            heightSlider:SetValue(height)
+        end
+
+        if IsValid(settingsFrame) then
+            settingsFrame:SetSize(width, height)
+            settingsFrame:Center()
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
+
+    CreateButton(interfacePanel, "Set Compact Panel Size", function()
+        ApplyPanelSizePreset(900, 650)
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel size set to compact.")
+    end)
+
+    CreateButton(interfacePanel, "Set Default Panel Size", function()
+        ApplyPanelSizePreset(950, 700)
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel size set to default.")
+    end)
+
+    CreateButton(interfacePanel, "Set Large Panel Size", function()
+        ApplyPanelSizePreset(1200, 800)
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel size set to large.")
+    end)
+
+    CreateButton(interfacePanel, "Center Panel Now", function()
+        if IsValid(settingsFrame) then
+            settingsFrame:Center()
+            settingsFrame:InvalidateLayout(true)
+            chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel centered.")
+        end
+    end)
     
     CreateCheckbox(interfacePanel, "Enable UI Animations", "nai_npc_ui_animations")
     CreateHelpText(interfacePanel, "Smooth transitions and hover effects (may impact performance)")
@@ -2658,6 +2838,11 @@ local function OpenSettingsPanel()
     
     -- Start with General panel active
     SwitchToPanel(generalPanel, generalBtn)
+    timer.Simple(0, function()
+        if IsValid(searchEntry) then
+            FocusSearchEntry()
+        end
+    end)
 end
 
 concommand.Add("nai_passengers_menu", OpenSettingsPanel)
