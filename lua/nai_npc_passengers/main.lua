@@ -991,6 +991,16 @@ local function InitializeLookState(npcId)
         flinchEndTime = 0,
         -- Head look timing
         lastHeadLookTime = 0,
+        -- Drowsy eye transition (0 = open, 1 = fully closed)
+        drowsyEye = 0,
+        -- Idle head drift: subtle slow micro-movement independent of look target
+        idleDriftTargetYaw  = 0,
+        idleDriftTargetPitch = 0,
+        idleDriftYaw        = 0,
+        idleDriftPitch      = 0,
+        idleDriftVelYaw     = 0,
+        idleDriftVelPitch   = 0,
+        nextIdleDriftTime   = ct + math.Rand(3, 7),
     }
     return npcLookState[npcId]
 end
@@ -1262,62 +1272,47 @@ end
 
 local function UpdateNPCHeadLook(npc, pdata)
     if not IsValid(npc) then return end
-    
+
     local npcId = npc:EntIndex()
     local state = npcLookState[npcId]
     if not state then
         state = InitializeLookState(npcId)
     end
-    
+
     local curTime = CurTime()
     local dt = math.min(curTime - (state.lastHeadLookTime > 0 and state.lastHeadLookTime or (curTime - PASSENGER_HEADLOOK_INTERVAL)), 0.1)
     state.lastHeadLookTime = curTime
     if dt <= 0 then dt = PASSENGER_HEADLOOK_INTERVAL end
-    
-    local vehicle = pdata.vehicle
-    local headSmoothTime = NPCPassengers.cv_head_smooth:GetFloat()
-    local eyeSmoothTime = headSmoothTime * 0.375
-    local blinkEnabled = NPCPassengers.cv_blink_enabled:GetBool()
-    local breathingEnabled = NPCPassengers.cv_breathing:GetBool()
-    
-    -- Advanced realism settings (body sway handled client-side)
-    local threatAwareness = NPCPassengers.cv_threat_awareness:GetBool()
-    local threatRange = NPCPassengers.cv_threat_range:GetFloat()
-    local combatAlert = NPCPassengers.cv_combat_alert:GetBool()
-    local fearReactions = NPCPassengers.cv_fear_reactions:GetBool()
-    local fearSpeedThreshold = NPCPassengers.cv_fear_speed_threshold:GetFloat()
-    local drowsinessEnabled = NPCPassengers.cv_drowsiness:GetBool()
-    local drowsyTime = NPCPassengers.cv_drowsy_time:GetFloat()
+
+    local vehicle             = pdata.vehicle
+    local headSmoothTime      = NPCPassengers.cv_head_smooth:GetFloat()
+    -- Eyes track at ~65% of head smoothing — natural lag without jarring darting
+    local eyeSmoothTime       = headSmoothTime * 0.65
+    local blinkEnabled        = NPCPassengers.cv_blink_enabled:GetBool()
+    local breathingEnabled    = NPCPassengers.cv_breathing:GetBool()
+    local threatAwareness     = NPCPassengers.cv_threat_awareness:GetBool()
+    local threatRange         = NPCPassengers.cv_threat_range:GetFloat()
+    local combatAlert         = NPCPassengers.cv_combat_alert:GetBool()
+    local fearReactions       = NPCPassengers.cv_fear_reactions:GetBool()
+    local fearSpeedThreshold  = NPCPassengers.cv_fear_speed_threshold:GetFloat()
+    local drowsinessEnabled   = NPCPassengers.cv_drowsiness:GetBool()
+    local drowsyTime          = NPCPassengers.cv_drowsy_time:GetFloat()
     local passengerInteraction = NPCPassengers.cv_passenger_interaction:GetBool()
-    
-    -- Gesture animation settings
-    local talkingGestures = NPCPassengers.cv_talking_gestures:GetBool()
-    local gestureChance = NPCPassengers.cv_gesture_chance:GetFloat()
-    local gestureInterval = NPCPassengers.cv_gesture_interval:GetFloat()
-    local crashFlinch = NPCPassengers.cv_crash_flinch:GetBool()
-    local crashThreshold = NPCPassengers.cv_crash_threshold:GetFloat()
-    
-    -- Crash flinch detection - play HUGE flinch gesture on sudden deceleration
+    local talkingGestures     = NPCPassengers.cv_talking_gestures:GetBool()
+    local gestureChance       = NPCPassengers.cv_gesture_chance:GetFloat()
+    local gestureInterval     = NPCPassengers.cv_gesture_interval:GetFloat()
+    local crashFlinch         = NPCPassengers.cv_crash_flinch:GetBool()
+    local crashThreshold      = NPCPassengers.cv_crash_threshold:GetFloat()
+
+    -- ── Crash flinch ─────────────────────────────────────────────────────────
     if crashFlinch and IsValid(vehicle) then
         local currentVel = vehicle:GetVelocity():Length()
-        local velChange = math.abs(currentVel - (state.lastVelocityMagnitude or 0))
+        local velChange  = math.abs(currentVel - (state.lastVelocityMagnitude or 0))
         state.lastVelocityMagnitude = currentVel
-        
-        -- Detect sudden deceleration (crash)
         if velChange > crashThreshold and curTime > (state.flinchEndTime or 0) then
             state.flinchEndTime = curTime + math.Rand(1.5, 2.5)
-            
-            -- Calculate crash damage based on velocity change (varying per passenger)
-            local baseDamage = math.Clamp((velChange - crashThreshold) / 50, 0, 30)
-            local damageVariation = math.Rand(0.6, 1.4)  -- Random multiplier per passenger
-            local finalDamage = baseDamage * damageVariation
-            
-            -- Extra damage for high speed crashes
-            if currentVel > 500 then
-                finalDamage = finalDamage * math.Rand(1.5, 2.0)  -- 50-100% more damage
-            end
-            
-            -- Apply damage to NPC
+            local finalDamage = math.Clamp((velChange - crashThreshold) / 50, 0, 30) * math.Rand(0.6, 1.4)
+            if currentVel > 500 then finalDamage = finalDamage * math.Rand(1.5, 2.0) end
             if finalDamage > 1 then
                 local dmgInfo = DamageInfo()
                 dmgInfo:SetDamage(finalDamage)
@@ -1326,122 +1321,87 @@ local function UpdateNPCHeadLook(npc, pdata)
                 dmgInfo:SetInflictor(vehicle)
                 npc:TakeDamageInfo(dmgInfo)
             end
-            
-            -- High speed crash = HUGE dramatic flinch with multiple gestures
             if currentVel > 500 then
-                -- Play multiple flinch gestures for dramatic effect
                 npc:AddGesture(ACT_GESTURE_FLINCH_CHEST, true)
-                timer.Simple(0.1, function()
-                    if IsValid(npc) then
-                        npc:AddGesture(ACT_GESTURE_FLINCH_HEAD, true)
-                    end
-                end)
+                timer.Simple(0.1, function() if IsValid(npc) then npc:AddGesture(ACT_GESTURE_FLINCH_HEAD, true) end end)
                 timer.Simple(0.2, function()
                     if IsValid(npc) then
                         local seq = npc:LookupSequence("g_plead_01")
-                        if seq and seq >= 0 then
-                            npc:AddGestureSequence(seq, true)
-                        end
+                        if seq and seq >= 0 then npc:AddGestureSequence(seq, true) end
                     end
                 end)
             else
-                -- Normal crash - single flinch
-                local flinchActivities = {ACT_GESTURE_FLINCH_HEAD, ACT_GESTURE_FLINCH_CHEST, ACT_GESTURE_FLINCH_STOMACH}
-                npc:AddGesture(flinchActivities[math.random(#flinchActivities)], true)
+                local flinchList = {ACT_GESTURE_FLINCH_HEAD, ACT_GESTURE_FLINCH_CHEST, ACT_GESTURE_FLINCH_STOMACH}
+                npc:AddGesture(flinchList[math.random(#flinchList)], true)
             end
         end
     end
-    
-    -- Talking gesture animations with HL2 citizen gestures
+
+    -- ── Talking gestures ──────────────────────────────────────────────────────
     if talkingGestures and curTime > (state.nextGestureCheck or 0) then
         state.nextGestureCheck = curTime + gestureInterval
-        
-        -- Random chance to play a gesture
         if math.random(100) <= gestureChance and curTime > (state.flinchEndTime or 0) then
-            -- Idle gestures (calm, subtle movements)
-            local idleGestures = {
-                "g_point_l", "hg_nod_left", "hg_turnl", "idlenoise"
-            }
-            
-            -- Talking gestures (expressive, conversation-like)
-            local talkingGestures = {
-                "bg_accentfwd", "bg_down", "bg_up_l", "g_fist", "g_fist_l", "g_fist_r",
-                "g_fistshake", "g_head_back", "g_palm_out_high_l", "g_palm_out_high_r", "g_plead_01"
-            }
-            
-            -- Pick gesture based on state (60% talking, 40% idle)
-            local gestureList = math.random(100) <= 60 and talkingGestures or idleGestures
-            local gestureName = gestureList[math.random(#gestureList)]
-            
-            local seq = npc:LookupSequence(gestureName)
+            local idleList  = {"g_point_l", "hg_nod_left", "hg_turnl", "idlenoise"}
+            local talkList  = {"bg_accentfwd","bg_down","bg_up_l","g_fist","g_fist_l","g_fist_r","g_fistshake","g_head_back","g_palm_out_high_l","g_palm_out_high_r","g_plead_01"}
+            local gList     = math.random(100) <= 60 and talkList or idleList
+            local seq       = npc:LookupSequence(gList[math.random(#gList)])
             if seq and seq >= 0 then
                 local dur = npc:SequenceDuration(seq)
                 npc:AddGestureSequence(seq, true)
-                if dur and dur > 0.1 then
-                    MarkGesturePlaying(npc, dur)
-                end
+                if dur and dur > 0.1 then MarkGesturePlaying(npc, dur) end
             end
         end
     end
-    
-    -- Clear gesture state when done
     if state.isPlayingGesture and curTime > state.gestureEndTime then
         state.isPlayingGesture = false
     end
-    
-    -- NOTE: Body sway is now calculated entirely on the client side for smooth interpolation
-    
-    -- Threat awareness - look at nearby enemies
+
+    -- ── Threat / enemy focus ──────────────────────────────────────────────────
     local threatOverride = false
     if threatAwareness and IsValid(vehicle) then
-        -- Check for threats periodically
         if curTime > (state.threatLockTime or 0) then
             local threat = FindNearestThreat(npc, vehicle, threatRange)
             if IsValid(threat) then
-                state.currentThreat = threat
+                if not IsValid(state.currentThreat) then
+                    -- New threat: snap 60% toward enemy immediately for instant reactive look
+                    local snapYaw, snapPitch = CalculateLookAngles(npc, threat:EyePos())
+                    state.currentYaw   = state.currentYaw   + (snapYaw   - state.currentYaw)   * 0.6
+                    state.currentPitch = state.currentPitch + (snapPitch - state.currentPitch)  * 0.6
+                    state.velocityYaw, state.velocityPitch = 0, 0
+                end
+                state.currentThreat  = threat
                 state.threatLockTime = curTime + math.Rand(1, 3)
-                state.isAlerted = true
-                state.alertLevel = math.min((state.alertLevel or 0) + 0.3, 1)
-                state.calmTime = 0
+                state.isAlerted      = true
+                state.alertLevel     = math.min((state.alertLevel or 0) + 0.3, 1)
+                state.calmTime       = 0
             else
-                state.currentThreat = nil
+                state.currentThreat  = nil
                 state.threatLockTime = curTime + 0.5
             end
         end
-        
-        -- Look at current threat
         if IsValid(state.currentThreat) then
-            local threatPos = state.currentThreat:EyePos()
-            local yaw, pitch = CalculateLookAngles(npc, threatPos)
-            state.targetYaw = yaw
-            state.targetPitch = pitch
-            state.eyeTargetYaw = math.Clamp(yaw * 1.1, -85, 85)
-            state.eyeTargetPitch = math.Clamp(pitch * 1.1, -45, 25)
-            state.lookType = "threat"
-            threatOverride = true
-            
-            -- Combat alertness - faster head movement when alerted
-            if combatAlert then
-                headSmoothTime = headSmoothTime * 0.5
-                eyeSmoothTime = eyeSmoothTime * 0.4
-            end
+            local yaw, pitch = CalculateLookAngles(npc, state.currentThreat:EyePos())
+            state.targetYaw      = yaw
+            state.targetPitch    = pitch
+            state.eyeTargetYaw   = yaw
+            state.eyeTargetPitch = pitch
+            state.lookType       = "threat"
+            threatOverride       = true
+            -- Faster tracking while on a threat; quicker still with combatAlert
+            headSmoothTime = headSmoothTime * (combatAlert and 0.3 or 0.5)
+            eyeSmoothTime  = eyeSmoothTime  * (combatAlert and 0.3 or 0.5)
         end
     end
-    
-    -- Decay alert level when no threats
     if not IsValid(state.currentThreat) then
         state.alertLevel = math.max((state.alertLevel or 0) - dt * 0.1, 0)
-        if state.alertLevel <= 0 then
-            state.isAlerted = false
-        end
+        if state.alertLevel <= 0 then state.isAlerted = false end
     end
-    
-    -- Fear reactions to high speed
+
+    -- ── Fear reactions ────────────────────────────────────────────────────────
     if fearReactions and IsValid(vehicle) then
         local speed = vehicle:GetVelocity():Length()
         if speed > fearSpeedThreshold then
             state.fearLevel = math.min((state.fearLevel or 0) + dt * 0.5, 1)
-            -- Widen eyes (less blinking) and faster breathing when scared
             if state.fearLevel > 0.5 then
                 blinkEnabled = false
                 state.breathePhase = state.breathePhase + dt * 0.8
@@ -1450,220 +1410,225 @@ local function UpdateNPCHeadLook(npc, pdata)
             state.fearLevel = math.max((state.fearLevel or 0) - dt * 0.2, 0)
         end
     end
-    
-    -- Drowsiness on calm long rides
+
+    -- ── Drowsiness ────────────────────────────────────────────────────────────
     if drowsinessEnabled and not state.isAlerted and (state.fearLevel or 0) < 0.1 then
         state.calmTime = (state.calmTime or 0) + dt
         if state.calmTime > drowsyTime then
             state.isDrowsy = true
-            state.drowsyPhase = (state.drowsyPhase or 0) + dt * 0.3
-            
-            -- Drowsy passengers: close eyes and stop blinking
-            if blinkEnabled then
-                -- Keep eyes closed (permanent blink state)
-                state.isBlinking = true
-                state.blinkProgress = 1  -- Fully closed
-                state.nextBlinkTime = curTime + 9999  -- Don't blink while drowsy
-            end
-            
-            -- Stop head movement - freeze current position
-            headSmoothTime = 999  -- Extremely slow = essentially frozen
-            eyeSmoothTime = 999
         end
     else
-        -- Wake up when alerted or scared
         if state.isAlerted or (state.fearLevel or 0) >= 0.1 then
             state.isDrowsy = false
             state.calmTime = 0
         end
     end
-    
-    -- Passenger interaction - look at other passengers (skip if drowsy)
-    if not state.isDrowsy and passengerInteraction and not threatOverride and math.random() < 0.02 and curTime > (state.lastInteractionTime or 0) + 10 then
+
+    -- ── Passenger interaction (only when a new look target is due) ────────────
+    if not state.isDrowsy and passengerInteraction and not threatOverride
+            and curTime > (state.nextLookTime or 0)
+            and math.random() < 0.25
+            and curTime > (state.lastInteractionTime or 0) + 12 then
         local otherPassenger = FindPassengerToInteract(npc, vehicle, friendlyPassengers)
         if IsValid(otherPassenger) then
-            state.interactionTarget = otherPassenger
+            state.interactionTarget   = otherPassenger
             state.lastInteractionTime = curTime
-            state.nextLookTime = curTime + math.Rand(2, 5)
+            state.nextLookTime        = curTime + math.Rand(3, 6)
         end
     end
-    
-    -- Look at interaction target (skip if drowsy)
     if not state.isDrowsy and passengerInteraction and IsValid(state.interactionTarget) and not threatOverride then
-        local targetPos = state.interactionTarget:EyePos()
-        local yaw, pitch = CalculateLookAngles(npc, targetPos)
-        state.targetYaw = yaw
+        local yaw, pitch = CalculateLookAngles(npc, state.interactionTarget:EyePos())
+        state.targetYaw   = yaw
         state.targetPitch = pitch
-        state.lookType = "passenger"
-        
-        -- Clear interaction after look time expires
-        if curTime > state.nextLookTime then
+        state.lookType    = "passenger"
+        if curTime > (state.nextLookTime or 0) then
             state.interactionTarget = nil
         end
     end
-    
-    -- Standard blinking
+
+    -- ── Standard blinking ─────────────────────────────────────────────────────
     if blinkEnabled and not state.isDrowsy and curTime > state.nextBlinkTime and not state.isBlinking then
-        state.isBlinking = true
+        state.isBlinking    = true
         state.blinkProgress = 0
-        state.blinkEndTime = curTime + math.Rand(0.1, 0.18)
-        local blinkInterval = state.lookType == "player" and math.Rand(2, 4) or math.Rand(3, 7)
-        -- Blink faster when alerted
-        if state.isAlerted then
-            blinkInterval = blinkInterval * 0.6
-        end
-        state.nextBlinkTime = curTime + blinkInterval
+        state.blinkEndTime  = curTime + math.Rand(0.1, 0.18)
+        local interval = state.lookType == "player" and math.Rand(2, 4) or math.Rand(3, 7)
+        if state.isAlerted then interval = interval * 0.6 end
+        state.nextBlinkTime = curTime + interval
     end
-    
     if state.isBlinking then
         state.blinkProgress = math.min(1, state.blinkProgress + dt * 12)
         if curTime > state.blinkEndTime then
-            state.isBlinking = false
+            state.isBlinking    = false
             state.blinkProgress = 0
         end
     end
-    
-    -- Eye glances - reduced frequency, eyes mostly follow head (skip if drowsy)
+
+    -- ── Eye glance: subtle ±8° offset, fires infrequently (skip if drowsy) ────
+    -- Eyes stay close to the head target — no dramatic independent darting.
     if not state.isDrowsy and curTime > state.nextGlanceTime and not threatOverride then
-        -- 70% of the time, eyes just follow head direction
-        if math.random(100) <= 70 then
-            state.eyeTargetYaw = state.targetYaw
+        if math.random(100) <= 75 then
+            -- 75%: eyes lock to head target exactly
+            state.eyeTargetYaw   = state.targetYaw
             state.eyeTargetPitch = state.targetPitch
         else
-            -- 30% of the time, quick glance elsewhere
-            local glancePos = GetRandomLookTarget(npc, pdata.vehicle, true)
-            if glancePos then
-                local glanceYaw, glancePitch = CalculateLookAngles(npc, glancePos)
-                state.eyeTargetYaw = glanceYaw
-                state.eyeTargetPitch = glancePitch
-            end
+            -- 25%: subtle offset glance near current head direction
+            state.eyeTargetYaw   = state.targetYaw   + math.Rand(-8, 8)
+            state.eyeTargetPitch = state.targetPitch + math.Rand(-5, 5)
         end
-        state.nextGlanceTime = curTime + math.Rand(2, 5)
+        state.nextGlanceTime = curTime + math.Rand(5, 12)
     end
-    
-    -- Standard look target selection (skip if drowsy)
+
+    -- ── Standard look target selection (skip if drowsy) ──────────────────────
     if not state.isDrowsy and curTime > state.nextLookTime and not threatOverride and not IsValid(state.interactionTarget) then
         local targetPos, lookType = GetRandomLookTarget(npc, pdata.vehicle, false)
-        state.lookType = lookType
+        state.lookType      = lookType
         state.lastTargetPos = targetPos
-        
         if targetPos then
             local yaw, pitch = CalculateLookAngles(npc, targetPos)
-            state.targetYaw = yaw
-            state.targetPitch = pitch
-            -- Eyes follow head closely (same direction, not 1.1x offset)
-            state.eyeTargetYaw = yaw
+            state.targetYaw      = yaw
+            state.targetPitch    = pitch
+            state.eyeTargetYaw   = yaw
             state.eyeTargetPitch = pitch
         end
-        
+        -- Longer hold times → head rests on a target before moving to the next
         local holdTimes = {
-            player = {3, 6},
-            window = {5, 12},  -- Look out window longer
-            road = {3, 7},     -- Look at road longer
-            zoning = {6, 15},  -- Zone out longer
-            interior = {0.8, 2},
-            lap = {2, 5},
-            glance = {0.3, 0.8},
-            threat = {1, 2},
-            passenger = {2, 5},
+            player    = {4, 8},  window = {6, 14}, road     = {4, 9},
+            zoning    = {8, 18}, interior = {1.5, 3.5}, lap = {3, 6},
+            glance    = {0.5, 1.2}, threat = {1, 2}, passenger = {3, 6},
         }
-        local times = holdTimes[lookType] or {2, 4}
-        state.nextLookTime = curTime + math.Rand(times[1], times[2])
+        local times = holdTimes[lookType] or {3, 6}
+        state.nextLookTime   = curTime + math.Rand(times[1], times[2])
+        -- Reset glance timer so eyes don't dart right after a head turn
+        state.nextGlanceTime = curTime + math.Rand(3, 7)
     end
-    
-    -- Drowsy passengers: completely freeze all movement and physics
-    if state.isDrowsy then
-        -- Freeze at sleeping position - no updates at all
-        state.targetYaw = 0
-        state.targetPitch = -22
-        state.eyeTargetYaw = 0
-        state.eyeTargetPitch = -22
-        
-        -- Lock current values at sleep position
-        state.currentYaw = 0
-        state.currentPitch = -22
-        state.eyeCurrentYaw = 0
-        state.eyeCurrentPitch = -22
-        
-        -- Zero out all velocities to prevent drift
-        state.velocityYaw = 0
-        state.velocityPitch = 0
-        state.eyeVelocityYaw = 0
-        state.eyeVelocityPitch = 0
+
+    -- ── Idle head drift: slow micro-movement so head isn't robotically frozen ─
+    -- Completely separate from the look target; updated every 4-9 seconds.
+    if not state.isDrowsy and not threatOverride then
+        state.idleDriftTargetYaw   = state.idleDriftTargetYaw  or 0
+        state.idleDriftTargetPitch = state.idleDriftTargetPitch or 0
+        state.idleDriftYaw         = state.idleDriftYaw         or 0
+        state.idleDriftPitch       = state.idleDriftPitch       or 0
+        state.idleDriftVelYaw      = state.idleDriftVelYaw      or 0
+        state.idleDriftVelPitch    = state.idleDriftVelPitch    or 0
+        if curTime > (state.nextIdleDriftTime or 0) then
+            state.idleDriftTargetYaw   = math.Rand(-2.5, 2.5)
+            state.idleDriftTargetPitch = math.Rand(-1.5, 1.5)
+            state.nextIdleDriftTime    = curTime + math.Rand(4, 9)
+        end
+        state.idleDriftYaw,   state.idleDriftVelYaw   = SmoothDamp(state.idleDriftYaw,   state.idleDriftTargetYaw,   state.idleDriftVelYaw,   headSmoothTime * 2.5, dt)
+        state.idleDriftPitch, state.idleDriftVelPitch = SmoothDamp(state.idleDriftPitch, state.idleDriftTargetPitch, state.idleDriftVelPitch, headSmoothTime * 2.5, dt)
     else
-        -- Normal passengers: calculate breathing and sway
-        state.breathePhase = state.breathePhase + dt * 0.6
-        state.idleSwayPhase = state.idleSwayPhase + dt * 0.2
-        
-        local breatheOffset = breathingEnabled and (math.sin(state.breathePhase) * 0.3) or 0
-        local swayYaw = math.sin(state.idleSwayPhase) * 0.8
-        local swayPitch = math.cos(state.idleSwayPhase * 0.5) * 0.4
-        
-        local headTargetYaw = state.targetYaw + swayYaw
-        local headTargetPitch = state.targetPitch + swayPitch + breatheOffset
-        
-        state.currentYaw, state.velocityYaw = SmoothDamp(
-            state.currentYaw, headTargetYaw, state.velocityYaw,
-            headSmoothTime, dt
-        )
-        state.currentPitch, state.velocityPitch = SmoothDamp(
-            state.currentPitch, headTargetPitch, state.velocityPitch,
-            headSmoothTime, dt
-        )
+        state.idleDriftYaw, state.idleDriftPitch         = 0, 0
+        state.idleDriftVelYaw, state.idleDriftVelPitch   = 0, 0
     end
-    
-    -- Only update eye position if not drowsy (already locked above)
-    if not state.isDrowsy then
-        state.eyeCurrentYaw, state.eyeVelocityYaw = SmoothDamp(
-            state.eyeCurrentYaw, state.eyeTargetYaw, state.eyeVelocityYaw,
-            eyeSmoothTime, dt
-        )
-        state.eyeCurrentPitch, state.eyeVelocityPitch = SmoothDamp(
-            state.eyeCurrentPitch, state.eyeTargetPitch, state.eyeVelocityPitch,
-            eyeSmoothTime, dt
-        )
-    end
-    
-    -- NOTE: Body sway is now handled entirely client-side for smooth interpolation
-    
-    -- Apply head pose parameters on server
-    npc:SetPoseParameter("head_yaw", state.currentYaw)
-    npc:SetPoseParameter("head_pitch", state.currentPitch)
-    
-    local eyeOffsetYaw = state.eyeCurrentYaw - state.currentYaw
-    local eyeOffsetPitch = state.eyeCurrentPitch - state.currentPitch
-    
-    eyeOffsetYaw = math.Clamp(eyeOffsetYaw, -30, 30)
-    eyeOffsetPitch = math.Clamp(eyeOffsetPitch, -20, 20)
-    
-    npc:SetPoseParameter("eyes_yaw", eyeOffsetYaw)
-    npc:SetPoseParameter("eyes_pitch", eyeOffsetPitch)
-    npc:SetPoseParameter("eyes_updown", eyeOffsetPitch)
-    npc:SetPoseParameter("eyes_rightleft", eyeOffsetYaw)
-    
-    -- Drowsy passengers: eyes COMPLETELY closed (sleeping) - MAXIMUM POWER!
+
+    -- ── Drowsy: target nodded-down position; slow drift so it feels natural ───
     if state.isDrowsy then
-        npc:SetPoseParameter("blink", 10)  -- MAXIMUM eye closure (way beyond 1)
-        npc:SetPoseParameter("eyes_updown", 20)  -- Force eyes fully down/closed
-        npc:SetPoseParameter("eyes_rightleft", 0)  -- Center eyes
+        state.targetYaw      = 0
+        state.targetPitch    = -22
+        state.eyeTargetYaw   = 0
+        state.eyeTargetPitch = -22
+        -- Use a relaxed smooth time so the head drifts down gradually
+        headSmoothTime = math.max(headSmoothTime, 1.5)
+        eyeSmoothTime  = math.max(eyeSmoothTime,  1.5)
+    end
+
+    -- ── Breathing: advance phase, apply ONLY to final output (not to target) ──
+    -- This prevents SmoothDamp from chasing a constantly-wiggling target.
+    if not state.isDrowsy then
+        state.breathePhase = state.breathePhase + dt * 0.4  -- ~24 breaths/min
+    end
+    local breatheOffset = (breathingEnabled and not state.isDrowsy) and (math.sin(state.breathePhase) * 0.2) or 0
+
+    -- ── Head movement: SmoothDamp with angular speed cap ─────────────────────
+    -- Without a speed cap, SmoothDamp starts at ~200 deg/s for large angle
+    -- differences and decelerates — this is the main source of creepy fast snaps.
+    local maxHeadSpeed    = threatOverride and 120 or 60  -- deg/s
+    local maxDeltaPerTick = maxHeadSpeed * dt
+
+    local headTargetYaw   = state.targetYaw   + (state.idleDriftYaw   or 0)
+    local headTargetPitch = state.targetPitch + (state.idleDriftPitch or 0)
+
+    -- Save positions before update so we can clamp how far we actually moved
+    local prevYaw   = state.currentYaw
+    local prevPitch = state.currentPitch
+
+    state.currentYaw,   state.velocityYaw   = SmoothDamp(state.currentYaw,   headTargetYaw,   state.velocityYaw,   headSmoothTime, dt)
+    state.currentPitch, state.velocityPitch = SmoothDamp(state.currentPitch, headTargetPitch, state.velocityPitch, headSmoothTime, dt)
+
+    -- Clamp actual movement per tick to maxHeadSpeed
+    local movedYaw   = math.AngleDifference(state.currentYaw,   prevYaw)
+    local movedPitch = state.currentPitch - prevPitch
+    if math.abs(movedYaw) > maxDeltaPerTick then
+        state.currentYaw  = prevYaw  + math.Clamp(movedYaw,   -maxDeltaPerTick, maxDeltaPerTick)
+        state.velocityYaw = math.Clamp(state.velocityYaw,   -maxHeadSpeed, maxHeadSpeed)
+    end
+    if math.abs(movedPitch) > maxDeltaPerTick then
+        state.currentPitch = prevPitch + math.Clamp(movedPitch, -maxDeltaPerTick, maxDeltaPerTick)
+        state.velocityPitch = math.Clamp(state.velocityPitch, -maxHeadSpeed, maxHeadSpeed)
+    end
+
+    -- ── Eye movement: track head closely, clamp offset range ─────────────────
+    local eyeClamp        = threatOverride and 20 or 10
+    local eyeYawFinal     = math.Clamp(state.eyeTargetYaw,   state.targetYaw   - eyeClamp, state.targetYaw   + eyeClamp)
+    local eyePitchFinal   = math.Clamp(state.eyeTargetPitch, state.targetPitch - eyeClamp, state.targetPitch + eyeClamp)
+
+    state.eyeCurrentYaw,   state.eyeVelocityYaw   = SmoothDamp(state.eyeCurrentYaw,   eyeYawFinal,   state.eyeVelocityYaw,   eyeSmoothTime, dt)
+    state.eyeCurrentPitch, state.eyeVelocityPitch = SmoothDamp(state.eyeCurrentPitch, eyePitchFinal, state.eyeVelocityPitch, eyeSmoothTime, dt)
+
+    -- ── Apply pose parameters ─────────────────────────────────────────────────
+    local finalHeadPitch = state.currentPitch + breatheOffset
+    npc:SetPoseParameter("head_yaw",  state.currentYaw)
+    npc:SetPoseParameter("head_pitch", finalHeadPitch)
+
+    local eyeOffsetYaw   = math.Clamp(state.eyeCurrentYaw   - state.currentYaw,  -25, 25)
+    local eyeOffsetPitch = math.Clamp(state.eyeCurrentPitch - finalHeadPitch,     -15, 15)
+    npc:SetPoseParameter("eyes_yaw",       eyeOffsetYaw)
+    npc:SetPoseParameter("eyes_pitch",     eyeOffsetPitch)
+    npc:SetPoseParameter("eyes_updown",    eyeOffsetPitch)
+    npc:SetPoseParameter("eyes_rightleft", eyeOffsetYaw)
+
+    -- ── Drowsy eye close / wake open (smooth transition) ─────────────────────
+    if state.isDrowsy then
+        state.drowsyEye = math.min(1, (state.drowsyEye or 0) + dt * 0.35)
+    else
+        state.drowsyEye = math.max(0, (state.drowsyEye or 0) - dt * 0.8)
+    end
+    if (state.drowsyEye or 0) > 0.02 then
+        local e = state.drowsyEye
+        npc:SetPoseParameter("blink",          e * 10)
+        npc:SetPoseParameter("eyes_updown",    e * 20)
+        npc:SetPoseParameter("eyes_rightleft", 0)
     elseif state.isBlinking then
-        local blinkValue = state.blinkProgress < 0.3 and (state.blinkProgress / 0.3) or (1 - (state.blinkProgress - 0.3) / 0.7)
-        npc:SetPoseParameter("blink", blinkValue)
+        local t = state.blinkProgress
+        npc:SetPoseParameter("blink", t < 0.3 and (t / 0.3) or (1 - (t - 0.3) / 0.7))
     else
         npc:SetPoseParameter("blink", 0)
     end
-    
-    npc:SetPoseParameter("aim_yaw", state.currentYaw * 0.1)
-    npc:SetPoseParameter("aim_pitch", state.currentPitch * 0.08)
-    
-    -- Set eye target consistent with our smoothed pose params.
-    -- Using the same pitch sign as head_pitch (positive = down in Source Engine)
-    -- prevents the engine's head-look IK from fighting SetPoseParameter and causing jitter.
+
+    npc:SetPoseParameter("aim_yaw",   state.currentYaw   * 0.08)
+    npc:SetPoseParameter("aim_pitch", finalHeadPitch     * 0.06)
+
+    -- Eye target matches smoothed eye direction to prevent engine IK fighting our pose params
     local lookDir = Angle(state.eyeCurrentPitch, npc:GetAngles().y + state.eyeCurrentYaw, 0)
     npc:SetEyeTarget(npc:EyePos() + lookDir:Forward() * 500)
 end
 
 local function CleanupNPCLookState(npcId)
+    -- Reset head/eye pose parameters so the NPC doesn't freeze mid-look after ejection
+    local npc = Entity(npcId)
+    if IsValid(npc) and npc:IsNPC() then
+        npc:SetPoseParameter("head_yaw", 0)
+        npc:SetPoseParameter("head_pitch", 0)
+        npc:SetPoseParameter("eyes_yaw", 0)
+        npc:SetPoseParameter("eyes_pitch", 0)
+        npc:SetPoseParameter("eyes_updown", 0)
+        npc:SetPoseParameter("eyes_rightleft", 0)
+        npc:SetPoseParameter("blink", 0)
+        npc:SetPoseParameter("aim_yaw", 0)
+        npc:SetPoseParameter("aim_pitch", 0)
+    end
     npcLookState[npcId] = nil
 end
 

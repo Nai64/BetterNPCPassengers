@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.4.2"
+NPCPassengers.Version = NPCPassengers.Version or "2.4.3"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-10"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -89,7 +89,7 @@ NPCPassengers.cv_speech_pitch_variation = CreateConVar("nai_npc_speech_pitch_var
 
 -- Animation and behavior settings
 NPCPassengers.cv_head_look = CreateConVar("nai_npc_head_look", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable realistic head/eye looking behavior")
-NPCPassengers.cv_head_smooth = CreateConVar("nai_npc_head_smooth", "0.4", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Head movement smoothing (lower = snappier)")
+NPCPassengers.cv_head_smooth = CreateConVar("nai_npc_head_smooth", "0.6", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Head movement smoothing (lower = snappier)")
 NPCPassengers.cv_blink_enabled = CreateConVar("nai_npc_blink", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC blinking animation")
 NPCPassengers.cv_breathing = CreateConVar("nai_npc_breathing", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable subtle breathing animation")
 NPCPassengers.cv_walk_timeout = CreateConVar("nai_npc_walk_timeout", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Seconds before NPC gives up walking to vehicle")
