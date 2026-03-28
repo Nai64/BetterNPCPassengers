@@ -168,7 +168,7 @@ Hold C  →  right-click an NPC  →  Make Passenger  →  enter a vehicle
 
 ## ⚙️ Settings
 
-Open the settings panel via **`F7`** or **Spawnmenu → Utilities → NPC Passengers**.
+Open the settings panel via **`F7`** or **Spawnmenu → Utilities → Better NPC Passengers**.
 
 All settings are saved per-client or per-server as appropriate. A debug mode is available for server administrators.
 

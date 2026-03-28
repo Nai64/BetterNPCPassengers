@@ -4,6 +4,9 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.main = true
 
+local ADDON_DISPLAY_NAME = "Better NPC Passengers"
+local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
+
 local friendlyPassengers = {}
 local pendingPassengers = {}
 local vehicleCooldowns = {}
@@ -383,7 +386,7 @@ net.Receive("NPCPassengers_DebugTest", function(len, ply)
     end
     
     if not IsValid(closestNPC) then
-        ply:ChatPrint("[NPC Passengers] No passenger NPCs found to test!")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "No passenger NPCs found to test!")
         return
     end
     
@@ -494,7 +497,7 @@ net.Receive("NPCPassengers_SetStatus", function(len, ply)
         npc:TakeDamageInfo(dmgInfo)
     end
     
-    ply:ChatPrint("[NPC Passengers] Set " .. tostring(npc) .. " status to: " .. status)
+    ply:ChatPrint(ADDON_CHAT_PREFIX .. "Set " .. tostring(npc) .. " status to: " .. status)
 end)
 
 local function GetPassengerCount(vehicle)
@@ -3293,7 +3296,7 @@ ResetPassengerState = function(reason)
     vehicleSeatCache = {}
 
     if IsVerboseDebugEnabled() then
-        print("[npc passengers] reset state reason=" .. tostring(reason or "unknown") .. " detached=" .. tostring(detached))
+        print("[better npc passengers] reset state reason=" .. tostring(reason or "unknown") .. " detached=" .. tostring(detached))
     end
 end
 
@@ -3643,7 +3646,7 @@ end)
 concommand.Add("nai_npc_attach_nearest", function(ply)
     if not IsValid(ply) then return end
     if not ply:InVehicle() then
-        ply:ChatPrint("[NPC Passengers] You must be in a vehicle!")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "You must be in a vehicle!")
         return
     end
 
@@ -3651,12 +3654,12 @@ concommand.Add("nai_npc_attach_nearest", function(ply)
     if not IsValid(vehicle) then return end
 
     if not IsAddonEnabled() then
-        ply:ChatPrint("[NPC Passengers] Addon is disabled.")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "Addon is disabled.")
         return
     end
 
     if not IsVehicleAllowedByFilters(vehicle) then
-        ply:ChatPrint("[NPC Passengers] This vehicle is blocked by filter settings.")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "This vehicle is blocked by filter settings.")
         return
     end
 
@@ -3676,12 +3679,12 @@ concommand.Add("nai_npc_attach_nearest", function(ply)
     end
 
     if not IsValid(nearestNPC) then
-        ply:ChatPrint("[NPC Passengers] No nearby friendly NPC found within " .. maxDist .. " units.")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "No nearby friendly NPC found within " .. maxDist .. " units.")
         return
     end
 
     if IsNPCBoardCooldownActive(nearestNPC) then
-        ply:ChatPrint("[NPC Passengers] " .. Phrase("passenger_cooldown"))
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. Phrase("passenger_cooldown"))
         return
     end
 
@@ -3690,14 +3693,14 @@ concommand.Add("nai_npc_attach_nearest", function(ply)
             if AttachNPCToVehicle(nearestNPC, vehicle) then
                 local msg = Phrase("passenger_boarded", GetPassengerCount(vehicle))
                 if IsValid(ply) then
-                    ply:ChatPrint("[NPC Passengers] " .. msg)
+                    ply:ChatPrint(ADDON_CHAT_PREFIX .. msg)
                     SendClientCue(ply, true, msg)
                 end
             else
                 local cooldownStarted = RegisterBoardFailure(nearestNPC)
                 local msg = cooldownStarted and Phrase("passenger_cooldown") or Phrase("passenger_attach_failed")
                 if IsValid(ply) then
-                    ply:ChatPrint("[NPC Passengers] " .. msg)
+                    ply:ChatPrint(ADDON_CHAT_PREFIX .. msg)
                     SendClientCue(ply, false, msg)
                 end
             end
@@ -3705,7 +3708,7 @@ concommand.Add("nai_npc_attach_nearest", function(ply)
             if IsValid(nearestNPC) then RegisterBoardFailure(nearestNPC) end
             if IsValid(ply) then
                 local msg = Phrase("passenger_attach_failed")
-                ply:ChatPrint("[NPC Passengers] " .. msg)
+                ply:ChatPrint(ADDON_CHAT_PREFIX .. msg)
                 SendClientCue(ply, false, msg)
             end
         end
@@ -3716,7 +3719,7 @@ end)
 concommand.Add("nai_npc_detach_all", function(ply)
     if not IsValid(ply) then return end
     if not ply:InVehicle() then
-        ply:ChatPrint("[NPC Passengers] You must be in a vehicle!")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "You must be in a vehicle!")
         return
     end
 
@@ -3738,7 +3741,7 @@ concommand.Add("nai_npc_detach_all", function(ply)
         end
     end
 
-    ply:ChatPrint("[NPC Passengers] Detached " .. count .. " passenger(s).")
+    ply:ChatPrint(ADDON_CHAT_PREFIX .. "Detached " .. count .. " passenger(s).")
     if count > 0 then SendClientCue(ply, true, "Detached " .. count .. " passenger(s).") end
 end)
 
@@ -3746,7 +3749,7 @@ end)
 concommand.Add("nai_npc_exit_all", function(ply)
     if not IsValid(ply) then return end
     if not ply:InVehicle() then
-        ply:ChatPrint("[NPC Passengers] You must be in a vehicle!")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "You must be in a vehicle!")
         return
     end
 
@@ -3768,7 +3771,7 @@ concommand.Add("nai_npc_exit_all", function(ply)
         end
     end
 
-    ply:ChatPrint("[NPC Passengers] " .. count .. " passenger(s) exited the vehicle.")
+    ply:ChatPrint(ADDON_CHAT_PREFIX .. count .. " passenger(s) exited the vehicle.")
     if count > 0 then SendClientCue(ply, true, count .. " passenger(s) exited.") end
 end)
 
@@ -3776,7 +3779,7 @@ end)
 -- Called by nai_npc_reset on the client so the server can actually apply the changes
 concommand.Add("nai_npc_server_reset", function(ply)
     if IsValid(ply) and not ply:IsAdmin() then
-        ply:ChatPrint("[NPC Passengers] You must be an admin to reset server settings.")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "You must be an admin to reset server settings.")
         return
     end
     -- General
@@ -3873,14 +3876,14 @@ concommand.Add("nai_npc_server_reset", function(ply)
     RunConsoleCommand("nai_npc_turret_lead_targets", "1")
     RunConsoleCommand("nai_npc_turret_friendly_fire", "0")
     if IsValid(ply) then
-        ply:ChatPrint("[NPC Passengers] All server settings reset to defaults.")
+        ply:ChatPrint(ADDON_CHAT_PREFIX .. "All server settings reset to defaults.")
     end
 end)
 
 concommand.Add("nai_passengers_list", function(ply)
     if not IsValid(ply) then return end
     
-    ply:ChatPrint("=== NPC Passengers ===")
+    ply:ChatPrint("=== " .. ADDON_DISPLAY_NAME .. " ===")
     
     local pendingCount = GetPendingCount(ply)
     if pendingCount > 0 then

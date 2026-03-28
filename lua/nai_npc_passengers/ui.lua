@@ -4,7 +4,10 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.ui = true
 
--- NPC Passengers UI
+local ADDON_DISPLAY_NAME = "Better NPC Passengers"
+local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
+
+-- Better NPC Passengers UI
 -- Dark theme settings panel with custom Metropolis font
 
 -- Keybind system: Track key states to detect key presses
@@ -64,7 +67,7 @@ hook.Add("Think", "NPCPassengers_Keybinds", function()
     if WasKeyJustPressed(keyToggleAutoJoin) then
         local currentVal = GetConVarBoolSafe("nai_npc_auto_join", true)
         RunConsoleCommand("nai_npc_auto_join", currentVal and "0" or "1")
-        chat.AddText(Color(100, 200, 255), "[NPC Passengers] ", Color(255, 255, 255), "Auto-Join: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Auto-Join: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
     end
     
     local keyMenu = GetConVarIntSafe("nai_npc_key_menu", 0)
@@ -738,8 +741,8 @@ local function OpenSettingsPanel()
         surface.DrawRect(0, 50, w, 2)
         
         -- Title text with shadow
-        draw.SimpleText("NPC Passengers Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 100), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        draw.SimpleText("NPC Passengers Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 100), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         
         -- Version badge
         local versionW = 45
@@ -1807,7 +1810,7 @@ local function OpenSettingsPanel()
         {name = "Attach Nearest NPC", cvar = "nai_npc_key_attach", desc = "Attach the nearest friendly NPC to your vehicle"},
         {name = "Detach All Passengers", cvar = "nai_npc_key_detach_all", desc = "Remove all NPCs from your vehicle"},
         {name = "Toggle Auto-Join", cvar = "nai_npc_key_toggle_autojoin", desc = "Enable/disable automatic NPC boarding"},
-        {name = "Open Settings Menu", cvar = "nai_npc_key_menu", desc = "Open the NPC Passengers settings panel"},
+        {name = "Open Settings Menu", cvar = "nai_npc_key_menu", desc = "Open the Better NPC Passengers settings panel"},
         {name = "Quick Attach Mode", cvar = "nai_npc_key_quick_attach", desc = "Hold to quickly attach NPCs you're looking at"},
     }
     
@@ -2099,7 +2102,7 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_panel_height", "700")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
-        chat.AddText(Theme.success, "[NPC Passengers] ", Theme.text, "All UI settings reset to defaults!")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All UI settings reset to defaults!")
     end)
     
     CreateSpacer(interfacePanel, 10)
@@ -2355,7 +2358,7 @@ local function OpenSettingsPanel()
     aboutPanel.SearchNavButton = aboutBtn
     aboutBtn.DoClick = function() SwitchToPanel(aboutPanel, aboutBtn) end
     
-    CreateSectionHeader(aboutPanel, "About NPC Passengers v" .. NPCPassengers.Version)
+    CreateSectionHeader(aboutPanel, "About " .. ADDON_DISPLAY_NAME .. " v" .. NPCPassengers.Version)
     
     local aboutText = vgui.Create("DPanel", aboutPanel)
     aboutText:SetTall(160)
@@ -2374,7 +2377,7 @@ local function OpenSettingsPanel()
         surface.DrawOutlinedRect(0, 0, w, h, 1)
         
         local y = 20
-        draw.SimpleText("NPC Passengers", "NaiFont_Title", w/2, y, Theme.accent, TEXT_ALIGN_CENTER)
+        draw.SimpleText(ADDON_DISPLAY_NAME, "NaiFont_Title", w/2, y, Theme.accent, TEXT_ALIGN_CENTER)
         y = y + 32
         draw.SimpleText("Advanced passenger system with emotional AI and realistic physics", "NaiFont_Normal", w/2, y, Theme.text, TEXT_ALIGN_CENTER)
         y = y + 30
@@ -2424,10 +2427,10 @@ end)
 
 -- Spawn menu entry
 hook.Add("PopulateToolMenu", "NPCPassengerOptions", function()
-        spawnmenu.AddToolMenuOption("Utilities", "NPC Passengers", "NPCPassengers", "NPC Passengers", "", "", function(panel)
+        spawnmenu.AddToolMenuOption("Utilities", ADDON_DISPLAY_NAME, "NPCPassengers", ADDON_DISPLAY_NAME, "", "", function(panel)
         panel:ClearControls()
         
-        panel:Help("NPC Passengers lets friendly NPCs ride in your vehicles!")
+        panel:Help(ADDON_DISPLAY_NAME .. " lets friendly NPCs ride in your vehicles!")
         panel:Help("")
         
         local openBtn = panel:Button("Open Settings Panel")
@@ -2442,7 +2445,7 @@ end)
 
 -- Q menu bar dropdown
 hook.Add("PopulateMenuBar", "NPCPassengersMenuBar", function(menubar)
-    local m = menubar:AddOrGetMenu("NPC Passengers")
+    local m = menubar:AddOrGetMenu(ADDON_DISPLAY_NAME)
     
     m:AddOption("Open Settings", function()
         OpenSettingsPanel()
@@ -2511,7 +2514,7 @@ properties.Add("nai_select_for_vehicle", {
     Action = function(self, ent)
         selectedNPCForVehicle = ent
         selectionExpireTime = CurTime() + 30
-        chat.AddText(Color(100, 200, 100), "[NPC Passengers] ", Color(255, 255, 255), "NPC selected! Now right-click on a vehicle and select 'Add Selected NPC'")
+        chat.AddText(Color(100, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "NPC selected! Now right-click on a vehicle and select 'Add Selected NPC'")
     end
 })
 
@@ -2546,7 +2549,7 @@ properties.Add("nai_add_selected_to_vehicle", {
                 net.WriteEntity(selectedNPCForVehicle)
                 net.WriteEntity(ent)
             net.SendToServer()
-            chat.AddText(Color(100, 200, 100), "[NPC Passengers] ", Color(255, 255, 255), "Adding NPC to vehicle...")
+            chat.AddText(Color(100, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Adding NPC to vehicle...")
             selectedNPCForVehicle = nil
         end
     end
@@ -2568,7 +2571,7 @@ properties.Add("nai_cancel_selection", {
 
     Action = function(self, ent)
         selectedNPCForVehicle = nil
-        chat.AddText(Color(255, 200, 100), "[NPC Passengers] ", Color(255, 255, 255), "NPC selection cancelled")
+        chat.AddText(Color(255, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "NPC selection cancelled")
     end
 })
 
@@ -2628,7 +2631,7 @@ end)
 
 -- C menu icon (top left corner)
 list.Set("DesktopWindows", "NPCPassengersDesktop", {
-    title = "NPC Passengers",
+    title = ADDON_DISPLAY_NAME,
     icon = "icon64/npc_passengers.png",
     init = function(icon, window)
         window:Remove() -- Close the default window
@@ -2656,7 +2659,7 @@ function ShowWelcomePanel(forceShow)
         draw.RoundedBox(12, 4, 4, w, h, Color(0, 0, 0, 100))
         draw.RoundedBox(10, 0, 0, w, h, Theme.bg)
         draw.RoundedBoxEx(10, 0, 0, w, 44, Theme.bgDark, true, true, false, false)
-        draw.SimpleText("NPC Passengers", "NaiFont_Title", 15, 22, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        draw.SimpleText(ADDON_DISPLAY_NAME, "NaiFont_Title", 15, 22, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText("v" .. WELCOME_VERSION, "NaiFont_Small", w - 50, 22, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
     end
     

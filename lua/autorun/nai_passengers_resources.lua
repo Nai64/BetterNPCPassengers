@@ -1,5 +1,5 @@
 --[[
-    NPC Passengers - Resource Registration
+    Better NPC Passengers - Resource Registration
     This file registers custom fonts for download to clients
 ]]
 
