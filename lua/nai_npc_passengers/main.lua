@@ -989,6 +989,8 @@ local function InitializeLookState(npcId)
         -- Crash flinch state
         lastVelocityMagnitude = 0,
         flinchEndTime = 0,
+        -- Head look timing
+        lastHeadLookTime = 0,
     }
     return npcLookState[npcId]
 end
@@ -1268,8 +1270,9 @@ local function UpdateNPCHeadLook(npc, pdata)
     end
     
     local curTime = CurTime()
-    local dt = FrameTime()
-    if dt <= 0 then dt = 0.016 end
+    local dt = math.min(curTime - (state.lastHeadLookTime > 0 and state.lastHeadLookTime or (curTime - PASSENGER_HEADLOOK_INTERVAL)), 0.1)
+    state.lastHeadLookTime = curTime
+    if dt <= 0 then dt = PASSENGER_HEADLOOK_INTERVAL end
     
     local vehicle = pdata.vehicle
     local headSmoothTime = NPCPassengers.cv_head_smooth:GetFloat()
