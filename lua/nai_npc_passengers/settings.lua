@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.4.10"
+NPCPassengers.Version = NPCPassengers.Version or "2.5.0"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-28"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -74,6 +74,7 @@ if CLIENT then
     NPCPassengers.cv_ui_show_welcome = CreateClientConVar("nai_npc_ui_show_welcome", "1", true, false, "Show welcome screen on updates")
     NPCPassengers.cv_ui_panel_width = CreateClientConVar("nai_npc_ui_panel_width", "950", true, false, "Settings panel width")
     NPCPassengers.cv_ui_panel_height = CreateClientConVar("nai_npc_ui_panel_height", "700", true, false, "Settings panel height")
+    NPCPassengers.cv_ui_use_default_font = CreateClientConVar("nai_npc_ui_use_default_font", "0", true, false, "Use the default GMod UI font instead of Metropolis")
     NPCPassengers.cv_ui_animations = CreateClientConVar("nai_npc_ui_animations", "1", true, false, "Enable UI animations")
     NPCPassengers.cv_ui_tooltips = CreateClientConVar("nai_npc_ui_tooltips", "1", true, false, "Show tooltips in UI")
 end

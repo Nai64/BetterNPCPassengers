@@ -6,6 +6,7 @@ NPCPassengers.Modules.ui = true
 
 local ADDON_DISPLAY_NAME = "Better NPC Passengers"
 local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
+local DEFAULT_FONT_NAME = "Tahoma"
 
 -- Better NPC Passengers UI
 -- Dark theme settings panel with custom Metropolis font
@@ -292,44 +293,55 @@ local Theme = {
 -- Custom fonts (requires metropolis.ttf in resource/fonts/)
 local fontName = "Metropolis"
 
+local function GetUIFontName()
+    local useDefaultFont = GetConVar("nai_npc_ui_use_default_font")
+    if useDefaultFont and useDefaultFont:GetBool() then
+        return DEFAULT_FONT_NAME
+    end
+
+    return fontName
+end
+
 local function CreateNaiFonts()
+    local activeFontName = GetUIFontName()
+
     surface.CreateFont("NaiFont_Small", {
-        font = fontName,
+        font = activeFontName,
         size = 14,
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Normal", {
-        font = fontName,
+        font = activeFontName,
         size = 16,
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Medium", {
-        font = fontName,
+        font = activeFontName,
         size = 18,
         weight = 500,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Large", {
-        font = fontName,
+        font = activeFontName,
         size = 22,
         weight = 600,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Title", {
-        font = fontName,
+        font = activeFontName,
         size = 26,
         weight = 700,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Bold", {
-        font = fontName,
+        font = activeFontName,
         size = 16,
         weight = 700,
         antialias = true,
@@ -366,6 +378,33 @@ local function DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
     draw.RoundedBox(radius, x, y, w, h, fillColor)
 end
 
+local function DrawMarqueeText(panel, text, font, x, y, color, maxWidth, alignY, padding, speed)
+    if not IsValid(panel) or not text or maxWidth <= 0 then
+        return
+    end
+
+    surface.SetFont(font)
+    local textWidth = surface.GetTextSize(text)
+    if textWidth <= maxWidth then
+        draw.SimpleText(text, font, x, y, color, TEXT_ALIGN_LEFT, alignY or TEXT_ALIGN_CENTER)
+        return
+    end
+
+    local clipX, clipY = panel:LocalToScreen(x, y - panel:GetTall())
+    local clipTop = select(2, panel:LocalToScreen(0, 0))
+    local clipBottom = select(2, panel:LocalToScreen(0, panel:GetTall()))
+    local screenX = select(1, panel:LocalToScreen(x, 0))
+    local offsetRange = textWidth - maxWidth
+    local cycle = math.max((padding or 24) + offsetRange, 1)
+    local time = CurTime() * (speed or 22)
+    local normalized = (math.sin(time / cycle) + 1) * 0.5
+    local textOffset = math.floor(normalized * offsetRange + 0.5)
+
+    render.SetScissorRect(screenX, clipTop, screenX + maxWidth, clipBottom, true)
+    draw.SimpleText(text, font, x - textOffset, y, color, TEXT_ALIGN_LEFT, alignY or TEXT_ALIGN_CENTER)
+    render.SetScissorRect(0, 0, 0, 0, false)
+end
+
 -- UI Components
 local function CreateLabel(parent, text, font, color)
     local label = vgui.Create("DLabel", parent)
@@ -400,8 +439,8 @@ local function CreateSectionHeader(parent, text)
         surface.SetDrawColor(Theme.accent)
         surface.SetMaterial(Material("icon16/star.png"))
         surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
-        
-        draw.SimpleText(text, "NaiFont_Medium", 36, h/2, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+        DrawMarqueeText(self, text, "NaiFont_Medium", 36, h/2, Theme.textBright, math.max(w - 48, 0), TEXT_ALIGN_CENTER, 32, 18)
     end
     return header
 end
@@ -421,8 +460,8 @@ local function CreateSubHeader(parent, text)
         surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 60)
         surface.SetMaterial(gradientMat)
         surface.DrawTexturedRect(0, h - 2, w, 2)
-        
-        draw.SimpleText(text, "NaiFont_Bold", 12, h/2 - 2, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+        DrawMarqueeText(self, text, "NaiFont_Bold", 12, h/2 - 2, Theme.accent, math.max(w - 18, 0), TEXT_ALIGN_CENTER, 28, 18)
     end
     return header
 end
@@ -928,10 +967,7 @@ local function OpenSettingsPanel()
             
             -- Text
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
-            draw.SimpleText(label, "NaiFont_Normal", 38, h/2, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            -- Text
-            local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
-            draw.SimpleText(label, "NaiFont_Normal", 38, h/2, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            DrawMarqueeText(self, label, "NaiFont_Normal", 38, h/2, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
         end
         
         table.insert(navButtons, btn)
@@ -1157,8 +1193,8 @@ local function OpenSettingsPanel()
             DrawRoundedSurface(0, 0, w, h, 8, bgCol, self:IsHovered() and Theme.accentHover or Theme.border)
 
             draw.SimpleText(tostring(rank), "NaiFont_Small", 14, h / 2, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            draw.SimpleText(entry.title, "NaiFont_Normal", 34, 17, Theme.textBright)
-            draw.SimpleText(entry.panelName .. " / " .. entry.section, "NaiFont_Small", 34, 34, Theme.textDim)
+            DrawMarqueeText(self, entry.title, "NaiFont_Normal", 34, 17, Theme.textBright, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
+            DrawMarqueeText(self, entry.panelName .. " / " .. entry.section, "NaiFont_Small", 34, 34, Theme.textDim, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
         end
 
         result.DoClick = function()
@@ -2067,6 +2103,22 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(interfacePanel, "Show Welcome Screen on Updates", "nai_npc_ui_show_welcome")
     CreateHelpText(interfacePanel, "Display welcome panel when addon is updated to a new version")
+
+    local _, defaultFontCheckbox = CreateCheckbox(interfacePanel, "Use Default Font Instead of Metropolis", "nai_npc_ui_use_default_font")
+    CreateHelpText(interfacePanel, "Switch the UI to Garry's Mod default fonts if you prefer cleaner fallback rendering.")
+
+    local defaultFontOnChange = defaultFontCheckbox.OnChange
+    defaultFontCheckbox.OnChange = function(self, val)
+        if defaultFontOnChange then
+            defaultFontOnChange(self, val)
+        end
+
+        CreateNaiFonts()
+
+        if IsValid(settingsFrame) then
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
     
     local _, widthSlider = CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
     CreateHelpText(interfacePanel, "Width of the settings panel")
@@ -2106,8 +2158,10 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_show_welcome", "1")
         RunConsoleCommand("nai_npc_ui_panel_width", "950")
         RunConsoleCommand("nai_npc_ui_panel_height", "700")
+        RunConsoleCommand("nai_npc_ui_use_default_font", "0")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
+        CreateNaiFonts()
         chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All UI settings reset to defaults!")
     end)
     
