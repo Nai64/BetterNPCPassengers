@@ -365,6 +365,7 @@ end
 
 local function CreateSectionHeader(parent, text)
     local header = vgui.Create("DPanel", parent)
+    header.SearchSectionTitle = text
     header:SetTall(38)
     header:Dock(TOP)
     header:DockMargin(0, 15, 0, 8)
@@ -394,6 +395,7 @@ end
 
 local function CreateSubHeader(parent, text)
     local header = vgui.Create("DPanel", parent)
+    header.SearchSectionTitle = text
     header:SetTall(28)
     header:Dock(TOP)
     header:DockMargin(5, 12, 5, 6)
@@ -414,6 +416,7 @@ end
 
 local function CreateHelpText(parent, text)
     local help = vgui.Create("DLabel", parent)
+    help.SearchHelpText = text
     help:SetText(text)
     help:SetFont("NaiFont_Small")
     help:SetTextColor(Theme.textDim)
@@ -426,6 +429,8 @@ end
 
 local function CreateCheckbox(parent, label, convar)
     local container = vgui.Create("DPanel", parent)
+    container.SearchLabel = label
+    container.SearchConVar = convar
     container:SetTall(32)
     container:Dock(TOP)
     container:DockMargin(5, 3, 5, 3)
@@ -491,6 +496,8 @@ end
 
 local function CreateSlider(parent, label, convar, min, max, decimals)
     local container = vgui.Create("DPanel", parent)
+    container.SearchLabel = label
+    container.SearchConVar = convar
     container:SetTall(52)
     container:Dock(TOP)
     container:DockMargin(5, 3, 5, 3)
@@ -553,6 +560,8 @@ end
 
 local function CreateComboBox(parent, label, convar, options)
     local container = vgui.Create("DPanel", parent)
+    container.SearchLabel = label
+    container.SearchConVar = convar
     container:SetTall(54)
     container:Dock(TOP)
     container:DockMargin(5, 3, 5, 3)
@@ -596,6 +605,7 @@ end
 
 local function CreateButton(parent, text, callback)
     local btn = vgui.Create("DButton", parent)
+    btn.SearchLabel = text
     btn:SetText(text)
     btn:SetFont("NaiFont_Medium")
     btn:SetTall(40)
@@ -768,6 +778,8 @@ local function OpenSettingsPanel()
         settingsFrame:Close()
     end
 
+    local navContainer, sidebar, contentArea
+
     -- Live resize: reflow all major child panels when the frame dimensions change
     settingsFrame.PerformLayout = function(self, w, h)
         if IsValid(navContainer) then
@@ -785,7 +797,7 @@ local function OpenSettingsPanel()
     end
 
     -- Side panel navigation system
-    local navContainer = vgui.Create("DPanel", settingsFrame)
+    navContainer = vgui.Create("DPanel", settingsFrame)
     navContainer:SetPos(10, 58)
     navContainer:SetSize(panelWidth - 20, panelHeight - 68)
     navContainer.Paint = function(self, w, h)
@@ -793,7 +805,7 @@ local function OpenSettingsPanel()
     end
     
     -- Left sidebar for navigation
-    local sidebar = vgui.Create("DScrollPanel", navContainer)
+    sidebar = vgui.Create("DScrollPanel", navContainer)
     sidebar:SetPos(0, 0)
     sidebar:SetSize(270, panelHeight - 68)
     sidebar.Paint = function(self, w, h)
@@ -806,13 +818,17 @@ local function OpenSettingsPanel()
     StyleScrollbar(sidebar:GetVBar())
     
     -- Right content area
-    local contentArea = vgui.Create("DPanel", navContainer)
+    contentArea = vgui.Create("DPanel", navContainer)
     contentArea:SetPos(278, 0)
     contentArea:SetSize(panelWidth - 298, panelHeight - 64)
     contentArea.Paint = function() end
     
     local currentPanel = nil
     local navButtons = {}
+    local searchEntry = nil
+    local searchPanel = nil
+    local lastRegularPanel = nil
+    local lastRegularBtn = nil
     
     -- Function to create nav button
     local function CreateNavButton(label, icon)
@@ -893,8 +909,10 @@ local function OpenSettingsPanel()
     end
     
     -- Function to switch panels
-    local function SwitchToPanel(panel, activeBtn)
-        surface.PlaySound("nai_passengers/ui_click.wav")
+    local function SwitchToPanel(panel, activeBtn, suppressSound)
+        if not suppressSound and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
+            surface.PlaySound("nai_passengers/ui_click.wav")
+        end
         
         if IsValid(currentPanel) then
             currentPanel:SetVisible(false)
@@ -905,7 +923,15 @@ local function OpenSettingsPanel()
         for _, btn in ipairs(navButtons) do
             btn.isActive = false
         end
-        activeBtn.isActive = true
+
+        if IsValid(activeBtn) then
+            activeBtn.isActive = true
+        end
+
+        if panel ~= searchPanel and IsValid(activeBtn) then
+            lastRegularPanel = panel
+            lastRegularBtn = activeBtn
+        end
     end
     
     -- Helper to create content panel
@@ -917,10 +943,248 @@ local function OpenSettingsPanel()
         StyleScrollbar(panel:GetVBar())
         return panel
     end
+
+    searchPanel = CreateContentPanel()
+
+    local function NormalizeSearchText(text)
+        local normalized = string.lower(tostring(text or ""))
+        normalized = string.gsub(normalized, "[_%-%./]", " ")
+        normalized = string.gsub(normalized, "%s+", " ")
+        return string.Trim(normalized)
+    end
+
+    local function BuildSearchKeywords(entry)
+        return NormalizeSearchText(table.concat({
+            entry.panelName or "",
+            entry.section or "",
+            entry.title or "",
+            entry.description or "",
+            entry.convar or ""
+        }, " "))
+    end
+
+    local function ScrollToSearchTarget(panel, target)
+        if not IsValid(panel) or not IsValid(target) then
+            return
+        end
+
+        panel:InvalidateLayout(true)
+
+        local canvas = panel:GetCanvas()
+        local y = 0
+        local current = target
+
+        while IsValid(current) and current ~= canvas do
+            y = y + current:GetY()
+            current = current:GetParent()
+        end
+
+        local maxScroll = math.max(canvas:GetTall() - panel:GetTall(), 0)
+        panel:GetVBar():AnimateTo(math.Clamp(y - 20, 0, maxScroll), 0.2, 0, 0.2)
+    end
+
+    local function CollectSearchEntries()
+        local entries = {}
+
+        for _, panel in ipairs(contentArea:GetChildren()) do
+            if panel ~= searchPanel and panel.SearchPanelName and panel.GetCanvas then
+                local currentSection = panel.SearchPanelName
+                local lastEntry = nil
+
+                for _, child in ipairs(panel:GetCanvas():GetChildren()) do
+                    if child.SearchSectionTitle then
+                        currentSection = child.SearchSectionTitle
+                        lastEntry = nil
+                    elseif child.SearchLabel then
+                        local entry = {
+                            panel = panel,
+                            button = panel.SearchNavButton,
+                            target = child,
+                            panelName = panel.SearchPanelName,
+                            section = currentSection,
+                            title = child.SearchLabel,
+                            description = child.SearchDescription or "",
+                            convar = child.SearchConVar or ""
+                        }
+
+                        entry.keywords = BuildSearchKeywords(entry)
+                        table.insert(entries, entry)
+                        lastEntry = entry
+                    elseif child.SearchHelpText and lastEntry then
+                        if lastEntry.description == "" then
+                            lastEntry.description = child.SearchHelpText
+                        else
+                            lastEntry.description = lastEntry.description .. " " .. child.SearchHelpText
+                        end
+
+                        lastEntry.keywords = BuildSearchKeywords(lastEntry)
+                    end
+                end
+            end
+        end
+
+        return entries
+    end
+
+    local function ScoreSearchEntry(entry, query)
+        local title = NormalizeSearchText(entry.title)
+        local section = NormalizeSearchText(entry.section)
+        local panelName = NormalizeSearchText(entry.panelName)
+        local description = NormalizeSearchText(entry.description)
+        local score = 0
+
+        if title == query then
+            score = score + 120
+        end
+        if string.sub(title, 1, #query) == query then
+            score = score + 60
+        end
+        if string.find(title, query, 1, true) then
+            score = score + 40
+        end
+        if string.find(section, query, 1, true) then
+            score = score + 20
+        end
+        if string.find(panelName, query, 1, true) then
+            score = score + 15
+        end
+        if string.find(description, query, 1, true) then
+            score = score + 10
+        end
+
+        return score
+    end
+
+    local function AddSearchResult(parent, entry)
+        local result = vgui.Create("DButton", parent)
+        result:SetText("")
+        result:SetTall(68)
+        result:Dock(TOP)
+        result:DockMargin(8, 0, 8, 8)
+
+        result.Paint = function(self, w, h)
+            local bgCol = self:IsHovered() and Theme.bgLighter or Theme.bgDark
+            draw.RoundedBox(8, 0, 0, w, h, bgCol)
+
+            surface.SetDrawColor(self:IsHovered() and Theme.accentHover or Theme.borderLight)
+            surface.DrawOutlinedRect(0, 0, w, h, 1)
+
+            draw.SimpleText(entry.title, "NaiFont_Normal", 14, 16, Theme.textBright)
+            draw.SimpleText(entry.panelName .. " / " .. entry.section, "NaiFont_Small", 14, 36, Theme.accent)
+
+            if entry.description ~= "" then
+                draw.SimpleText(entry.description, "NaiFont_Small", 14, 52, Theme.textDim)
+            elseif entry.convar ~= "" then
+                draw.SimpleText(entry.convar, "NaiFont_Small", 14, 52, Theme.textDim)
+            end
+        end
+
+        result.DoClick = function()
+            if IsValid(searchEntry) then
+                searchEntry:SetText("")
+            end
+
+            SwitchToPanel(entry.panel, entry.button)
+
+            timer.Simple(0, function()
+                ScrollToSearchTarget(entry.panel, entry.target)
+            end)
+        end
+
+        return result
+    end
+
+    local function PopulateSearchResults(rawQuery)
+        if not IsValid(searchPanel) then
+            return
+        end
+
+        local query = NormalizeSearchText(rawQuery)
+
+        for _, child in ipairs(searchPanel:GetCanvas():GetChildren()) do
+            child:Remove()
+        end
+
+        if query == "" then
+            if IsValid(lastRegularPanel) and IsValid(lastRegularBtn) then
+                SwitchToPanel(lastRegularPanel, lastRegularBtn, true)
+            end
+            return
+        end
+
+        local matches = {}
+        for _, entry in ipairs(CollectSearchEntries()) do
+            if string.find(entry.keywords, query, 1, true) then
+                entry.score = ScoreSearchEntry(entry, query)
+                table.insert(matches, entry)
+            end
+        end
+
+        table.sort(matches, function(a, b)
+            if a.score == b.score then
+                return a.title < b.title
+            end
+
+            return a.score > b.score
+        end)
+
+        CreateSectionHeader(searchPanel, "Search Results")
+        CreateHelpText(searchPanel, string.format("%d matching setting%s for '%s'.", #matches, #matches == 1 and "" or "s", rawQuery))
+
+        if #matches == 0 then
+            CreateHelpText(searchPanel, "Try a setting name, tab name, section title, or a console variable like nai_npc_auto_join.")
+        else
+            for index, entry in ipairs(matches) do
+                AddSearchResult(searchPanel, entry)
+
+                if index >= 25 then
+                    break
+                end
+            end
+        end
+
+        if currentPanel ~= searchPanel then
+            SwitchToPanel(searchPanel, nil, true)
+        end
+    end
+
+    local searchBox = vgui.Create("DPanel", sidebar)
+    searchBox:Dock(TOP)
+    searchBox:DockMargin(8, 10, 8, 12)
+    searchBox:SetTall(42)
+    searchBox.Paint = function(self, w, h)
+        draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
+        surface.SetDrawColor(self:IsHovered() and Theme.accentHover or Theme.border)
+        surface.DrawOutlinedRect(0, 0, w, h, 1)
+    end
+    searchBox.PaintOver = function(self, w, h)
+        surface.SetDrawColor(Theme.textDim)
+        surface.SetMaterial(Material("icon16/magnifier.png"))
+        surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
+    end
+
+    searchEntry = vgui.Create("DTextEntry", searchBox)
+    searchEntry:Dock(FILL)
+    searchEntry:DockMargin(36, 6, 10, 6)
+    searchEntry:SetFont("NaiFont_Normal")
+    searchEntry:SetTextColor(Theme.text)
+    searchEntry:SetDrawBackground(false)
+    searchEntry.Paint = function(self, w, h)
+        self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
+
+        if self:GetValue() == "" and not self:HasFocus() then
+            draw.SimpleText("Search settings...", "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
+    end
+    searchEntry.OnValueChange = function(self, value)
+        PopulateSearchResults(value)
+    end
     
     -- General Tab
     local generalPanel = CreateContentPanel()
+    generalPanel.SearchPanelName = "General"
     local generalBtn = CreateNavButton("General", "icon16/cog.png")
+    generalPanel.SearchNavButton = generalBtn
     generalBtn.DoClick = function() SwitchToPanel(generalPanel, generalBtn) end
     
     CreateSectionHeader(generalPanel, "General Settings")
@@ -957,7 +1221,9 @@ local function OpenSettingsPanel()
     
     -- Auto-Join Tab
     local autoJoinPanel = CreateContentPanel()
+    autoJoinPanel.SearchPanelName = "Auto-Join"
     local autoJoinBtn = CreateNavButton("Auto-Join", "icon16/group.png")
+    autoJoinPanel.SearchNavButton = autoJoinBtn
     autoJoinBtn.DoClick = function() SwitchToPanel(autoJoinPanel, autoJoinBtn) end
     
     CreateSectionHeader(autoJoinPanel, "Auto-Join (Squad Behavior)")
@@ -979,7 +1245,9 @@ local function OpenSettingsPanel()
     
     -- Position Tab
     local posPanel = CreateContentPanel()
+    posPanel.SearchPanelName = "Position"
     local posBtn = CreateNavButton("Position", "icon16/arrow_out.png")
+    posPanel.SearchNavButton = posBtn
     posBtn.DoClick = function() SwitchToPanel(posPanel, posBtn) end
     
     CreateSectionHeader(posPanel, "Position Offsets")
@@ -1011,7 +1279,9 @@ local function OpenSettingsPanel()
     
     -- Speech & Behavior Tab
     local speechPanel = CreateContentPanel()
+    speechPanel.SearchPanelName = "Behaviour"
     local speechBtn = CreateNavButton("Behaviour", "icon16/sound.png")
+    speechPanel.SearchNavButton = speechBtn
     speechBtn.DoClick = function() SwitchToPanel(speechPanel, speechBtn) end
     
     CreateSectionHeader(speechPanel, "NPC Speech (Advanced)")
@@ -1163,7 +1433,9 @@ local function OpenSettingsPanel()
     
     -- Tank/LVS Tab
     local tankPanel = CreateContentPanel()
+    tankPanel.SearchPanelName = "Tank/LVS"
     local tankBtn = CreateNavButton("Tank/LVS", "icon16/shield.png")
+    tankPanel.SearchNavButton = tankBtn
     tankBtn.DoClick = function() SwitchToPanel(tankPanel, tankBtn) end
     
     CreateSectionHeader(tankPanel, "Tank / LVS Vehicle Settings")
@@ -1209,7 +1481,9 @@ local function OpenSettingsPanel()
     
     -- HUD Tab
     local hudPanel = CreateContentPanel()
+    hudPanel.SearchPanelName = "HUD"
     local hudBtn = CreateNavButton("HUD", "icon16/eye.png")
+    hudPanel.SearchNavButton = hudBtn
     hudBtn.DoClick = function() SwitchToPanel(hudPanel, hudBtn) end
     
     CreateSectionHeader(hudPanel, "HUD Display")
@@ -1236,6 +1510,8 @@ local function OpenSettingsPanel()
     posLabel:DockMargin(10, 8, 10, 2)
     
     local posCombo = vgui.Create("DComboBox", hudPanel)
+    posCombo.SearchLabel = "HUD Position"
+    posCombo.SearchConVar = "nai_npc_hud_position"
     posCombo:Dock(TOP)
     posCombo:DockMargin(10, 0, 10, 5)
     posCombo:SetTall(28)
@@ -1293,6 +1569,8 @@ local function OpenSettingsPanel()
     -- Helper function to create action dropdown
     local function CreateActionDropdown(parent, label, convar)
         local container = vgui.Create("DPanel", parent)
+        container.SearchLabel = label
+        container.SearchConVar = convar
         container:Dock(TOP)
         container:DockMargin(10, 8, 10, 0)
         container:SetTall(28)
@@ -1347,12 +1625,17 @@ local function OpenSettingsPanel()
     
     -- Keybinds Tab
     local keybindsPanel = CreateContentPanel()
+    keybindsPanel.SearchPanelName = "Keybinds"
     local keybindsBtn = CreateNavButton("Keybinds", "icon16/keyboard.png")
+    keybindsPanel.SearchNavButton = keybindsBtn
     keybindsBtn.DoClick = function() SwitchToPanel(keybindsPanel, keybindsBtn) end
     
     -- Helper function to create keybind button
     local function CreateKeybindButton(parent, label, convar, description)
         local container = vgui.Create("DPanel", parent)
+        container.SearchLabel = label
+        container.SearchDescription = description
+        container.SearchConVar = convar
         container:Dock(TOP)
         container:DockMargin(10, 5, 10, 0)
         container:SetTall(50)
@@ -1507,7 +1790,9 @@ local function OpenSettingsPanel()
     
     -- Debugging Tab
     local debugPanel = CreateContentPanel()
+    debugPanel.SearchPanelName = "Debugging"
     local debugBtn = CreateNavButton("Debugging", "icon16/bug.png")
+    debugPanel.SearchNavButton = debugBtn
     debugBtn.DoClick = function() SwitchToPanel(debugPanel, debugBtn) end
     
     CreateSectionHeader(debugPanel, "Debug Tools")
@@ -1642,7 +1927,9 @@ local function OpenSettingsPanel()
     
     -- NPC Driver Tab
     local driverPanel = CreateContentPanel()
+    driverPanel.SearchPanelName = "NPC Driver"
     local driverBtn = CreateNavButton("NPC Driver", "icon16/car.png")
+    driverPanel.SearchNavButton = driverBtn
     driverBtn.DoClick = function() SwitchToPanel(driverPanel, driverBtn) end
     
     CreateSectionHeader(driverPanel, "NPC Driver System")
@@ -1668,7 +1955,9 @@ local function OpenSettingsPanel()
     
     -- Interface Tab
     local interfacePanel = CreateContentPanel()
+    interfacePanel.SearchPanelName = "Interface"
     local interfaceBtn = CreateNavButton("Interface", "icon16/application_view_tile.png")
+    interfacePanel.SearchNavButton = interfaceBtn
     interfaceBtn.DoClick = function() SwitchToPanel(interfacePanel, interfaceBtn) end
     
     CreateSectionHeader(interfacePanel, "UI Sound Settings")
@@ -1778,7 +2067,9 @@ local function OpenSettingsPanel()
     
     -- Simulate Tab
     local simulatePanel = CreateContentPanel()
+    simulatePanel.SearchPanelName = "Simulate"
     local simulateBtn = CreateNavButton("Simulate", "icon16/wand.png")
+    simulatePanel.SearchNavButton = simulateBtn
     simulateBtn.DoClick = function() SwitchToPanel(simulatePanel, simulateBtn) end
     
     CreateSectionHeader(simulatePanel, "Simulation System")
@@ -1804,7 +2095,9 @@ local function OpenSettingsPanel()
     
     -- Modules Tab
     local modulesPanel = CreateContentPanel()
+    modulesPanel.SearchPanelName = "Modules"
     local modulesBtn = CreateNavButton("Modules", "icon16/plugin.png")
+    modulesPanel.SearchNavButton = modulesBtn
     modulesBtn.DoClick = function() SwitchToPanel(modulesPanel, modulesBtn) end
     
     CreateSectionHeader(modulesPanel, "Modules System")
@@ -1830,7 +2123,9 @@ local function OpenSettingsPanel()
     
     -- Help Tab
     local helpPanel = CreateContentPanel()
+    helpPanel.SearchPanelName = "Help"
     local helpBtn = CreateNavButton("Help", "icon16/help.png")
+    helpPanel.SearchNavButton = helpBtn
     helpBtn.DoClick = function() SwitchToPanel(helpPanel, helpBtn) end
     
     CreateSectionHeader(helpPanel, "Frequently Asked Questions")
@@ -1990,7 +2285,9 @@ local function OpenSettingsPanel()
     
     -- About Tab
     local aboutPanel = CreateContentPanel()
+    aboutPanel.SearchPanelName = "About"
     local aboutBtn = CreateNavButton("About", "icon16/information.png")
+    aboutPanel.SearchNavButton = aboutBtn
     aboutBtn.DoClick = function() SwitchToPanel(aboutPanel, aboutBtn) end
     
     CreateSectionHeader(aboutPanel, "About NPC Passengers v" .. NPCPassengers.Version)
@@ -2031,38 +2328,6 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(aboutPanel, 10)
-    CreateSectionHeader(aboutPanel, "What's New in v" .. NPCPassengers.Version)
-    
-    local whatsNew = vgui.Create("DPanel", aboutPanel)
-    whatsNew:SetTall(155)
-    whatsNew:Dock(TOP)
-    whatsNew:DockMargin(5, 0, 5, 5)
-    whatsNew.Paint = function(self, w, h)
-        draw.RoundedBox(6, 0, 0, w, h, Theme.bgLighter)
-        
-        local y = 12
-        local updates = {
-            "Performance: vehicle seat layout cached per vehicle",
-            "Performance: per-passenger animation maintenance throttled",
-            "Performance: client body-sway no longer scans all entities per frame",
-            "Vehicle allow/deny filter convars with wildcard support",
-            "Boarding retry cooldown on repeated failures",
-            "Squad-only auto-join mode",
-            "Fix: first-board failures due to uninitialized seat list"
-        }
-        
-        for i, update in ipairs(updates) do
-            -- Checkmark icon
-            surface.SetDrawColor(Theme.success)
-            surface.SetMaterial(Material("icon16/tick.png"))
-            surface.DrawTexturedRect(15, y - 6, 16, 16)
-            
-            draw.SimpleText(update, "NaiFont_Normal", 38, y, Theme.text)
-            y = y + 20
-        end
-    end
-    
-    CreateSpacer(aboutPanel, 10)
     CreateSectionHeader(aboutPanel, "Actions")
     
     CreateButton(aboutPanel, "Show Welcome Screen", function()
@@ -2079,62 +2344,6 @@ local function OpenSettingsPanel()
         settingsFrame:Close()
         timer.Simple(0.1, OpenSettingsPanel)
     end)
-    
-    CreateSpacer(aboutPanel, 10)
-    
-    CreateSectionHeader(aboutPanel, "Quick Reference")
-    
-    CreateHelpText(aboutPanel, "Essential Console Commands:")
-    
-    local cmdPanel = vgui.Create("DPanel", aboutPanel)
-    cmdPanel:SetTall(110)
-    cmdPanel:Dock(TOP)
-    cmdPanel:DockMargin(5, 0, 5, 5)
-    cmdPanel.Paint = function(self, w, h)
-        draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
-        
-        local commands = {
-            {"nai_passengers_menu", "Open settings panel (or press F7)"},
-            {"nai_npc_reset", "Reset all settings to defaults"},
-            {"nai_passengers_list", "List all current passengers"},
-            {"nai_npc_auto_join 1/0", "Toggle auto-join on/off"},
-        }
-        
-        local y = 12
-        for _, cmd in ipairs(commands) do
-            draw.SimpleText(cmd[1], "NaiFont_Bold", 12, y, Theme.accent)
-            draw.SimpleText("- " .. cmd[2], "NaiFont_Normal", 200, y, Theme.textDim)
-            y = y + 24
-        end
-    end
-    
-    CreateSpacer(aboutPanel, 10)
-    
-    local tipsPanel = vgui.Create("DPanel", aboutPanel)
-    tipsPanel:SetTall(70)
-    tipsPanel:Dock(TOP)
-    tipsPanel:DockMargin(5, 0, 5, 5)
-    tipsPanel.Paint = function(self, w, h)
-        draw.RoundedBox(6, 0, 0, w, h, Theme.accentDark)
-        
-        -- Icon
-        surface.SetDrawColor(Theme.textBright)
-        surface.SetMaterial(Material("icon16/lightbulb.png"))
-        surface.DrawTexturedRect(15, 15, 16, 16)
-        
-        draw.SimpleText("Pro Tips", "NaiFont_Bold", 38, 18, Theme.textBright)
-        
-        local tips = {
-            "Press F7 anywhere to quickly access settings",
-            "Check the Help tab for answers to common questions"
-        }
-        
-        local y = 42
-        for _, tip in ipairs(tips) do
-            draw.SimpleText(tip, "NaiFont_Small", 20, y, Theme.text)
-            y = y + 16
-        end
-    end
     
     -- Start with General panel active
     SwitchToPanel(generalPanel, generalBtn)
