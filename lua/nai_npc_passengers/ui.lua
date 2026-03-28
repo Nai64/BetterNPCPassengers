@@ -1888,6 +1888,7 @@ local function OpenSettingsPanel()
     local keybindsBtn = CreateNavButton("Keybinds", "icon16/keyboard.png")
     keybindsPanel.SearchNavButton = keybindsBtn
     keybindsBtn.DoClick = function() SwitchToPanel(keybindsPanel, keybindsBtn) end
+    local keybindButtons = {}
     
     -- Helper function to create keybind button
     local function CreateKeybindButton(parent, label, convar, description)
@@ -1990,6 +1991,8 @@ local function OpenSettingsPanel()
         container.PerformLayout = function(self, w, h)
             btn:SetPos(w - 130, 8)
         end
+
+        keybindButtons[convar] = btn
         
         return container
     end
@@ -2036,6 +2039,19 @@ local function OpenSettingsPanel()
     for _, keybind in ipairs(debugKeybinds) do
         CreateKeybindButton(keybindsPanel, keybind.name, keybind.cvar, keybind.desc)
     end
+
+    CreateSpacer(keybindsPanel, 8)
+    CreateButton(keybindsPanel, "Clear All Keybinds", function()
+        for convar, button in pairs(keybindButtons) do
+            RunConsoleCommand(convar, "0")
+            if IsValid(button) then
+                button.isBinding = false
+                button:SetText("Not Bound")
+            end
+        end
+
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All keybinds cleared.")
+    end)
     
     CreateSpacer(keybindsPanel, 10)
     local infoLabel = vgui.Create("DLabel", keybindsPanel)
@@ -2313,6 +2329,21 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_use_default_font", "0")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
+
+        if IsValid(widthSlider) then
+            widthSlider:SetValue(950)
+        end
+
+        if IsValid(heightSlider) then
+            heightSlider:SetValue(700)
+        end
+
+        if IsValid(settingsFrame) then
+            settingsFrame:SetSize(950, 700)
+            settingsFrame:Center()
+            settingsFrame:InvalidateLayout(true)
+        end
+
         CreateNaiFonts()
         chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All UI settings reset to defaults!")
     end)
