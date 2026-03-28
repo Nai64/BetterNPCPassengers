@@ -196,6 +196,10 @@ local passengerWeaponProfiles = {
         bullets = 1,
         tracer = 1,
         gesture = ACT_GESTURE_RANGE_ATTACK_PISTOL,
+        aimActivityNames = {"ACT_IDLE_ANGRY_PISTOL", "ACT_RANGE_AIM_LOW", "ACT_IDLE_PISTOL", "ACT_GESTURE_RANGE_ATTACK_PISTOL"},
+        aimSequences = {"idle_angry_pistol", "idle_pistol", "aim_pistol_stimulated", "idle_aim_pistol", "aim_pistol"},
+        attackActivityNames = {"ACT_GESTURE_RANGE_ATTACK_PISTOL", "ACT_RANGE_ATTACK_PISTOL", "ACT_GESTURE_RELOAD_PISTOL"},
+        attackSequences = {"shootpistol", "attack_pistol", "range_attack_pistol"},
     },
     smg1 = {
         sound = "Weapon_SMG1.Single",
@@ -205,6 +209,10 @@ local passengerWeaponProfiles = {
         bullets = 1,
         tracer = 1,
         gesture = ACT_GESTURE_RANGE_ATTACK_SMG1,
+        aimActivityNames = {"ACT_IDLE_ANGRY_SMG1", "ACT_RANGE_AIM_SMG1_LOW", "ACT_IDLE_SMG1", "ACT_GESTURE_RANGE_ATTACK_SMG1"},
+        aimSequences = {"idle_angry_smg1", "idle_smg1", "aim_smg1_stimulated", "idle_aim_smg1", "aim_smg1"},
+        attackActivityNames = {"ACT_GESTURE_RANGE_ATTACK_SMG1", "ACT_RANGE_ATTACK_SMG1", "ACT_GESTURE_RANGE_ATTACK1"},
+        attackSequences = {"shootsmg1", "attack_smg1", "range_attack_smg1"},
     },
     ar2 = {
         sound = "Weapon_AR2.Single",
@@ -214,6 +222,10 @@ local passengerWeaponProfiles = {
         bullets = 1,
         tracer = 1,
         gesture = ACT_GESTURE_RANGE_ATTACK_AR2,
+        aimActivityNames = {"ACT_IDLE_ANGRY_AR2", "ACT_RANGE_AIM_AR2_LOW", "ACT_IDLE_RIFLE", "ACT_GESTURE_RANGE_ATTACK_AR2"},
+        aimSequences = {"idle_angry_ar2", "idle_ar2", "aim_ar2_stimulated", "idle_aim_ar2", "aim_ar2"},
+        attackActivityNames = {"ACT_GESTURE_RANGE_ATTACK_AR2", "ACT_RANGE_ATTACK_AR2", "ACT_GESTURE_RANGE_ATTACK1"},
+        attackSequences = {"shootar2", "attack_ar2", "range_attack_ar2"},
     },
     shotgun = {
         sound = "Weapon_Shotgun.Single",
@@ -223,6 +235,10 @@ local passengerWeaponProfiles = {
         bullets = 6,
         tracer = 0,
         gesture = ACT_GESTURE_RANGE_ATTACK_SHOTGUN,
+        aimActivityNames = {"ACT_IDLE_ANGRY_SHOTGUN", "ACT_RANGE_AIM_SHOTGUN_LOW", "ACT_IDLE_SHOTGUN", "ACT_GESTURE_RANGE_ATTACK_SHOTGUN"},
+        aimSequences = {"idle_angry_shotgun", "idle_shotgun", "aim_shotgun_stimulated", "idle_aim_shotgun", "aim_shotgun"},
+        attackActivityNames = {"ACT_GESTURE_RANGE_ATTACK_SHOTGUN", "ACT_RANGE_ATTACK_SHOTGUN", "ACT_GESTURE_RANGE_ATTACK1"},
+        attackSequences = {"shootshotgun", "attack_shotgun", "range_attack_shotgun"},
     },
     magnum = {
         sound = "Weapon_357.Single",
@@ -232,6 +248,10 @@ local passengerWeaponProfiles = {
         bullets = 1,
         tracer = 1,
         gesture = ACT_GESTURE_RANGE_ATTACK_PISTOL,
+        aimActivityNames = {"ACT_IDLE_ANGRY_PISTOL", "ACT_RANGE_AIM_LOW", "ACT_IDLE_PISTOL", "ACT_GESTURE_RANGE_ATTACK_PISTOL"},
+        aimSequences = {"idle_angry_pistol", "idle_pistol", "aim_pistol_stimulated", "idle_aim_pistol", "aim_pistol"},
+        attackActivityNames = {"ACT_GESTURE_RANGE_ATTACK_PISTOL", "ACT_RANGE_ATTACK_PISTOL", "ACT_GESTURE_RANGE_ATTACK1"},
+        attackSequences = {"shoot357", "shootpistol", "attack_pistol", "range_attack_pistol"},
     },
 }
 
@@ -1481,11 +1501,122 @@ end
         return npc:EyePos()
     end
 
-    local function PlayPassengerFireGesture(npc, weaponProfile)
-        if not IsValid(npc) or not weaponProfile or not weaponProfile.gesture then return end
+    local function IsVehicleOrChildEntity(vehicle, ent)
+        if not IsValid(vehicle) or not IsValid(ent) then return false end
+        if ent == vehicle then return true end
 
-        npc:AddGesture(weaponProfile.gesture, true)
-        MarkGesturePlaying(npc, math.max(weaponProfile.delay or 0.15, 0.15))
+        local parent = ent:GetParent()
+        while IsValid(parent) do
+            if parent == vehicle then
+                return true
+            end
+            parent = parent:GetParent()
+        end
+
+        return false
+    end
+
+    local function GetPassengerBulletOrigin(npc, pdata, targetPos)
+        local origin = GetPassengerCombatOrigin(npc)
+        if not IsValid(npc) or not pdata or not IsValid(pdata.vehicle) or not targetPos then
+            return origin
+        end
+
+        local direction = (targetPos - origin)
+        if direction:LengthSqr() <= 0 then
+            return origin
+        end
+
+        direction:Normalize()
+
+        local tr = util.TraceLine({
+            start = origin,
+            endpos = origin + direction * 256,
+            filter = npc,
+            mask = MASK_SHOT,
+        })
+
+        if tr.Hit and IsVehicleOrChildEntity(pdata.vehicle, tr.Entity) then
+            return tr.HitPos + direction * 8
+        end
+
+        return origin
+    end
+
+    local function TryPlayPassengerGesture(npc, activityNames, sequenceNames, fallbackActivity, fallbackDuration)
+        if not IsValid(npc) then return false end
+
+        for _, activityName in ipairs(activityNames or {}) do
+            local activityId = _G[activityName]
+            if isnumber(activityId) then
+                local sequenceId = npc:SelectWeightedSequence(activityId)
+                if sequenceId and sequenceId >= 0 then
+                    npc:AddGesture(activityId, true)
+                    local duration = npc:SequenceDuration(sequenceId)
+                    MarkGesturePlaying(npc, math.max((duration and duration > 0 and duration or fallbackDuration or 0.2), 0.12))
+                    return true
+                end
+            end
+        end
+
+        for _, sequenceName in ipairs(sequenceNames or {}) do
+            local sequenceId = npc:LookupSequence(sequenceName)
+            if sequenceId and sequenceId >= 0 then
+                npc:AddGestureSequence(sequenceId, true)
+                local duration = npc:SequenceDuration(sequenceId)
+                MarkGesturePlaying(npc, math.max((duration and duration > 0 and duration or fallbackDuration or 0.2), 0.12))
+                return true
+            end
+        end
+
+        if fallbackActivity then
+            local fallbackSequence = npc:SelectWeightedSequence(fallbackActivity)
+            if fallbackSequence and fallbackSequence >= 0 then
+                npc:AddGesture(fallbackActivity, true)
+                local duration = npc:SequenceDuration(fallbackSequence)
+                MarkGesturePlaying(npc, math.max((duration and duration > 0 and duration or fallbackDuration or 0.2), 0.12))
+                return true
+            end
+        end
+
+        return false
+    end
+
+    local function ApplyPassengerCombatPose(npc, pdata, weaponProfile)
+        if not IsValid(npc) or not pdata or not weaponProfile then return false end
+
+        local curTime = CurTime()
+        if curTime < (pdata.nextCombatPoseAt or 0) then return false end
+
+        local played = TryPlayPassengerGesture(
+            npc,
+            weaponProfile.aimActivityNames,
+            weaponProfile.aimSequences,
+            weaponProfile.gesture,
+            0.35
+        )
+
+        pdata.nextCombatPoseAt = curTime + (played and 0.22 or 0.45)
+        return played
+    end
+
+    local function PlayPassengerFireGesture(npc, weaponProfile)
+        if not IsValid(npc) or not weaponProfile then return end
+
+        if TryPlayPassengerGesture(
+            npc,
+            weaponProfile.attackActivityNames,
+            weaponProfile.attackSequences,
+            weaponProfile.gesture,
+            weaponProfile.delay or 0.15
+        ) then
+            return
+        end
+
+        if weaponProfile.gesture then
+            npc:AddGesture(weaponProfile.gesture, true)
+            MarkGesturePlaying(npc, math.max(weaponProfile.delay or 0.15, 0.15))
+        end
     end
 
     local function UpdatePassengerCombat(npc, pdata)
@@ -1520,12 +1651,14 @@ end
         local targetPos = target.WorldSpaceCenter and target:WorldSpaceCenter() or (target:GetPos() + Vector(0, 0, 40))
         local relativeYaw, relativePitch = CalculateLookAngles(npc, targetPos)
 
+        ApplyPassengerCombatPose(npc, pdata, weaponProfile)
+
         if math.abs(relativeYaw) > 85 or relativePitch < -30 or relativePitch > 35 then
             pdata.nextCombatAt = curTime + 0.1
             return
         end
 
-        local origin = GetPassengerCombatOrigin(npc)
+        local origin = GetPassengerBulletOrigin(npc, pdata, targetPos)
         if not HasPassengerLineOfSight(npc, pdata.vehicle, target, origin, targetPos) then
             pdata.nextCombatAt = curTime + 0.1
             return
@@ -1905,8 +2038,10 @@ local function UpdateNPCHeadLook(npc, pdata)
         npc:SetPoseParameter("blink", 0)
     end
 
-    npc:SetPoseParameter("aim_yaw",   state.currentYaw   * 0.08)
-    npc:SetPoseParameter("aim_pitch", finalHeadPitch     * 0.06)
+    local aimYawScale = IsValid(state.currentThreat) and 0.42 or 0.08
+    local aimPitchScale = IsValid(state.currentThreat) and 0.32 or 0.06
+    npc:SetPoseParameter("aim_yaw",   state.currentYaw   * aimYawScale)
+    npc:SetPoseParameter("aim_pitch", finalHeadPitch     * aimPitchScale)
 
     -- Eye target matches smoothed eye direction to prevent engine IK fighting our pose params
     local lookDir = Angle(state.eyeCurrentPitch, npc:GetAngles().y + state.eyeCurrentYaw, 0)
