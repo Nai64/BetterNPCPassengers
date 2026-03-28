@@ -737,7 +737,7 @@ local function OpenSettingsPanel()
         local versionX = w - versionW - 50
         local versionY = 15
         draw.RoundedBox(10, versionX, versionY, versionW, versionH, Theme.accentDark)
-        draw.SimpleText("v2.4", "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("v" .. NPCPassengers.Version, "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     
     settingsFrame.btnClose:SetVisible(false)
@@ -767,11 +767,27 @@ local function OpenSettingsPanel()
     closeBtn.DoClick = function()
         settingsFrame:Close()
     end
-    
+
+    -- Live resize: reflow all major child panels when the frame dimensions change
+    settingsFrame.PerformLayout = function(self, w, h)
+        if IsValid(navContainer) then
+            navContainer:SetSize(w - 20, h - 68)
+        end
+        if IsValid(sidebar) then
+            sidebar:SetSize(270, h - 68)
+        end
+        if IsValid(contentArea) then
+            contentArea:SetSize(w - 298, h - 64)
+        end
+        if IsValid(closeBtn) then
+            closeBtn:SetPos(w - 38, 12)
+        end
+    end
+
     -- Side panel navigation system
     local navContainer = vgui.Create("DPanel", settingsFrame)
     navContainer:SetPos(10, 58)
-    navContainer:SetSize(930, 632)
+    navContainer:SetSize(panelWidth - 20, panelHeight - 68)
     navContainer.Paint = function(self, w, h)
         draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
     end
@@ -779,7 +795,7 @@ local function OpenSettingsPanel()
     -- Left sidebar for navigation
     local sidebar = vgui.Create("DScrollPanel", navContainer)
     sidebar:SetPos(0, 0)
-    sidebar:SetSize(270, 632)
+    sidebar:SetSize(270, panelHeight - 68)
     sidebar.Paint = function(self, w, h)
         draw.RoundedBoxEx(8, 0, 0, w, h, Theme.bgDark, true, false, true, false)
         
@@ -792,7 +808,7 @@ local function OpenSettingsPanel()
     -- Right content area
     local contentArea = vgui.Create("DPanel", navContainer)
     contentArea:SetPos(278, 0)
-    contentArea:SetSize(652, 636)
+    contentArea:SetSize(panelWidth - 298, panelHeight - 64)
     contentArea.Paint = function() end
     
     local currentPanel = nil
@@ -1677,11 +1693,23 @@ local function OpenSettingsPanel()
     CreateCheckbox(interfacePanel, "Show Welcome Screen on Updates", "nai_npc_ui_show_welcome")
     CreateHelpText(interfacePanel, "Display welcome panel when addon is updated to a new version")
     
-    CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
-    CreateHelpText(interfacePanel, "Width of the settings panel (requires reopening menu)")
-    
-    CreateSlider(interfacePanel, "Panel Height", "nai_npc_ui_panel_height", 600, 900, 0)
-    CreateHelpText(interfacePanel, "Height of the settings panel (requires reopening menu)")
+    local _, widthSlider = CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
+    CreateHelpText(interfacePanel, "Width of the settings panel")
+    widthSlider.OnValueChanged = function(_, val)
+        if IsValid(settingsFrame) then
+            settingsFrame:SetSize(math.floor(val), settingsFrame:GetTall())
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
+
+    local _, heightSlider = CreateSlider(interfacePanel, "Panel Height", "nai_npc_ui_panel_height", 600, 900, 0)
+    CreateHelpText(interfacePanel, "Height of the settings panel")
+    heightSlider.OnValueChanged = function(_, val)
+        if IsValid(settingsFrame) then
+            settingsFrame:SetSize(settingsFrame:GetWide(), math.floor(val))
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
     
     CreateCheckbox(interfacePanel, "Enable UI Animations", "nai_npc_ui_animations")
     CreateHelpText(interfacePanel, "Smooth transitions and hover effects (may impact performance)")
@@ -1953,7 +1981,7 @@ local function OpenSettingsPanel()
     local aboutBtn = CreateNavButton("About", "icon16/information.png")
     aboutBtn.DoClick = function() SwitchToPanel(aboutPanel, aboutBtn) end
     
-    CreateSectionHeader(aboutPanel, "About NPC Passengers v2.4")
+    CreateSectionHeader(aboutPanel, "About NPC Passengers v" .. NPCPassengers.Version)
     
     local aboutText = vgui.Create("DPanel", aboutPanel)
     aboutText:SetTall(160)
@@ -1991,7 +2019,7 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(aboutPanel, 10)
-    CreateSectionHeader(aboutPanel, "What's New in v2.4")
+    CreateSectionHeader(aboutPanel, "What's New in v" .. NPCPassengers.Version)
     
     local whatsNew = vgui.Create("DPanel", aboutPanel)
     whatsNew:SetTall(155)
