@@ -826,9 +826,8 @@ local function OpenSettingsPanel()
     local currentPanel = nil
     local navButtons = {}
     local searchEntry = nil
-    local searchPanel = nil
-    local lastRegularPanel = nil
-    local lastRegularBtn = nil
+    local searchSuggestions = nil
+    local searchMatches = {}
     
     -- Function to create nav button
     local function CreateNavButton(label, icon)
@@ -927,11 +926,6 @@ local function OpenSettingsPanel()
         if IsValid(activeBtn) then
             activeBtn.isActive = true
         end
-
-        if panel ~= searchPanel and IsValid(activeBtn) then
-            lastRegularPanel = panel
-            lastRegularBtn = activeBtn
-        end
     end
     
     -- Helper to create content panel
@@ -944,7 +938,7 @@ local function OpenSettingsPanel()
         return panel
     end
 
-    searchPanel = CreateContentPanel()
+    local SEARCH_SUGGESTION_LIMIT = 4
 
     local function NormalizeSearchText(text)
         local normalized = string.lower(tostring(text or ""))
@@ -987,7 +981,7 @@ local function OpenSettingsPanel()
         local entries = {}
 
         for _, panel in ipairs(contentArea:GetChildren()) do
-            if panel ~= searchPanel and panel.SearchPanelName and panel.GetCanvas then
+            if panel.SearchPanelName and panel.GetCanvas then
                 local currentSection = panel.SearchPanelName
                 local lastEntry = nil
 
@@ -1055,61 +1049,11 @@ local function OpenSettingsPanel()
         return score
     end
 
-    local function AddSearchResult(parent, entry)
-        local result = vgui.Create("DButton", parent)
-        result:SetText("")
-        result:SetTall(68)
-        result:Dock(TOP)
-        result:DockMargin(8, 0, 8, 8)
-
-        result.Paint = function(self, w, h)
-            local bgCol = self:IsHovered() and Theme.bgLighter or Theme.bgDark
-            draw.RoundedBox(8, 0, 0, w, h, bgCol)
-
-            surface.SetDrawColor(self:IsHovered() and Theme.accentHover or Theme.borderLight)
-            surface.DrawOutlinedRect(0, 0, w, h, 1)
-
-            draw.SimpleText(entry.title, "NaiFont_Normal", 14, 16, Theme.textBright)
-            draw.SimpleText(entry.panelName .. " / " .. entry.section, "NaiFont_Small", 14, 36, Theme.accent)
-
-            if entry.description ~= "" then
-                draw.SimpleText(entry.description, "NaiFont_Small", 14, 52, Theme.textDim)
-            elseif entry.convar ~= "" then
-                draw.SimpleText(entry.convar, "NaiFont_Small", 14, 52, Theme.textDim)
-            end
-        end
-
-        result.DoClick = function()
-            if IsValid(searchEntry) then
-                searchEntry:SetText("")
-            end
-
-            SwitchToPanel(entry.panel, entry.button)
-
-            timer.Simple(0, function()
-                ScrollToSearchTarget(entry.panel, entry.target)
-            end)
-        end
-
-        return result
-    end
-
-    local function PopulateSearchResults(rawQuery)
-        if not IsValid(searchPanel) then
-            return
-        end
-
+    local function GetSearchMatches(rawQuery, limit)
         local query = NormalizeSearchText(rawQuery)
 
-        for _, child in ipairs(searchPanel:GetCanvas():GetChildren()) do
-            child:Remove()
-        end
-
         if query == "" then
-            if IsValid(lastRegularPanel) and IsValid(lastRegularBtn) then
-                SwitchToPanel(lastRegularPanel, lastRegularBtn, true)
-            end
-            return
+            return {}
         end
 
         local matches = {}
@@ -1128,24 +1072,109 @@ local function OpenSettingsPanel()
             return a.score > b.score
         end)
 
-        CreateSectionHeader(searchPanel, "Search Results")
-        CreateHelpText(searchPanel, string.format("%d matching setting%s for '%s'.", #matches, #matches == 1 and "" or "s", rawQuery))
-
-        if #matches == 0 then
-            CreateHelpText(searchPanel, "Try a setting name, tab name, section title, or a console variable like nai_npc_auto_join.")
-        else
-            for index, entry in ipairs(matches) do
-                AddSearchResult(searchPanel, entry)
-
-                if index >= 25 then
-                    break
-                end
+        if limit and #matches > limit then
+            for index = #matches, limit + 1, -1 do
+                matches[index] = nil
             end
         end
 
-        if currentPanel ~= searchPanel then
-            SwitchToPanel(searchPanel, nil, true)
+        return matches
+    end
+
+    local function ClearSearchSuggestions()
+        searchMatches = {}
+
+        if not IsValid(searchSuggestions) then
+            return
         end
+
+        for _, child in ipairs(searchSuggestions:GetChildren()) do
+            child:Remove()
+        end
+
+        searchSuggestions:SetVisible(false)
+        searchSuggestions:SetTall(0)
+    end
+
+    local function OpenSearchMatch(entry)
+        if not entry then
+            return
+        end
+
+        ClearSearchSuggestions()
+
+        if IsValid(searchEntry) then
+            searchEntry:SetText("")
+        end
+
+        SwitchToPanel(entry.panel, entry.button)
+
+        timer.Simple(0, function()
+            ScrollToSearchTarget(entry.panel, entry.target)
+        end)
+    end
+
+    local function AddSearchSuggestion(parent, entry, rank)
+        local result = vgui.Create("DButton", parent)
+        result:SetText("")
+        result:SetTall(52)
+        result:Dock(TOP)
+        result:DockMargin(0, rank == 1 and 0 or 4, 0, 0)
+
+        result.Paint = function(self, w, h)
+            local bgCol = self:IsHovered() and Theme.bgLighter or Theme.bgDark
+            draw.RoundedBox(6, 0, 0, w, h, bgCol)
+
+            surface.SetDrawColor(self:IsHovered() and Theme.accentHover or Theme.border)
+            surface.DrawOutlinedRect(0, 0, w, h, 1)
+
+            draw.SimpleText(tostring(rank), "NaiFont_Small", 14, h / 2, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(entry.title, "NaiFont_Normal", 34, 17, Theme.textBright)
+            draw.SimpleText(entry.panelName .. " / " .. entry.section, "NaiFont_Small", 34, 34, Theme.textDim)
+        end
+
+        result.DoClick = function()
+            OpenSearchMatch(entry)
+        end
+
+        return result
+    end
+
+    local function UpdateSearchSuggestions(rawQuery)
+        if not IsValid(searchSuggestions) then
+            return
+        end
+
+        ClearSearchSuggestions()
+
+        searchMatches = GetSearchMatches(rawQuery, SEARCH_SUGGESTION_LIMIT)
+
+        if #searchMatches == 0 then
+            if NormalizeSearchText(rawQuery) == "" then
+                return
+            end
+
+            local emptyState = vgui.Create("DPanel", searchSuggestions)
+            emptyState:SetTall(34)
+            emptyState:Dock(TOP)
+            emptyState.Paint = function(self, w, h)
+                draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
+                draw.SimpleText("No matching settings", "NaiFont_Small", 12, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            end
+
+            searchSuggestions:SetVisible(true)
+            searchSuggestions:SetTall(34)
+            return
+        end
+
+        local totalHeight = 0
+        for index, entry in ipairs(searchMatches) do
+            AddSearchSuggestion(searchSuggestions, entry, index)
+            totalHeight = totalHeight + 52 + (index == 1 and 0 or 4)
+        end
+
+        searchSuggestions:SetVisible(true)
+        searchSuggestions:SetTall(totalHeight)
     end
 
     local searchBox = vgui.Create("DPanel", sidebar)
@@ -1176,8 +1205,23 @@ local function OpenSettingsPanel()
             draw.SimpleText("Search settings...", "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
     end
+
+    searchSuggestions = vgui.Create("DPanel", sidebar)
+    searchSuggestions:Dock(TOP)
+    searchSuggestions:DockMargin(8, 0, 8, 12)
+    searchSuggestions:SetTall(0)
+    searchSuggestions:SetVisible(false)
+    searchSuggestions.Paint = function(self, w, h)
+        draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
+    end
+
     searchEntry.OnValueChange = function(self, value)
-        PopulateSearchResults(value)
+        UpdateSearchSuggestions(value)
+    end
+    searchEntry.OnEnter = function(self)
+        if searchMatches[1] then
+            OpenSearchMatch(searchMatches[1])
+        end
     end
     
     -- General Tab
