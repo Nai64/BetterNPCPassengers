@@ -88,7 +88,7 @@ end
 local function FindEnemiesInRange(pos, range, npc)
     local enemies = {}
     
-    for _, ent in ipairs(ents.GetAll()) do
+    for _, ent in ipairs(ents.FindInSphere(pos, range)) do
         if IsEnemy(ent, npc) then
             local dist = pos:Distance(ent:GetPos())
             if dist <= range then

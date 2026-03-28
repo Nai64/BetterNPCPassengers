@@ -12,6 +12,12 @@ local npcLookState = {}
 local npcBoardRetryState = {}
 local vehicleSeatCache = {}
 local addonWasEnabled = true
+local vehicleFilterPatternCache = {
+    allowClasses = { raw = nil, patterns = {} },
+    denyClasses = { raw = nil, patterns = {} },
+    allowModels = { raw = nil, patterns = {} },
+    denyModels = { raw = nil, patterns = {} },
+}
 
 local PASSENGER_ANIM_INTERVAL = 0.05
 local PASSENGER_MAINTENANCE_INTERVAL = 0.35
@@ -89,16 +95,31 @@ local function ValueMatchesPatterns(value, patterns)
     return false
 end
 
+local function GetCachedFilterPatterns(cacheKey, convarName)
+    local cacheEntry = vehicleFilterPatternCache[cacheKey]
+    if not cacheEntry then return {} end
+
+    local rawValue = NPCPassengers.GetConVarString and NPCPassengers.GetConVarString(convarName, "")
+        or (GetConVar(convarName) and GetConVar(convarName):GetString() or "")
+
+    if cacheEntry.raw ~= rawValue then
+        cacheEntry.raw = rawValue
+        cacheEntry.patterns = ParseCSVPatterns(rawValue)
+    end
+
+    return cacheEntry.patterns
+end
+
 local function IsVehicleAllowedByFilters(vehicle)
     if not IsValid(vehicle) then return false end
 
     local className = string.lower(vehicle:GetClass() or "")
     local modelName = string.lower(vehicle:GetModel() or "")
 
-    local allowClasses = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_allow_classes", "") or (GetConVar("nai_npc_allow_classes") and GetConVar("nai_npc_allow_classes"):GetString() or ""))
-    local denyClasses = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_deny_classes", "") or (GetConVar("nai_npc_deny_classes") and GetConVar("nai_npc_deny_classes"):GetString() or ""))
-    local allowModels = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_allow_models", "") or (GetConVar("nai_npc_allow_models") and GetConVar("nai_npc_allow_models"):GetString() or ""))
-    local denyModels = ParseCSVPatterns(NPCPassengers.GetConVarString and NPCPassengers.GetConVarString("nai_npc_deny_models", "") or (GetConVar("nai_npc_deny_models") and GetConVar("nai_npc_deny_models"):GetString() or ""))
+    local allowClasses = GetCachedFilterPatterns("allowClasses", "nai_npc_allow_classes")
+    local denyClasses = GetCachedFilterPatterns("denyClasses", "nai_npc_deny_classes")
+    local allowModels = GetCachedFilterPatterns("allowModels", "nai_npc_allow_models")
+    local denyModels = GetCachedFilterPatterns("denyModels", "nai_npc_deny_models")
 
     if ValueMatchesPatterns(className, denyClasses) or ValueMatchesPatterns(modelName, denyModels) then
         return false
