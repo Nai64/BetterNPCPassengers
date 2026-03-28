@@ -186,32 +186,6 @@ All settings are saved per-client or per-server as appropriate. A debug mode is 
 
 ---
 
-## 📝 Changelog
-
-<details>
-<summary><b>v2.4 — March 2026</b></summary>
-
-**Performance**
-- **Seat Discovery Cache** — Vehicle seat layout is now cached per vehicle and only rebuilt when the vehicle's children change. Eliminates repeated seat traversal and sort on every boarding query.
-- **Animation Timer Throttling** — Per-passenger maintenance work (enemy tracking, relationship updates, head look, transform sync) is now gated by independent time intervals instead of running on every tick. Significantly reduces per-NPC CPU cost at higher passenger counts.
-- **Client Entity Tracking** — The body-sway hook no longer scans all entities every frame. Passengers are tracked in a dedicated table and refreshed once per second, removing the per-frame `ents.GetAll()` call entirely.
-
-**Quality of Life**
-- **Vehicle Filtering** — Added server-side allow and deny lists for vehicle classes and models with CSV wildcard pattern support.
-- **Boarding Retry Cooldown** — NPCs that fail to board repeatedly now enter a cooldown period instead of looping indefinitely. Attempt limit and cooldown duration are configurable.
-- **Squad-Only Auto-Join** — Auto-Join can now be restricted to the player's active squad (`nai_npc_auto_join_squad_only`).
-- **Global Enable Toggle** — Added `nai_npc_enabled` convar to disable all addon functionality server-side without uninstalling.
-
-**Bug Fixes**
-- Fixed an early-return defect in vehicle seat collection that caused boarding to silently fail on the first attempt when the vehicle cache was cold.
-
-**Code**
-- Removed Nai Base API dependency. All internal identifiers previously prefixed with `Nai` or `NaiPassengers` have been renamed to `NPCPassengers`. Saved ConVar names (`nai_npc_*`) are unchanged to preserve existing user configurations.
-
-</details>
-
----
-
 <div align="center">
 
 *Enjoy the ride! Please report any bugs or compatibility issues in the comments.*
