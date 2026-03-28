@@ -2,6 +2,22 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
+NPCPassengers.DebugForceFirstApril = nil
+
+NPCPassengers.IsFirstApril = NPCPassengers.IsFirstApril or function()
+    if NPCPassengers.DebugForceFirstApril ~= nil then
+        return NPCPassengers.DebugForceFirstApril
+    end
+
+    local aprilFoolsCvar = GetConVar("nai_npc_april_fools")
+    if aprilFoolsCvar then
+        return aprilFoolsCvar:GetBool()
+    end
+
+    local dateInfo = os.date("*t")
+    return dateInfo and dateInfo.month == 4 and dateInfo.day == 1
+end
+
 NPCPassengers.Version = NPCPassengers.Version or "2.5.0"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-28"
 
@@ -52,6 +68,7 @@ NPCPassengers.cv_deny_models = CreateConVar("nai_npc_deny_models", "", {FCVAR_AR
 
 -- Optional debug output without full debug mode spam
 NPCPassengers.cv_debug_verbose = CreateConVar("nai_npc_debug_verbose", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Verbose debug messages for passenger attach logic")
+NPCPassengers.cv_april_fools = CreateConVar("nai_npc_april_fools", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable April Fools mode for chaotic UI and passenger behavior")
 
 -- Auto-join settings
 NPCPassengers.cv_auto_join = CreateConVar("nai_npc_auto_join", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Friendly NPCs automatically join vehicles")

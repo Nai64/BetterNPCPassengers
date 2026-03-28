@@ -74,6 +74,103 @@ local function IsAddonEnabled()
     return true
 end
 
+local function IsAprilFoolsActive()
+    if NPCPassengers.IsFirstApril then
+        return NPCPassengers.IsFirstApril()
+    end
+
+    return false
+end
+
+local function ResetAprilFoolsFace(npc)
+    if not IsValid(npc) or not npc.GetFlexNum or not npc.SetFlexWeight then return end
+
+    local flexCount = npc:GetFlexNum() or 0
+    for flexId = 0, flexCount - 1 do
+        npc:SetFlexWeight(flexId, 0)
+    end
+end
+
+local function ApplyAprilFoolsFace(npc, state, curTime)
+    if not IsValid(npc) or not state then return end
+
+    if not IsAprilFoolsActive() then
+        if state.aprilFaceActive then
+            ResetAprilFoolsFace(npc)
+            state.aprilFaceActive = false
+        end
+        return
+    end
+
+    if curTime < (state.nextAprilFaceShuffle or 0) then
+        return
+    end
+
+    state.nextAprilFaceShuffle = curTime + math.Rand(0.14, 0.38)
+    state.aprilFaceActive = true
+    state.aprilHeadJoltYaw = math.Rand(-55, 55)
+    state.aprilHeadJoltPitch = math.Rand(-24, 26)
+    state.aprilEyeJoltYaw = math.Rand(-35, 35)
+    state.aprilEyeJoltPitch = math.Rand(-18, 18)
+    state.aprilBlinkHold = math.Rand(0, 1)
+
+    if not npc.GetFlexNum or not npc.SetFlexWeight then
+        return
+    end
+
+    local flexCount = npc:GetFlexNum() or 0
+    for flexId = 0, flexCount - 1 do
+        local flexName = string.lower(npc:GetFlexName(flexId) or "")
+        local weight = 0
+
+        if flexName ~= "" then
+            if string.find(flexName, "blink", 1, true) then
+                weight = state.aprilBlinkHold
+            elseif string.find(flexName, "smile", 1, true)
+                or string.find(flexName, "frown", 1, true)
+                or string.find(flexName, "mouth", 1, true)
+                or string.find(flexName, "lip", 1, true)
+                or string.find(flexName, "jaw", 1, true)
+                or string.find(flexName, "brow", 1, true)
+                or string.find(flexName, "cheek", 1, true)
+                or string.find(flexName, "nose", 1, true)
+                or string.find(flexName, "sad", 1, true)
+                or string.find(flexName, "anger", 1, true)
+                or string.find(flexName, "sneer", 1, true)
+                or string.find(flexName, "phoneme", 1, true) then
+                weight = math.Rand(0, 1)
+            end
+        end
+
+        npc:SetFlexWeight(flexId, weight)
+    end
+end
+
+local function TriggerAprilPassengerExplosion(npc, vehicle, state, curTime)
+    if not IsValid(npc) or not IsValid(vehicle) or not state then return end
+    if curTime < (state.nextAprilExplodeAt or 0) then return end
+
+    state.nextAprilExplodeAt = curTime + 2.5
+
+    local effectData = EffectData()
+    effectData:SetOrigin(npc:WorldSpaceCenter())
+    effectData:SetScale(1.2)
+    effectData:SetMagnitude(1.4)
+    util.Effect("HelicopterMegaBomb", effectData, true, true)
+    util.Effect("Explosion", effectData, true, true)
+    sound.Play("BaseExplosionEffect.Sound", npc:GetPos(), 85, math.random(95, 110), 0.8)
+    util.ScreenShake(npc:GetPos(), 12, 18, 0.6, 320)
+
+    local dmgInfo = DamageInfo()
+    dmgInfo:SetDamage(math.max(npc:Health(), 1) + 250)
+    dmgInfo:SetDamageType(bit.bor(DMG_BLAST, DMG_ALWAYSGIB))
+    dmgInfo:SetAttacker(vehicle)
+    dmgInfo:SetInflictor(vehicle)
+    dmgInfo:SetDamageForce(vehicle:GetForward() * 9000)
+    dmgInfo:SetDamagePosition(npc:WorldSpaceCenter())
+    npc:TakeDamageInfo(dmgInfo)
+end
+
 local function ParseCSVPatterns(str)
     local out = {}
     if not str or str == "" then return out end
@@ -1136,6 +1233,14 @@ local function InitializeLookState(npcId)
         idleDriftVelYaw     = 0,
         idleDriftVelPitch   = 0,
         nextIdleDriftTime   = ct + math.Rand(3, 7),
+        nextAprilFaceShuffle = ct + math.Rand(0.1, 0.3),
+        aprilHeadJoltYaw = 0,
+        aprilHeadJoltPitch = 0,
+        aprilEyeJoltYaw = 0,
+        aprilEyeJoltPitch = 0,
+        aprilBlinkHold = 0,
+        aprilFaceActive = false,
+        nextAprilExplodeAt = 0,
     }
     return npcLookState[npcId]
 end
@@ -1824,12 +1929,20 @@ local function UpdateNPCHeadLook(npc, pdata)
     -- ── Crash flinch ─────────────────────────────────────────────────────────
     if crashFlinch and IsValid(vehicle) then
         local currentVel = vehicle:GetVelocity():Length()
-        local velChange  = math.abs(currentVel - (state.lastVelocityMagnitude or 0))
+        local previousVel = state.lastVelocityMagnitude or currentVel
+        local impactSpeed = math.max(currentVel, previousVel)
+        local velChange  = math.abs(currentVel - previousVel)
         state.lastVelocityMagnitude = currentVel
         if velChange > crashThreshold and curTime > (state.flinchEndTime or 0) then
             state.flinchEndTime = curTime + math.Rand(1.5, 2.5)
             local finalDamage = math.Clamp((velChange - crashThreshold) / 50, 0, 30) * math.Rand(0.6, 1.4)
-            if currentVel > 500 then finalDamage = finalDamage * math.Rand(1.5, 2.0) end
+            if impactSpeed > 500 then finalDamage = finalDamage * math.Rand(1.5, 2.0) end
+
+            if IsAprilFoolsActive() and impactSpeed > math.max(crashThreshold * 1.6, 650) and velChange > crashThreshold * 0.9 then
+                TriggerAprilPassengerExplosion(npc, vehicle, state, curTime)
+                return
+            end
+
             if finalDamage > 1 then
                 local dmgInfo = DamageInfo()
                 dmgInfo:SetDamage(finalDamage)
@@ -2070,6 +2183,13 @@ local function UpdateNPCHeadLook(npc, pdata)
     local headTargetYaw   = state.targetYaw   + (state.idleDriftYaw   or 0)
     local headTargetPitch = state.targetPitch + (state.idleDriftPitch or 0)
 
+    ApplyAprilFoolsFace(npc, state, CurTime())
+
+    if IsAprilFoolsActive() then
+        headTargetYaw = headTargetYaw + (state.aprilHeadJoltYaw or 0) * 0.35 + math.sin(CurTime() * 7 + npc:EntIndex()) * 9
+        headTargetPitch = headTargetPitch + (state.aprilHeadJoltPitch or 0) * 0.35 + math.cos(CurTime() * 5 + npc:EntIndex()) * 5
+    end
+
     -- Save positions before update so we can clamp how far we actually moved
     local prevYaw   = state.currentYaw
     local prevPitch = state.currentPitch
@@ -2093,6 +2213,11 @@ local function UpdateNPCHeadLook(npc, pdata)
     local eyeClamp        = threatOverride and 20 or 10
     local eyeYawFinal     = math.Clamp(state.eyeTargetYaw,   state.targetYaw   - eyeClamp, state.targetYaw   + eyeClamp)
     local eyePitchFinal   = math.Clamp(state.eyeTargetPitch, state.targetPitch - eyeClamp, state.targetPitch + eyeClamp)
+
+    if IsAprilFoolsActive() then
+        eyeYawFinal = eyeYawFinal + (state.aprilEyeJoltYaw or 0) * 0.4
+        eyePitchFinal = eyePitchFinal + (state.aprilEyeJoltPitch or 0) * 0.4
+    end
 
     state.eyeCurrentYaw,   state.eyeVelocityYaw   = SmoothDamp(state.eyeCurrentYaw,   eyeYawFinal,   state.eyeVelocityYaw,   eyeSmoothTime, dt)
     state.eyeCurrentPitch, state.eyeVelocityPitch = SmoothDamp(state.eyeCurrentPitch, eyePitchFinal, state.eyeVelocityPitch, eyeSmoothTime, dt)
@@ -2123,7 +2248,7 @@ local function UpdateNPCHeadLook(npc, pdata)
         local t = state.blinkProgress
         npc:SetPoseParameter("blink", t < 0.3 and (t / 0.3) or (1 - (t - 0.3) / 0.7))
     else
-        npc:SetPoseParameter("blink", 0)
+        npc:SetPoseParameter("blink", IsAprilFoolsActive() and (state.aprilBlinkHold or 0) or 0)
     end
 
     local aimYawScale = IsValid(state.currentThreat) and 0.42 or 0.08
@@ -2140,6 +2265,7 @@ local function CleanupNPCLookState(npcId)
     -- Reset head/eye pose parameters so the NPC doesn't freeze mid-look after ejection
     local npc = Entity(npcId)
     if IsValid(npc) and npc:IsNPC() then
+        ResetAprilFoolsFace(npc)
         npc:SetPoseParameter("head_yaw", 0)
         npc:SetPoseParameter("head_pitch", 0)
         npc:SetPoseParameter("eyes_yaw", 0)

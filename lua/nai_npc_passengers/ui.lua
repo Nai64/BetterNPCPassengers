@@ -378,6 +378,91 @@ local function DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
     draw.RoundedBox(radius, x, y, w, h, fillColor)
 end
 
+local function IsAprilFoolsActive()
+    if NPCPassengers.IsFirstApril then
+        return NPCPassengers.IsFirstApril()
+    end
+
+    return false
+end
+
+local function GetAprilTripColor(offset, saturation, brightness, alpha)
+    local color = HSVToColor((CurTime() * 80 + (offset or 0)) % 360, saturation or 0.85, brightness or 1)
+    color.a = alpha or 255
+    return color
+end
+
+local function DrawAprilTripOverlay(w, h, alpha)
+    local stripeCount = 14
+    local stripeWidth = math.max(math.floor(w / stripeCount), 1)
+
+    for index = 0, stripeCount do
+        local stripeColor = GetAprilTripColor(index * 30, 0.85, 1, alpha or 34)
+        local drift = math.sin(CurTime() * 3.8 + index * 0.9) * 28
+        surface.SetDrawColor(stripeColor)
+        surface.DrawRect(index * stripeWidth + drift, 0, stripeWidth + 24, h)
+    end
+
+    for lineY = 0, h, 16 do
+        local scanColor = GetAprilTripColor(lineY * 2, 0.65, 1, math.max((alpha or 34) - 6, 10))
+        local driftX = math.cos(CurTime() * 4.5 + lineY * 0.05) * 22
+        surface.SetDrawColor(scanColor)
+        surface.DrawRect(driftX, lineY, w + 32, 3)
+    end
+end
+
+local function DrawAprilGlitchText(text, font, x, y, baseColor, alignX, alignY)
+    local jitterX = math.sin(CurTime() * 9 + x * 0.01) * 4
+    local jitterY = math.cos(CurTime() * 7 + y * 0.02) * 3
+    draw.SimpleText(text, font, x - 2 + jitterX, y + jitterY, GetAprilTripColor(0, 0.95, 1, 180), alignX, alignY)
+    draw.SimpleText(text, font, x + 2 - jitterX, y - jitterY, GetAprilTripColor(160, 0.95, 1, 180), alignX, alignY)
+    draw.SimpleText(text, font, x, y, baseColor, alignX, alignY)
+end
+
+local function RotatePoint(x, y, angleRadians)
+    local angleCos = math.cos(angleRadians)
+    local angleSin = math.sin(angleRadians)
+    return x * angleCos - y * angleSin, x * angleSin + y * angleCos
+end
+
+local function DrawRotatedQuad(cx, cy, halfWidth, halfHeight, angleDegrees, color)
+    local angleRadians = math.rad(angleDegrees)
+    local x1, y1 = RotatePoint(-halfWidth, -halfHeight, angleRadians)
+    local x2, y2 = RotatePoint(halfWidth, -halfHeight, angleRadians)
+    local x3, y3 = RotatePoint(halfWidth, halfHeight, angleRadians)
+    local x4, y4 = RotatePoint(-halfWidth, halfHeight, angleRadians)
+
+    surface.SetDrawColor(color)
+    draw.NoTexture()
+    surface.DrawPoly({
+        { x = cx + x1, y = cy + y1 },
+        { x = cx + x2, y = cy + y2 },
+        { x = cx + x3, y = cy + y3 },
+        { x = cx + x4, y = cy + y4 },
+    })
+end
+
+local function DrawAprilSpinner(cx, cy, radius, speed, colorOffset, alpha)
+    local outerColor = GetAprilTripColor(colorOffset or 0, 0.95, 1, alpha or 180)
+    local innerColor = GetAprilTripColor((colorOffset or 0) + 120, 0.9, 1, math.max((alpha or 180) - 55, 40))
+    local spin = CurTime() * (speed or 360)
+
+    DrawRotatedQuad(cx, cy, radius, radius * 0.38, spin, outerColor)
+    DrawRotatedQuad(cx, cy, radius * 0.82, radius * 0.22, -spin * 1.45, innerColor)
+end
+
+local function DrawRotatingCross(cx, cy, size, angleDegrees, color)
+    local angleRadians = math.rad(angleDegrees)
+    local x1, y1 = RotatePoint(-size, -size, angleRadians)
+    local x2, y2 = RotatePoint(size, size, angleRadians)
+    local x3, y3 = RotatePoint(size, -size, angleRadians)
+    local x4, y4 = RotatePoint(-size, size, angleRadians)
+
+    surface.SetDrawColor(color)
+    surface.DrawLine(cx + x1, cy + y1, cx + x2, cy + y2)
+    surface.DrawLine(cx + x3, cy + y3, cx + x4, cy + y4)
+end
+
 local function DrawMarqueeText(panel, text, font, x, y, color, maxWidth, alignY, padding, speed)
     if not IsValid(panel) or not text or maxWidth <= 0 then
         return
@@ -422,21 +507,23 @@ local function CreateSectionHeader(parent, text)
     header:Dock(TOP)
     header:DockMargin(0, 15, 0, 8)
     header.Paint = function(self, w, h)
+        local accentColor = IsAprilFoolsActive() and GetAprilTripColor(20, 0.9, 1, 220) or Theme.accent
+
         -- Gradient background
         local gradientMat = Material("vgui/gradient-d")
-        surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 80)
+        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 80)
         surface.SetMaterial(gradientMat)
         surface.DrawTexturedRect(0, 0, w, h)
         
         -- Accent line at bottom
-        surface.SetDrawColor(Theme.accent)
+        surface.SetDrawColor(accentColor)
         surface.DrawRect(0, h - 3, w, 3)
         
         -- Glow effect
-        draw.RoundedBox(0, 0, h - 3, w, 3, Theme.glow)
+        draw.RoundedBox(0, 0, h - 3, w, 3, Color(accentColor.r, accentColor.g, accentColor.b, Theme.glow.a or 30))
         
         -- Icon
-        surface.SetDrawColor(Theme.accent)
+        surface.SetDrawColor(accentColor)
         surface.SetMaterial(Material("icon16/star.png"))
         surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
 
@@ -452,16 +539,18 @@ local function CreateSubHeader(parent, text)
     header:Dock(TOP)
     header:DockMargin(5, 12, 5, 6)
     header.Paint = function(self, w, h)
+        local accentColor = IsAprilFoolsActive() and GetAprilTripColor(100, 0.9, 1, 220) or Theme.accent
+
         -- Left accent bar
-        draw.RoundedBox(2, 0, 0, 4, h, Theme.accent)
+        draw.RoundedBox(2, 0, 0, 4, h, accentColor)
         
         -- Bottom gradient line
         local gradientMat = Material("vgui/gradient-r")
-        surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 60)
+        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 60)
         surface.SetMaterial(gradientMat)
         surface.DrawTexturedRect(0, h - 2, w, 2)
 
-        DrawMarqueeText(self, text, "NaiFont_Bold", 12, h/2 - 2, Theme.accent, math.max(w - 18, 0), TEXT_ALIGN_CENTER, 28, 18)
+        DrawMarqueeText(self, text, "NaiFont_Bold", 12, h/2 - 2, accentColor, math.max(w - 18, 0), TEXT_ALIGN_CENTER, 28, 18)
     end
     return header
 end
@@ -772,34 +861,60 @@ local function OpenSettingsPanel()
     settingsFrame:SetDeleteOnClose(true)
     
     settingsFrame.Paint = function(self, w, h)
+        local aprilMode = IsAprilFoolsActive()
+
         -- Outer shadow
         draw.RoundedBox(14, 4, 4, w, h, Color(0, 0, 0, 140))
         
         -- Main background
         draw.RoundedBox(12, 0, 0, w, h, Theme.bg)
+
+        if aprilMode then
+            DrawAprilTripOverlay(w, h, 18)
+            DrawAprilSpinner(78, 25, 20, 340, 35, 150)
+            DrawAprilSpinner(w - 88, 25, 18, 460, 230, 165)
+        end
         
         -- Header gradient
         local gradientMat = Material("vgui/gradient-d")
-        surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 120)
+        local headerAccent = aprilMode and GetAprilTripColor(40, 0.85, 1, 200) or Theme.accentDark
+        surface.SetDrawColor(headerAccent.r, headerAccent.g, headerAccent.b, 120)
         surface.SetMaterial(gradientMat)
         draw.RoundedBoxEx(12, 0, 0, w, 50, Theme.bgDark, true, true, false, false)
         surface.DrawTexturedRect(0, 0, w, 50)
         
         -- Accent line under header
-        surface.SetDrawColor(Theme.accent)
+        local accentLine = aprilMode and GetAprilTripColor(120, 0.9, 1, 255) or Theme.accent
+        surface.SetDrawColor(accentLine)
         surface.DrawRect(0, 50, w, 2)
         
         -- Title text with shadow
-        draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 100), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        local jitterX = aprilMode and math.sin(CurTime() * 8) * 3 or 0
+        local jitterY = aprilMode and math.cos(CurTime() * 10) * 2 or 0
+        local titleColor = aprilMode and GetAprilTripColor(200, 0.85, 1, 255) or Theme.textBright
+        if aprilMode then
+            DrawAprilGlitchText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20 + jitterX, 25 + jitterY, titleColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        else
+            draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21 + jitterX, 26 + jitterY, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20 + jitterX, 25 + jitterY, titleColor, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
         
         -- Version badge
         local versionW = 45
         local versionH = 20
         local versionX = w - versionW - 50
         local versionY = 15
-        draw.RoundedBox(10, versionX, versionY, versionW, versionH, Theme.accentDark)
+        if aprilMode then
+            DrawAprilSpinner(versionX + versionW / 2, versionY + versionH / 2, 18, 620, 290, 190)
+            DrawRotatedQuad(versionX + versionW / 2, versionY + versionH / 2, versionW * 0.6, versionH * 0.55, CurTime() * 250, GetAprilTripColor(280, 0.8, 1, 220))
+        else
+            draw.RoundedBox(10, versionX, versionY, versionW, versionH, Theme.accentDark)
+        end
         draw.SimpleText("v" .. NPCPassengers.Version, "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+
+        if aprilMode then
+            DrawAprilGlitchText("APRIL MODE", "NaiFont_Small", w - 125, 25, GetAprilTripColor(20, 0.95, 1, 255), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
     end
     
     settingsFrame.btnClose:SetVisible(false)
@@ -812,19 +927,31 @@ local function OpenSettingsPanel()
     closeBtn:SetText("")
     closeBtn.hoverAnim = 0
     closeBtn.Paint = function(self, w, h)
+        local aprilMode = IsAprilFoolsActive()
         if self:IsHovered() then
             self.hoverAnim = math.Approach(self.hoverAnim, 1, FrameTime() * 8)
         else
             self.hoverAnim = math.Approach(self.hoverAnim, 0, FrameTime() * 10)
         end
         
-        local col = LerpColor(self.hoverAnim, Theme.bgLight, Theme.error)
+        local baseColor = aprilMode and GetAprilTripColor(330, 0.9, 1, 255) or Theme.bgLight
+        local hoverColor = aprilMode and GetAprilTripColor(40, 0.9, 1, 255) or Theme.error
+        local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
         draw.RoundedBox(6, 0, 0, w, h, col)
+
+        if aprilMode then
+            DrawAprilSpinner(w / 2, h / 2, 11, 920, 70, 125)
+        end
         
         -- X icon
-        surface.SetDrawColor(Theme.textBright)
-        surface.DrawLine(8, 8, w - 8, h - 8)
-        surface.DrawLine(w - 8, 8, 8, h - 8)
+        local iconColor = aprilMode and GetAprilTripColor(120, 0.2, 1, 255) or Theme.textBright
+        if aprilMode then
+            DrawRotatingCross(w / 2, h / 2, 7, CurTime() * 720 + self.hoverAnim * 50, iconColor)
+        else
+            surface.SetDrawColor(iconColor)
+            surface.DrawLine(8, 8, w - 8, h - 8)
+            surface.DrawLine(w - 8, 8, 8, h - 8)
+        end
     end
     closeBtn.DoClick = function()
         settingsFrame:Close()
@@ -874,6 +1001,9 @@ local function OpenSettingsPanel()
     navContainer:SetSize(panelWidth - 20, panelHeight - 68)
     navContainer.Paint = function(self, w, h)
         draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
+        if IsAprilFoolsActive() then
+            DrawAprilTripOverlay(w, h, 14)
+        end
     end
     
     -- Left sidebar for navigation
@@ -882,9 +1012,13 @@ local function OpenSettingsPanel()
     sidebar:SetSize(270, panelHeight - 68)
     sidebar.Paint = function(self, w, h)
         draw.RoundedBoxEx(8, 0, 0, w, h, Theme.bgDark, true, false, true, false)
+        if IsAprilFoolsActive() then
+            DrawAprilTripOverlay(w, h, 16)
+        end
         
         -- Right border with glow
-        surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 80)
+        local accentColor = IsAprilFoolsActive() and GetAprilTripColor(320, 0.85, 1, 140) or Color(Theme.accent.r, Theme.accent.g, Theme.accent.b, 80)
+        surface.SetDrawColor(accentColor)
         surface.DrawRect(w - 2, 0, 2, h)
     end
     StyleScrollbar(sidebar:GetVBar())
@@ -913,6 +1047,7 @@ local function OpenSettingsPanel()
         btn.hasPlayedHoverSound = false
         
         btn.Paint = function(self, w, h)
+            local aprilMode = IsAprilFoolsActive()
             -- Animation states
             if self.isActive then
                 self.activeAnim = math.Approach(self.activeAnim, 1, FrameTime() * 10)
@@ -935,8 +1070,10 @@ local function OpenSettingsPanel()
             
             -- Background
             local bgCol = Theme.bgLight
+            local accentColor = aprilMode and GetAprilTripColor(30 + self:GetY(), 0.9, 1, 255) or Theme.accent
+            local accentHoverColor = aprilMode and GetAprilTripColor(90 + self:GetY(), 0.9, 1, 255) or Theme.accentHover
             if self.activeAnim > 0 then
-                bgCol = LerpColor(self.activeAnim, Theme.bgLight, Theme.accent)
+                bgCol = LerpColor(self.activeAnim, Theme.bgLight, accentColor)
             elseif self.hoverAnim > 0 then
                 bgCol = LerpColor(self.hoverAnim, Theme.bgLight, Theme.bgLighter)
             end
@@ -946,16 +1083,16 @@ local function OpenSettingsPanel()
             -- Active indicator line
             if self.activeAnim > 0 then
                 local lineW = 4
-                draw.RoundedBox(2, 0, 0, lineW, h, Theme.accentHover)
+                draw.RoundedBox(2, 0, 0, lineW, h, accentHoverColor)
                 
                 -- Glow effect
-                surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 60 * self.activeAnim)
+                surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 60 * self.activeAnim)
                 surface.DrawRect(-2, 0, w + 4, h)
             end
             
             -- Hover line
             if self.hoverAnim > 0 and not self.isActive then
-                surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 40 * self.hoverAnim)
+                surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 40 * self.hoverAnim)
                 surface.DrawRect(0, h - 2, w, 2)
             end
             
@@ -1248,7 +1385,14 @@ local function OpenSettingsPanel()
     searchBox:DockMargin(8, 10, 8, 12)
     searchBox:SetTall(42)
     searchBox.Paint = function(self, w, h)
-        DrawRoundedSurface(0, 0, w, h, 10, Theme.bgLight, self:IsHovered() and Theme.accentHover or Theme.border)
+        local borderColor = self:IsHovered() and Theme.accentHover or Theme.border
+        if IsAprilFoolsActive() then
+            borderColor = GetAprilTripColor(200, 0.9, 1, 255)
+        end
+        DrawRoundedSurface(0, 0, w, h, 10, Theme.bgLight, borderColor)
+        if IsAprilFoolsActive() then
+            DrawAprilTripOverlay(w, h, 18)
+        end
     end
     searchBox.PaintOver = function(self, w, h)
         surface.SetDrawColor(Theme.textDim)
@@ -1278,6 +1422,11 @@ local function OpenSettingsPanel()
     searchSuggestions:DockPadding(6, 6, 6, 6)
     searchSuggestions.Paint = function(self, w, h)
         DrawRoundedSurface(0, 0, w, h, 10, Theme.bgLight, Theme.border)
+        if IsAprilFoolsActive() then
+            DrawAprilTripOverlay(w, h, 20)
+            DrawAprilSpinner(24, h / 2, 11, 740, 10, 150)
+            DrawAprilSpinner(w - 24, h / 2, 11, 880, 200, 150)
+        end
     end
     UpdateSearchSuggestionsLayout()
 
@@ -2106,6 +2255,9 @@ local function OpenSettingsPanel()
 
     local _, defaultFontCheckbox = CreateCheckbox(interfacePanel, "Use Default Font Instead of Metropolis", "nai_npc_ui_use_default_font")
     CreateHelpText(interfacePanel, "Switch the UI to Garry's Mod default fonts if you prefer cleaner fallback rendering.")
+
+    CreateCheckbox(interfacePanel, "Enable April Fools Chaos", "nai_npc_april_fools")
+    CreateHelpText(interfacePanel, "Master switch for the LSD UI, cursed face poser, and passenger explosion gag.")
 
     local defaultFontOnChange = defaultFontCheckbox.OnChange
     defaultFontCheckbox.OnChange = function(self, val)
