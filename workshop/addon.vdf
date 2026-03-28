@@ -1,9 +1,0 @@
-"workshopitem"
-{
-    "appid"             "4000"
-    "publishedfileid"   "YOUR_WORKSHOP_ITEM_ID_HERE"
-    "contentfolder"     "CONTENT_PATH_PLACEHOLDER"
-    "visibility"        "0"
-    "title"             "Better NPC Passengers"
-    "changenote"        "Auto-published via GitHub Actions"
-}
