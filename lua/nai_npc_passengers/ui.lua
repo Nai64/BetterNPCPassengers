@@ -2301,6 +2301,34 @@ properties.Add("nai_remove_passenger", {
     end
 })
 
+properties.Add("nai_assign_seat", {
+    MenuLabel = "Assign to Seat...",
+    Order = 1505,
+    MenuIcon = "icon16/car_go.png",
+
+    Filter = function(self, ent, ply)
+        if not GetConVar("nai_npc_context_detach"):GetBool() then return false end
+        if not IsValid(ent) then return false end
+        if not ent:IsNPC() then return false end
+        if not ent:IsNPC() or ent:Health() <= 0 then return false end
+        if not ply:InVehicle() then return false end
+        return true
+    end,
+
+    Action = function(self, ent)
+        local menu = DermaMenu()
+        for i = 1, 8 do
+            menu:AddOption("Seat " .. i, function()
+                net.Start("NPCPassengers_AssignSeat")
+                    net.WriteEntity(ent)
+                    net.WriteUInt(i, 8)
+                net.SendToServer()
+            end)
+        end
+        menu:Open()
+    end
+})
+
 -- F7 hotkey
 hook.Add("PlayerButtonDown", "NPCPassengersQuickMenu", function(ply, button)
     if button == KEY_F7 and IsFirstTimePredicted() then

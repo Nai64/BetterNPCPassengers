@@ -231,6 +231,7 @@ util.AddNetworkString("NPCPassengers_EjectPrompt")
 util.AddNetworkString("NPCPassengers_EjectDead")
 util.AddNetworkString("NPCPassengers_MakeDriver")
 util.AddNetworkString("NPCPassengers_ClientCue")
+util.AddNetworkString("NPCPassengers_AssignSeat")
 
 -- Debug test receiver (simplified - body sway is now client-side)
 net.Receive("NPCPassengers_DebugTest", function(len, ply)
@@ -818,10 +819,14 @@ local function CalculatePassengerPosition(vehicle, npc)
     for _, seat in ipairs(seats) do
         if not IsValid(seat:GetDriver()) then
             local isOccupied = false
-            for _, data in pairs(friendlyPassengers) do
-                if data.seat == seat then 
-                    isOccupied = true 
-                    break 
+            for npc, data in pairs(friendlyPassengers) do
+                if data.seat == seat then
+                    -- Don't count dead passengers as occupying a seat
+                    -- (matches GetAvailableSeatCount logic — prevents false "cannot attach" errors)
+                    if not IsValid(npc) or npc:Health() > 0 then
+                        isOccupied = true
+                        break
+                    end
                 end
             end
             
@@ -1544,8 +1549,11 @@ local function UpdateNPCHeadLook(npc, pdata)
     -- ── Head movement: SmoothDamp with angular speed cap ─────────────────────
     -- Without a speed cap, SmoothDamp starts at ~200 deg/s for large angle
     -- differences and decelerates — this is the main source of creepy fast snaps.
-    local maxHeadSpeed    = threatOverride and 120 or 60  -- deg/s
+    local maxHeadSpeed    = threatOverride and 90 or 30  -- deg/s
     local maxDeltaPerTick = maxHeadSpeed * dt
+
+    -- Minimum smooth time so head never snaps even at low headSmoothTime settings
+    headSmoothTime = math.max(headSmoothTime, 0.8)
 
     local headTargetYaw   = state.targetYaw   + (state.idleDriftYaw   or 0)
     local headTargetPitch = state.targetPitch + (state.idleDriftPitch or 0)
@@ -1591,14 +1599,13 @@ local function UpdateNPCHeadLook(npc, pdata)
 
     -- ── Drowsy eye close / wake open (smooth transition) ─────────────────────
     if state.isDrowsy then
-        state.drowsyEye = math.min(1, (state.drowsyEye or 0) + dt * 0.35)
+        state.drowsyEye = math.min(1, (state.drowsyEye or 0) + dt * 0.7)
     else
         state.drowsyEye = math.max(0, (state.drowsyEye or 0) - dt * 0.8)
     end
     if (state.drowsyEye or 0) > 0.02 then
         local e = state.drowsyEye
-        npc:SetPoseParameter("blink",          e * 10)
-        npc:SetPoseParameter("eyes_updown",    e * 20)
+        npc:SetPoseParameter("blink",          e)
         npc:SetPoseParameter("eyes_rightleft", 0)
     elseif state.isBlinking then
         local t = state.blinkProgress
@@ -1709,8 +1716,10 @@ StartAnimationEnforcement = function(npc)
                 npc:RemoveAllGestures()
             end
             
+            -- Use SetSequence (not ResetSequence) to avoid zeroing all pose parameters
+            -- (head_yaw, head_pitch, blink, etc.) which causes visible jitter every 50ms.
             if npc:GetSequence() ~= sitSeq then
-                npc:ResetSequence(sitSeq)
+                npc:SetSequence(sitSeq)
             end
             
             npc:SetCycle(0.5)
@@ -2015,9 +2024,10 @@ DetachNPC = function(npc)
     if not IsValid(npc) or not friendlyPassengers[npc] then return false end
     
     local data = friendlyPassengers[npc]
+    local isDead = npc:Health() <= 0
     
-    -- Exit sound (before detaching while NPC is still valid)
-    if NPCPassengers.cv_speech_enabled:GetBool() and NPCPassengers.cv_speech_board_enabled:GetBool() then
+    -- Exit sound (skip for dead NPCs)
+    if not isDead and NPCPassengers.cv_speech_enabled:GetBool() and NPCPassengers.cv_speech_board_enabled:GetBool() then
         local model = npc:GetModel() or ""
         local isFemale = string.find(model, "female") or string.find(model, "alyx") or string.find(model, "mossman")
         local exitSounds = isFemale and {
@@ -2056,6 +2066,23 @@ DetachNPC = function(npc)
     CleanupNPCLookState(data.npcId)
     
     SetNoTalkFlag(npc, false)
+    
+    -- Dead NPCs: unparent, clear state, then remove the corpse
+    if isDead then
+        npc:SetParent(nil)
+        npc:SetCollisionGroup(data.originalCollision or COLLISION_GROUP_NPC)
+        npc:SetNotSolid(false)
+        npc:SetNoDraw(false)
+        npc:SetRenderMode(RENDERMODE_NORMAL)
+        npc:DrawShadow(true)
+        npc:SetColor(Color(255, 255, 255, 255))
+        npc:SetNWBool("NPCPassengerHidden", false)
+        npc:SetNWBool("IsNPCPassenger", false)
+        friendlyPassengers[npc] = nil
+        SafeRemoveEntity(npc)
+        return true
+    end
+    
     EnableNPCAI(npc, data.relationships)
     
     if npc:GetParent() then
@@ -2636,14 +2663,8 @@ end)
 hook.Add("EntityTakeDamage", "NPCPassengerDeathHandler", function(target, dmginfo)
     if not IsAddonEnabled() then return end
     if friendlyPassengers[target] then
-        -- Don't detach on crash damage - passengers should stay seated!
-        local dmgType = dmginfo:GetDamageType()
-        local isCrashDamage = bit.band(dmgType, DMG_CRUSH) > 0 or bit.band(dmgType, DMG_VEHICLE) > 0
-        
-        -- Only detach if they're actually dying, not from crash damage
-        if not isCrashDamage and target:Health() - dmginfo:GetDamage() <= 0 then
-            DetachNPC(target)
-        end
+        -- Passengers stay seated when they die — the player can eject corpses manually
+        -- via right-click "Remove Passenger" or the nai_passengers_eject_dead command.
         return
     end
     
@@ -2857,9 +2878,14 @@ net.Receive("NPCPassengers_RemovePassenger", function(len, ply)
     
     if friendlyPassengers[ent] then
         local vehicle = friendlyPassengers[ent].vehicle
+        local wasDead = ent:Health() <= 0
         DetachNPC(ent)
         local remaining = IsValid(vehicle) and GetPassengerCount(vehicle) or 0
-        ply:ChatPrint("Passenger removed! (" .. remaining .. " remaining)")
+        if wasDead then
+            ply:ChatPrint("Dead passenger removed! (" .. remaining .. " remaining)")
+        else
+            ply:ChatPrint("Passenger removed! (" .. remaining .. " remaining)")
+        end
     elseif pendingPassengers[ply] then
         local found = false
         for i, npc in ipairs(pendingPassengers[ply]) do
@@ -2878,6 +2904,107 @@ net.Receive("NPCPassengers_RemovePassenger", function(len, ply)
     else
         ply:ChatPrint("This NPC is not a passenger!")
     end
+end)
+
+-- Assign NPC to a specific seat index in the player's vehicle
+net.Receive("NPCPassengers_AssignSeat", function(len, ply)
+    if not IsAddonEnabled() then return end
+    local npc = net.ReadEntity()
+    local seatIndex = net.ReadUInt(8)
+
+    if not IsValid(npc) or not IsValid(ply) then return end
+    if not npc:IsNPC() then return end
+    if npc:Health() <= 0 then ply:ChatPrint("Cannot assign a dead NPC to a seat!") return end
+    if friendlyPassengers[npc] then ply:ChatPrint("NPC is already a passenger!") return end
+
+    if not ply:InVehicle() then ply:ChatPrint("You must be in a vehicle to assign seats.") return end
+    local rootVehicle = GetRootVehicle(ply:GetVehicle())
+    if not IsValid(rootVehicle) then return end
+    if not IsVehicleAllowedByFilters(rootVehicle) then ply:ChatPrint("This vehicle type is blocked by filter settings.") return end
+
+    local seats = CollectVehicleSeats(rootVehicle)
+    -- Build list of available (unoccupied, no player driver) seats in order
+    local available = {}
+    for _, seat in ipairs(seats) do
+        if not IsValid(seat:GetDriver()) then
+            local occupied = false
+            for existingNpc, data in pairs(friendlyPassengers) do
+                if data.seat == seat and (not IsValid(existingNpc) or existingNpc:Health() > 0) then
+                    occupied = true; break
+                end
+            end
+            if not occupied then
+                available[#available + 1] = seat
+            end
+        end
+    end
+
+    if #available == 0 then ply:ChatPrint("No available seats in this vehicle!") return end
+    seatIndex = math.Clamp(seatIndex, 1, #available)
+    local targetSeat = available[seatIndex]
+
+    -- Attach NPC directly to the chosen seat
+    local npcPos = targetSeat:GetPos()
+    local npcAng = targetSeat:GetAngles()
+    local vehicleType = GetVehicleType(rootVehicle)
+    local originalCollision = npc:GetCollisionGroup()
+    if originalCollision == COLLISION_GROUP_IN_VEHICLE then originalCollision = COLLISION_GROUP_NPC end
+
+    npc:SetParent(targetSeat)
+    local vehOffsets = GetVehicleOffsets(vehicleType)
+    npc:SetLocalPos(targetSeat:WorldToLocal(npcPos) + Vector(
+        vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
+        vehOffsets.right   + NPCPassengers.cv_right_offset:GetFloat(),
+        vehOffsets.height  + NPCPassengers.cv_height_offset:GetFloat()
+    ))
+    npc:SetLocalAngles(targetSeat:WorldToLocalAngles(npcAng) + Angle(
+        vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
+        vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
+        vehOffsets.roll  + NPCPassengers.cv_roll_offset:GetFloat()
+    ))
+    npc:SetCollisionGroup(COLLISION_GROUP_IN_VEHICLE)
+    npc:SetMoveType(MOVETYPE_NONE)
+    npc:SetSolid(SOLID_NONE)
+    npc:SetNotSolid(true)
+
+    local isEnclosed = NPCPassengers.cv_hide_in_tanks:GetBool() and IsEnclosedVehicle(rootVehicle)
+    if isEnclosed then
+        npc:SetNoDraw(true); npc:SetRenderMode(RENDERMODE_NONE); npc:DrawShadow(false)
+        npc:SetColor(Color(255, 255, 255, 0)); npc:SetNWBool("NPCPassengerHidden", true)
+    end
+
+    if npc.PhysicsDestroy then npc:PhysicsDestroy() end
+    local phys = npc:GetPhysicsObject()
+    if IsValid(phys) then phys:EnableCollisions(false); phys:Sleep() end
+
+    npc:SetNPCState(NPC_STATE_IDLE)
+    SetNoTalkFlag(npc, true)
+    local relationships = DisableNPCAI(npc)
+    ForceSitAnimation(npc)
+    StartAnimationEnforcement(npc)
+    npc:SetNWBool("IsNPCPassenger", true)
+
+    friendlyPassengers[npc] = {
+        vehicle       = rootVehicle,
+        seat          = targetSeat,
+        npcId         = npc:EntIndex(),
+        originalCollision = originalCollision,
+        settings      = nil,
+        lastAngleCheck = CurTime(),
+        capabilities  = npc:CapabilitiesGet(),
+        relationships = relationships,
+        baseLocalPos  = targetSeat:WorldToLocal(npcPos),
+        baseLocalAng  = targetSeat:WorldToLocalAngles(npcAng),
+        vehicleType   = vehicleType,
+        lastVelocity  = Vector(0, 0, 0),
+        lastHurtSound = 0,
+        lastIdleChatter = CurTime() + 10,
+        isHidden      = isEnclosed,
+    }
+
+    vehicleCooldowns[rootVehicle:EntIndex()] = CurTime()
+    RegisterBoardSuccess(npc)
+    ply:ChatPrint("NPC assigned to seat " .. seatIndex .. "!")
 end)
 
 -- Make NPC driver via context menu

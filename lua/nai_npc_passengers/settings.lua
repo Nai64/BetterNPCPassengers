@@ -2,8 +2,8 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.4.3"
-NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-10"
+NPCPassengers.Version = NPCPassengers.Version or "2.4.4"
+NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-07-04"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
     local cv = GetConVar(name)
