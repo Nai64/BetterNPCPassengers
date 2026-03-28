@@ -460,7 +460,7 @@ local function CreateCheckbox(parent, label, convar)
         draw.RoundedBox(5, 0, 0, w, h, col)
         
         if isChecked then
-            draw.SimpleText("✓", "NaiFont_Bold", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            draw.SimpleText("v", "NaiFont_Bold", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
         
         -- Border
@@ -572,7 +572,7 @@ local function CreateComboBox(parent, label, convar, options)
         draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
         surface.SetDrawColor(Theme.border)
         surface.DrawOutlinedRect(0, 0, w, h, 1)
-        draw.SimpleText("▼", "NaiFont_Small", w - 15, h/2, Theme.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("v", "NaiFont_Small", w - 15, h/2, Theme.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     
     for _, opt in ipairs(options) do
@@ -1731,7 +1731,7 @@ local function OpenSettingsPanel()
         
         local y = 45
         for _, line in ipairs(infoLines) do
-            draw.SimpleText("• " .. line, "NaiFont_Small", 20, y, Theme.textDim)
+            draw.SimpleText("- " .. line, "NaiFont_Small", 20, y, Theme.textDim)
             y = y + 16
         end
     end
@@ -1825,7 +1825,7 @@ local function OpenSettingsPanel()
             draw.SimpleText(question, "NaiFont_Bold", 40, h/2, Theme.text, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             
             -- Arrow indicator
-            local arrow = isExpanded and "▼" or "▶"
+            local arrow = isExpanded and "v" or ">" 
             draw.SimpleText(arrow, "NaiFont_Normal", w - 15, h/2, Theme.accent, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
         
@@ -2325,7 +2325,7 @@ function ShowWelcomePanel(forceShow)
     closeBtn.Paint = function(self, w, h)
         local col = Theme.textDim
         if self:IsHovered() then col = Theme.error end
-        draw.SimpleText("✕", "NaiFont_Large", w/2, h/2, col, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText("X", "NaiFont_Large", w/2, h/2, col, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     closeBtn.DoClick = function()
         frame:Close()
@@ -2452,7 +2452,7 @@ function ShowWelcomePanel(forceShow)
         draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
         if self:GetChecked() then
             draw.RoundedBox(3, 3, 3, w - 6, h - 6, Theme.accent)
-            draw.SimpleText("✓", "NaiFont_Normal", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            draw.SimpleText("v", "NaiFont_Normal", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
         surface.SetDrawColor(Theme.border)
         surface.DrawOutlinedRect(0, 0, w, h, 1)
@@ -2635,11 +2635,11 @@ local function DrawStatusIcon(x, y, size, status, progress)
         draw.RoundedBox(size / 2, x + shakeX, y + shakeY, size, size, color)
         
         local symbols = {
-            calm = "●",
+            calm = "*",
             alert = "!",
-            scared = "⚠",
+            scared = "!!",
             drowsy = "Z",
-            dead = "✕",
+            dead = "X",
             default = "?"
         }
         
@@ -2793,7 +2793,7 @@ hook.Add("HUDPaint", "NPCPassengers_EjectPrompt", function()
     surface.DrawOutlinedRect(boxX - 1, boxY - 1, textWidth + 2, textHeight + 2, 2)
     
     -- Skull icon
-    draw.SimpleText("💀", "DermaLarge", centerX, boxY + 20, Color(255, 255, 255), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    draw.SimpleText("[DEAD]", "NaiFont_Bold", centerX, boxY + 20, Color(255, 100, 100), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     
     -- Text
     local deadText = ejectPromptData.count .. " Dead Passenger" .. (ejectPromptData.count > 1 and "s" or "")
@@ -3107,7 +3107,7 @@ hook.Add("HUDPaint", "NPCPassengers_DriverDebug", function()
         local vehVel = vehicle:GetVelocity()
         local speed = math.Round(vehVel:Length())
         
-        draw.SimpleText("🚗 NPC Driver", "DermaDefault", screenPos.x, screenPos.y - 40, Color(100, 200, 255), TEXT_ALIGN_CENTER)
+        draw.SimpleText("NPC Driver", "DermaDefault", screenPos.x, screenPos.y - 40, Color(100, 200, 255), TEXT_ALIGN_CENTER)
         draw.SimpleText("Speed: " .. speed .. " u/s", "DermaDefault", screenPos.x, screenPos.y - 25, Color(255, 255, 255), TEXT_ALIGN_CENTER)
         draw.SimpleText("NPC: " .. npc:GetClass(), "DermaDefault", screenPos.x, screenPos.y - 10, Color(200, 200, 200), TEXT_ALIGN_CENTER)
     end

@@ -3505,7 +3505,7 @@ net.Receive("NPCPassengers_EjectDead", function(len, ply)
         end
         
         ply:EmitSound("buttons/button14.wav", 70, 100)
-        ply:ChatPrint("✓ Removed " .. #deadPassengers .. " dead passenger" .. (#deadPassengers > 1 and "s" or "") .. " from vehicle")
+        ply:ChatPrint("Removed " .. #deadPassengers .. " dead passenger" .. (#deadPassengers > 1 and "s" or "") .. " from vehicle")
     end
     
     ply.NPCDeadPassengerVehicle = nil
