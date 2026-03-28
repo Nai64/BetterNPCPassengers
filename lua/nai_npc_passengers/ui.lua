@@ -1130,6 +1130,18 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(speechPanel, "Combat Alertness", "nai_npc_combat_alert")
     CreateHelpText(speechPanel, "NPCs become tense and reactive when enemies are near.")
+
+    CreateCheckbox(speechPanel, "Armed Passengers Open Fire", "nai_npc_passenger_combat")
+    CreateHelpText(speechPanel, "Armed passengers aim at hostile NPCs and fire while staying seated.")
+
+    CreateSlider(speechPanel, "Passenger Combat Range", "nai_npc_passenger_combat_range", 500, 5000, 0)
+    CreateHelpText(speechPanel, "How far armed passengers can acquire targets.")
+
+    CreateSlider(speechPanel, "Passenger Accuracy", "nai_npc_passenger_combat_accuracy", 0.1, 1, 2)
+    CreateHelpText(speechPanel, "Higher values tighten shot spread for armed passengers.")
+
+    CreateSlider(speechPanel, "Passenger Damage Multiplier", "nai_npc_passenger_combat_damage", 0.25, 3, 2)
+    CreateHelpText(speechPanel, "Scales the damage dealt by passenger-fired shots.")
     
     CreateCheckbox(speechPanel, "Passenger Interaction", "nai_npc_passenger_interaction")
     CreateHelpText(speechPanel, "Multiple passengers look at and occasionally chat with each other.")

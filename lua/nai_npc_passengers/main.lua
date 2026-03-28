@@ -16,6 +16,7 @@ local addonWasEnabled = true
 local PASSENGER_ANIM_INTERVAL = 0.05
 local PASSENGER_MAINTENANCE_INTERVAL = 0.35
 local PASSENGER_HEADLOOK_INTERVAL = 0.05
+local PASSENGER_COMBAT_INTERVAL = 0.12
 local PASSENGER_TRANSFORM_SYNC_INTERVAL = 0.1
 
 NPCPassengers.LVSCompatResolvers = NPCPassengers.LVSCompatResolvers or {}
@@ -24,6 +25,15 @@ NPCPassengers.LVSCompatResolvers = NPCPassengers.LVSCompatResolvers or {}
 local StartAnimationEnforcement
 local DetachNPC
 local ResetPassengerState
+
+function NPCPassengers.IsPassenger(ent)
+    return IsValid(ent) and friendlyPassengers[ent] ~= nil
+end
+
+function NPCPassengers.GetPassengerData(ent)
+    if not IsValid(ent) then return nil end
+    return friendlyPassengers[ent]
+end
 
 local function IsDebugModeEnabled()
     if NPCPassengers.GetConVarBool then
@@ -148,6 +158,82 @@ local function RegisterBoardFailure(npc)
     npcBoardRetryState[npcId] = state
     return false
 end
+
+local hostileThreatClasses = {
+    ["npc_antlion"] = true,
+    ["npc_antlion_worker"] = true,
+    ["npc_antlionguard"] = true,
+    ["npc_clawscanner"] = true,
+    ["npc_combine_s"] = true,
+    ["npc_combinedropship"] = true,
+    ["npc_combinegunship"] = true,
+    ["npc_cscanner"] = true,
+    ["npc_fastzombie"] = true,
+    ["npc_headcrab"] = true,
+    ["npc_headcrab_black"] = true,
+    ["npc_headcrab_fast"] = true,
+    ["npc_headcrab_poison"] = true,
+    ["npc_helicopter"] = true,
+    ["npc_hunter"] = true,
+    ["npc_manhack"] = true,
+    ["npc_metropolice"] = true,
+    ["npc_poisonzombie"] = true,
+    ["npc_rollermine"] = true,
+    ["npc_strider"] = true,
+    ["npc_stalker"] = true,
+    ["npc_turret_ceiling"] = true,
+    ["npc_turret_floor"] = true,
+    ["npc_zombie"] = true,
+    ["npc_zombine"] = true,
+}
+
+local passengerWeaponProfiles = {
+    pistol = {
+        sound = "Weapon_Pistol.Single",
+        damage = 8,
+        delay = 0.28,
+        spread = 0.05,
+        bullets = 1,
+        tracer = 1,
+        gesture = ACT_GESTURE_RANGE_ATTACK_PISTOL,
+    },
+    smg1 = {
+        sound = "Weapon_SMG1.Single",
+        damage = 5,
+        delay = 0.10,
+        spread = 0.07,
+        bullets = 1,
+        tracer = 1,
+        gesture = ACT_GESTURE_RANGE_ATTACK_SMG1,
+    },
+    ar2 = {
+        sound = "Weapon_AR2.Single",
+        damage = 7,
+        delay = 0.14,
+        spread = 0.045,
+        bullets = 1,
+        tracer = 1,
+        gesture = ACT_GESTURE_RANGE_ATTACK_AR2,
+    },
+    shotgun = {
+        sound = "Weapon_Shotgun.Single",
+        damage = 5,
+        delay = 0.90,
+        spread = 0.12,
+        bullets = 6,
+        tracer = 0,
+        gesture = ACT_GESTURE_RANGE_ATTACK_SHOTGUN,
+    },
+    magnum = {
+        sound = "Weapon_357.Single",
+        damage = 18,
+        delay = 0.75,
+        spread = 0.02,
+        bullets = 1,
+        tracer = 1,
+        gesture = ACT_GESTURE_RANGE_ATTACK_PISTOL,
+    },
+}
 
 function NPCPassengers.RegisterLVSSeatResolver(pattern, resolverFn)
     if not pattern or pattern == "" or not isfunction(resolverFn) then return false end
@@ -1189,6 +1275,66 @@ local function FindNearestThreat(npc, vehicle, range)
     return nearestThreat
 end
 
+    local function IsCombatTargetHostile(npc, ent)
+        if not IsValid(npc) or not IsValid(ent) or ent == npc then return false end
+        if NPCPassengers.IsPassenger(ent) then return false end
+
+        if ent:IsNPC() then
+            if ent:Health() <= 0 then return false end
+            local disp = npc:Disposition(ent)
+            if disp == D_HT or disp == D_FR then
+                return true
+            end
+        elseif ent:IsNextBot() then
+            if ent.Health and ent:Health() <= 0 then return false end
+        else
+            return false
+        end
+
+        return hostileThreatClasses[string.lower(ent:GetClass() or "")] == true
+    end
+
+    local function HasPassengerLineOfSight(npc, vehicle, target, startPos, endPos)
+        local filter = {npc, vehicle}
+
+        if IsValid(vehicle) then
+            for _, child in ipairs(vehicle:GetChildren()) do
+                filter[#filter + 1] = child
+            end
+        end
+
+        local tr = util.TraceLine({
+            start = startPos,
+            endpos = endPos,
+            filter = filter,
+            mask = MASK_SHOT,
+        })
+
+        return tr.Entity == target or not tr.Hit
+    end
+
+    local function FindNearestCombatTarget(npc, vehicle, range)
+        if not IsValid(npc) or not IsValid(vehicle) then return nil end
+
+        local startPos = npc:EyePos()
+        local nearestTarget = nil
+        local nearestDist = range * range
+
+        for _, ent in ipairs(ents.FindInSphere(startPos, range)) do
+            if IsCombatTargetHostile(npc, ent) then
+                local targetPos = ent.WorldSpaceCenter and ent:WorldSpaceCenter() or (ent:GetPos() + Vector(0, 0, 40))
+                local dist = startPos:DistToSqr(targetPos)
+
+                if dist < nearestDist and HasPassengerLineOfSight(npc, vehicle, ent, startPos, targetPos) then
+                    nearestDist = dist
+                    nearestTarget = ent
+                end
+            end
+        end
+
+        return nearestTarget
+    end
+
 -- Find another passenger in the same vehicle for interaction
 local function FindPassengerToInteract(npc, vehicle, friendlyPassengers)
     local candidates = {}
@@ -1274,6 +1420,151 @@ local function CalculateLookAngles(npc, targetPos)
     
     return relativeYaw, relativePitch
 end
+
+    local function ResolvePassengerWeaponProfile(npc)
+        if not IsValid(npc) then return nil end
+
+        local equipment = ""
+        if npc.GetKeyValues then
+            local ok, keyValues = pcall(npc.GetKeyValues, npc)
+            if ok and istable(keyValues) then
+                equipment = string.lower(tostring(keyValues.additionalequipment or ""))
+            end
+        end
+
+        local className = string.lower(npc:GetClass() or "")
+        if equipment == "" then
+            if className == "npc_combine_s" then
+                equipment = "weapon_ar2"
+            elseif className == "npc_metropolice" or className == "npc_barney" or className == "npc_alyx" then
+                equipment = "weapon_pistol"
+            end
+        end
+
+        if equipment == "" or equipment == "none" then
+            return nil
+        end
+
+        if string.find(equipment, "shotgun", 1, true) then
+            return passengerWeaponProfiles.shotgun
+        elseif string.find(equipment, "ar2", 1, true) then
+            return passengerWeaponProfiles.ar2
+        elseif string.find(equipment, "smg", 1, true) then
+            return passengerWeaponProfiles.smg1
+        elseif string.find(equipment, "357", 1, true) or string.find(equipment, "magnum", 1, true) then
+            return passengerWeaponProfiles.magnum
+        elseif string.find(equipment, "pistol", 1, true) then
+            return passengerWeaponProfiles.pistol
+        end
+
+        return nil
+    end
+
+    local function GetPassengerCombatOrigin(npc)
+        local attachmentNames = {
+            "anim_attachment_RH",
+            "anim_attachment_LH",
+            "muzzle",
+            "eyes",
+        }
+
+        for _, attachmentName in ipairs(attachmentNames) do
+            local attachmentId = npc:LookupAttachment(attachmentName)
+            if attachmentId and attachmentId > 0 then
+                local attachment = npc:GetAttachment(attachmentId)
+                if attachment and attachment.Pos then
+                    return attachment.Pos
+                end
+            end
+        end
+
+        return npc:EyePos()
+    end
+
+    local function PlayPassengerFireGesture(npc, weaponProfile)
+        if not IsValid(npc) or not weaponProfile or not weaponProfile.gesture then return end
+
+        npc:AddGesture(weaponProfile.gesture, true)
+        MarkGesturePlaying(npc, math.max(weaponProfile.delay or 0.15, 0.15))
+    end
+
+    local function UpdatePassengerCombat(npc, pdata)
+        if not IsValid(npc) or not pdata or not IsValid(pdata.vehicle) then return end
+        if not NPCPassengers.cv_passenger_combat:GetBool() then return end
+        if pdata.isHidden then return end
+        if NPCPassengers.IsTurretNPC and NPCPassengers.IsTurretNPC(npc) then return end
+        if NPCPassengers.DriverNPCs and NPCPassengers.DriverNPCs[npc:EntIndex()] then return end
+
+        local curTime = CurTime()
+
+        if not pdata.weaponProfileResolved then
+            pdata.weaponProfile = ResolvePassengerWeaponProfile(npc)
+            pdata.weaponProfileResolved = true
+        end
+
+        local weaponProfile = pdata.weaponProfile
+        if not weaponProfile then return end
+        if curTime < (pdata.nextCombatAt or 0) then return end
+
+        local targetRange = NPCPassengers.cv_passenger_combat_range:GetFloat()
+        local target = pdata.combatTarget
+
+        if curTime >= (pdata.nextCombatTargetRefresh or 0) or not IsValid(target) then
+            target = FindNearestCombatTarget(npc, pdata.vehicle, targetRange)
+            pdata.combatTarget = target
+            pdata.nextCombatTargetRefresh = curTime + 0.3
+        end
+
+        if not IsValid(target) then return end
+
+        local targetPos = target.WorldSpaceCenter and target:WorldSpaceCenter() or (target:GetPos() + Vector(0, 0, 40))
+        local relativeYaw, relativePitch = CalculateLookAngles(npc, targetPos)
+
+        if math.abs(relativeYaw) > 85 or relativePitch < -30 or relativePitch > 35 then
+            pdata.nextCombatAt = curTime + 0.1
+            return
+        end
+
+        local origin = GetPassengerCombatOrigin(npc)
+        if not HasPassengerLineOfSight(npc, pdata.vehicle, target, origin, targetPos) then
+            pdata.nextCombatAt = curTime + 0.1
+            return
+        end
+
+        local direction = (targetPos - origin):GetNormalized()
+        local accuracy = math.Clamp(NPCPassengers.cv_passenger_combat_accuracy:GetFloat(), 0.05, 1)
+        local spreadScale = math.max(0.15, 1.05 - accuracy)
+        local damageScale = math.max(0.1, NPCPassengers.cv_passenger_combat_damage:GetFloat())
+
+        npc:FireBullets({
+            Attacker = npc,
+            Damage = weaponProfile.damage * damageScale,
+            Dir = direction,
+            Force = weaponProfile.damage * damageScale,
+            Num = weaponProfile.bullets,
+            Spread = Vector(weaponProfile.spread * spreadScale, weaponProfile.spread * spreadScale, 0),
+            Src = origin,
+            Tracer = weaponProfile.tracer,
+        })
+
+        npc:EmitSound(weaponProfile.sound, 75, math.random(98, 102))
+        if npc.MuzzleFlash then
+            npc:MuzzleFlash()
+        end
+        PlayPassengerFireGesture(npc, weaponProfile)
+
+        local state = npcLookState[npc:EntIndex()]
+        if state then
+            state.currentThreat = target
+            state.threatLockTime = curTime + 0.75
+            state.isAlerted = true
+            state.alertLevel = math.max(state.alertLevel or 0, 0.6)
+            state.calmTime = 0
+            state.isDrowsy = false
+        end
+
+        pdata.nextCombatAt = curTime + (weaponProfile.delay or 0.2)
+    end
 
 local function UpdateNPCHeadLook(npc, pdata)
     if not IsValid(npc) then return end
@@ -1725,6 +2016,11 @@ StartAnimationEnforcement = function(npc)
             npc:SetCycle(0.5)
             npc:SetPlaybackRate(0)
         end
+
+        if curTime >= (pdata.nextCombatThinkAt or 0) then
+            UpdatePassengerCombat(npc, pdata)
+            pdata.nextCombatThinkAt = curTime + PASSENGER_COMBAT_INTERVAL
+        end
         
         -- Head/eye looking behavior (can be disabled in settings)
         if NPCPassengers.cv_head_look:GetBool() and curTime >= (pdata.nextHeadLookAt or 0) then
@@ -1967,8 +2263,6 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     vehicleCooldowns[vehicleId] = CurTime()
     RegisterBoardSuccess(npc)
     
-    -- DISABLED: Register NPC as turret gunner for LVS vehicles
-    --[[ LVS TURRET DISABLED
     if vehicleType == VEHICLE_TYPE_LVS and NPCPassengers.RegisterTurretNPC then
         timer.Simple(0.1, function()
             if IsValid(npc) and friendlyPassengers[npc] then
@@ -1976,7 +2270,6 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
             end
         end)
     end
-    --]]
     
     -- Register NPC as driver if in driver seat
     if NPCPassengers.RegisterDriverNPC then

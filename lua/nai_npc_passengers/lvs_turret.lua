@@ -760,8 +760,22 @@ end
     Register an NPC as a turret gunner
 ]]
 function NPCPassengers.RegisterTurretNPC(npc, passengerData)
-    -- DISABLED: LVS turret control temporarily disabled
-    return false
+    if not NPCPassengers.cv_turret_enabled:GetBool() then return false end
+    if not IsValid(npc) or not passengerData then return false end
+    if activeGunners[npc] then return true end
+    if NPCPassengers.DriverNPCs and NPCPassengers.DriverNPCs[npc:EntIndex()] then return false end
+
+    local seat = passengerData.seat
+    if not IsValid(seat) then return false end
+    if seat.lvsGetPodIndex and seat:lvsGetPodIndex() == 1 then
+        return false
+    end
+
+    local controller = CreateTurretController(npc, passengerData)
+    if not controller then return false end
+
+    activeGunners[npc] = controller
+    return true
 end
 
 --[[
@@ -795,9 +809,6 @@ end
 local lastThinkTime = CurTime()
 
 hook.Add("Think", "NPCPassengerTurretThink", function()
-    -- DISABLED: LVS turret control temporarily disabled
-    return
-    --[[ LVS TURRET DISABLED
     if not NPCPassengers.cv_turret_enabled:GetBool() then return end
     
     local curTime = CurTime()
@@ -817,7 +828,6 @@ hook.Add("Think", "NPCPassengerTurretThink", function()
     for _, npc in ipairs(toRemove) do
         NPCPassengers.UnregisterTurretNPC(npc)
     end
-    --]]
 end)
 
 -- Cleanup when NPC dies
