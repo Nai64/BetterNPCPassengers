@@ -3548,6 +3548,20 @@ net.Receive("NPCPassengers_RemovePassenger", function(len, ply)
     end
 end)
 
+local function IsSeatOccupiedByOtherPassenger(seat, ignoredNPC)
+    if not IsValid(seat) then return false end
+
+    for existingNpc, data in pairs(friendlyPassengers) do
+        if existingNpc ~= ignoredNPC and data.seat == seat then
+            if not IsValid(existingNpc) or existingNpc:Health() > 0 then
+                return true
+            end
+        end
+    end
+
+    return false
+end
+
 -- Assign NPC to a specific seat index in the player's vehicle
 net.Receive("NPCPassengers_AssignSeat", function(len, ply)
     if not IsAddonEnabled() then return end
@@ -3557,38 +3571,72 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
     if not IsValid(npc) or not IsValid(ply) then return end
     if not npc:IsNPC() then return end
     if npc:Health() <= 0 then ply:ChatPrint("Cannot assign a dead NPC to a seat!") return end
-    if friendlyPassengers[npc] then ply:ChatPrint("NPC is already a passenger!") return end
 
     if not ply:InVehicle() then ply:ChatPrint("You must be in a vehicle to assign seats.") return end
     local rootVehicle = GetRootVehicle(ply:GetVehicle())
     if not IsValid(rootVehicle) then return end
     if not IsVehicleAllowedByFilters(rootVehicle) then ply:ChatPrint("This vehicle type is blocked by filter settings.") return end
 
-    local seats = CollectVehicleSeats(rootVehicle)
-    -- Build list of available (unoccupied, no player driver) seats in order
-    local available = {}
-    for _, seat in ipairs(seats) do
-        if not IsValid(seat:GetDriver()) then
-            local occupied = false
-            for existingNpc, data in pairs(friendlyPassengers) do
-                if data.seat == seat and (not IsValid(existingNpc) or existingNpc:Health() > 0) then
-                    occupied = true; break
-                end
-            end
-            if not occupied then
-                available[#available + 1] = seat
-            end
-        end
+    local existingPassengerData = friendlyPassengers[npc]
+    if existingPassengerData and IsValid(existingPassengerData.vehicle) and existingPassengerData.vehicle ~= rootVehicle then
+        ply:ChatPrint("You must be in the same vehicle to reassign this passenger.")
+        return
     end
 
-    if #available == 0 then ply:ChatPrint("No available seats in this vehicle!") return end
-    seatIndex = math.Clamp(seatIndex, 1, #available)
-    local targetSeat = available[seatIndex]
+    local seats = CollectVehicleSeats(rootVehicle)
+    if #seats == 0 then ply:ChatPrint("No seats found in this vehicle!") return end
 
-    -- Attach NPC directly to the chosen seat
+    seatIndex = math.Clamp(seatIndex, 1, #seats)
+    local targetSeat = seats[seatIndex]
+    if not IsValid(targetSeat) then ply:ChatPrint("That seat does not exist in this vehicle!") return end
+
+    local seatDriver = targetSeat.GetDriver and targetSeat:GetDriver() or nil
+    if IsValid(seatDriver) and seatDriver ~= npc then
+        ply:ChatPrint("That seat is occupied.")
+        return
+    end
+
+    if IsSeatOccupiedByOtherPassenger(targetSeat, npc) then
+        ply:ChatPrint("Another passenger is already using that seat.")
+        return
+    end
+
+    if existingPassengerData and existingPassengerData.seat == targetSeat then
+        ply:ChatPrint("Passenger is already in seat " .. seatIndex .. "!")
+        return
+    end
+
     local npcPos = targetSeat:GetPos()
     local npcAng = targetSeat:GetAngles()
-    local vehicleType = GetVehicleType(rootVehicle)
+    local vehicleType = existingPassengerData and (existingPassengerData.vehicleType or GetVehicleType(rootVehicle)) or GetVehicleType(rootVehicle)
+
+    if existingPassengerData then
+        npc:SetParent(targetSeat)
+
+        local vehOffsets = GetVehicleOffsets(vehicleType)
+        npc:SetLocalPos(targetSeat:WorldToLocal(npcPos) + Vector(
+            vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
+            vehOffsets.right   + NPCPassengers.cv_right_offset:GetFloat(),
+            vehOffsets.height  + NPCPassengers.cv_height_offset:GetFloat()
+        ))
+        npc:SetLocalAngles(targetSeat:WorldToLocalAngles(npcAng) + Angle(
+            vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
+            vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
+            vehOffsets.roll  + NPCPassengers.cv_roll_offset:GetFloat()
+        ))
+
+        existingPassengerData.vehicle = rootVehicle
+        existingPassengerData.seat = targetSeat
+        existingPassengerData.baseLocalPos = targetSeat:WorldToLocal(npcPos)
+        existingPassengerData.baseLocalAng = targetSeat:WorldToLocalAngles(npcAng)
+        existingPassengerData.vehicleType = vehicleType
+        existingPassengerData.lastAngleCheck = CurTime()
+        existingPassengerData.nextTransformSyncAt = 0
+
+        ply:ChatPrint("Passenger moved to seat " .. seatIndex .. "!")
+        return
+    end
+
     local originalCollision = npc:GetCollisionGroup()
     if originalCollision == COLLISION_GROUP_IN_VEHICLE then originalCollision = COLLISION_GROUP_NPC end
 

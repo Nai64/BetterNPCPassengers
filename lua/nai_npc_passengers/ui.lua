@@ -113,6 +113,37 @@ local cvBodySwayAmount = GetConVar("nai_npc_body_sway_amount")
 local cvCrashFlinch = GetConVar("nai_npc_crash_flinch")
 local cvCrashThreshold = GetConVar("nai_npc_crash_threshold")
 
+local function GetClientRootVehicle(entity)
+    if not IsValid(entity) then return nil end
+
+    if entity:GetClass() == "prop_vehicle_prisoner_pod" then
+        local parent = entity:GetParent()
+        if IsValid(parent) then
+            return parent
+        end
+    end
+
+    return entity
+end
+
+local function GetPassengerControlVehicle(npc)
+    if not IsValid(npc) then return nil end
+
+    local parent = npc:GetParent()
+    if not IsValid(parent) then return nil end
+
+    return GetClientRootVehicle(parent)
+end
+
+local function IsPassengerInLocalPlayersVehicle(npc)
+    local ply = LocalPlayer()
+    if not IsValid(ply) or not ply:InVehicle() then return false end
+
+    local playerVehicle = GetClientRootVehicle(ply:GetVehicle())
+    local passengerVehicle = GetPassengerControlVehicle(npc)
+    return IsValid(playerVehicle) and IsValid(passengerVehicle) and playerVehicle == passengerVehicle
+end
+
 local function RefreshTrackedPassengers()
     for ent in pairs(trackedPassengerNPCs) do
         if not IsValid(ent) or not ent:IsNPC() or not ent:GetNWBool("IsNPCPassenger", false) then
@@ -1658,6 +1689,211 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(autoJoinPanel, "Squad Members Only", "nai_npc_auto_join_squad_only")
     CreateHelpText(autoJoinPanel, "Only NPCs with a squad name will auto-join (for HL2-style squads).")
+
+    -- Passengers Tab
+    local passengersPanel = CreateContentPanel()
+    passengersPanel.SearchPanelName = "Passengers"
+    local passengersBtn = CreateNavButton("Passengers", "icon16/group_gear.png")
+    passengersPanel.SearchNavButton = passengersBtn
+
+    local passengerControlList
+    local passengersCurrentVehicleOnly = false
+    local currentVehicleOnlyBtn
+
+    local function RefreshPassengersControlList()
+        if not IsValid(passengerControlList) then
+            return
+        end
+
+        passengerControlList:Clear()
+
+        local passengers = {}
+        local ply = LocalPlayer()
+        local currentVehicle = IsValid(ply) and ply:InVehicle() and GetClientRootVehicle(ply:GetVehicle()) or nil
+
+        for _, ent in ipairs(ents.GetAll()) do
+            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
+                local passengerVehicle = GetPassengerControlVehicle(ent)
+                if not passengersCurrentVehicleOnly or (IsValid(currentVehicle) and passengerVehicle == currentVehicle) then
+                    passengers[#passengers + 1] = ent
+                end
+            end
+        end
+
+        table.sort(passengers, function(a, b)
+            local vehicleA = GetPassengerControlVehicle(a)
+            local vehicleB = GetPassengerControlVehicle(b)
+            local aInCurrent = IsValid(currentVehicle) and vehicleA == currentVehicle
+            local bInCurrent = IsValid(currentVehicle) and vehicleB == currentVehicle
+
+            if aInCurrent ~= bInCurrent then
+                return aInCurrent
+            end
+
+            local classA = a:GetClass() or ""
+            local classB = b:GetClass() or ""
+            if classA == classB then
+                return a:EntIndex() < b:EntIndex()
+            end
+
+            return classA < classB
+        end)
+
+        if #passengers == 0 then
+            local noPassengers = vgui.Create("DLabel", passengerControlList)
+            noPassengers:SetFont("NaiFont_Normal")
+            noPassengers:SetTextColor(Theme.textDim)
+            noPassengers:Dock(TOP)
+            noPassengers:DockMargin(10, 10, 10, 10)
+            noPassengers:SetWrap(true)
+            noPassengers:SetAutoStretchVertical(true)
+
+            if passengersCurrentVehicleOnly and not IsValid(currentVehicle) then
+                noPassengers:SetText("No current vehicle detected. Sit in a vehicle or disable the current-vehicle filter.")
+            elseif passengersCurrentVehicleOnly then
+                noPassengers:SetText("No passengers found in your current vehicle.")
+            else
+                noPassengers:SetText("No passengers found. NPCs need to be riding in a vehicle before they can be managed here.")
+            end
+
+            return
+        end
+
+        for _, npc in ipairs(passengers) do
+            local npcPanel = vgui.Create("DPanel", passengerControlList)
+            npcPanel:Dock(TOP)
+            npcPanel:SetTall(124)
+            npcPanel:DockMargin(8, 4, 8, 4)
+            npcPanel.Paint = function(self, w, h)
+                if not IsValid(npc) then return end
+
+                draw.RoundedBox(6, 0, 0, w, h, Theme.bgLighter)
+
+                local passengerVehicle = GetPassengerControlVehicle(npc)
+                local vehicleName = IsValid(passengerVehicle) and passengerVehicle:GetClass() or "Unknown vehicle"
+                local matchingVehicle = IsPassengerInLocalPlayersVehicle(npc)
+                local healthText = string.format("Health: %d", math.max(npc:Health(), 0))
+
+                draw.SimpleText(npc:GetClass() .. " #" .. npc:EntIndex(), "NaiFont_Bold", 12, 12, Theme.textBright)
+                draw.SimpleText("Vehicle: " .. vehicleName, "NaiFont_Small", 12, 34, Theme.textDim)
+                draw.SimpleText(healthText, "NaiFont_Small", 12, 52, Theme.textDim)
+                draw.SimpleText(matchingVehicle and "You can reassign this passenger right now." or "Get in the same vehicle to reassign seats.", "NaiFont_Small", 12, 70, matchingVehicle and Theme.success or Theme.textDim)
+            end
+
+            local seatCombo = vgui.Create("DComboBox", npcPanel)
+            seatCombo:SetPos(12, 90)
+            seatCombo:SetSize(104, 24)
+            seatCombo:SetFont("NaiFont_Small")
+            for seatNumber = 1, 8 do
+                seatCombo:AddChoice("Seat " .. seatNumber, seatNumber)
+            end
+            seatCombo:SetValue("Seat 1")
+
+            local assignBtn = vgui.Create("DButton", npcPanel)
+            assignBtn:SetPos(126, 88)
+            assignBtn:SetSize(118, 28)
+            assignBtn:SetFont("NaiFont_Normal")
+            assignBtn:SetTextColor(Theme.textBright)
+            assignBtn:SetText("Assign Seat")
+            assignBtn.Paint = function(self, w, h)
+                local enabled = IsValid(npc) and IsPassengerInLocalPlayersVehicle(npc)
+                local baseColor = enabled and Theme.accent or Theme.bgDark
+                local hoverColor = enabled and Theme.accentHover or Theme.bgDark
+                local color = self:IsHovered() and hoverColor or baseColor
+                if self:IsDown() and enabled then
+                    color = Theme.accentActive
+                end
+                draw.RoundedBox(4, 0, 0, w, h, color)
+            end
+            assignBtn.DoClick = function()
+                if not IsValid(npc) then return end
+                if not IsPassengerInLocalPlayersVehicle(npc) then
+                    chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "Sit in the same vehicle to reassign this passenger.")
+                    return
+                end
+
+                local _, seatNumber = seatCombo:GetSelected()
+                seatNumber = seatNumber or 1
+
+                net.Start("NPCPassengers_AssignSeat")
+                    net.WriteEntity(npc)
+                    net.WriteUInt(seatNumber, 8)
+                net.SendToServer()
+
+                timer.Simple(0.15, function()
+                    if IsValid(passengerControlList) then
+                        RefreshPassengersControlList()
+                    end
+                end)
+            end
+
+            local detachBtn = vgui.Create("DButton", npcPanel)
+            detachBtn:SetPos(252, 88)
+            detachBtn:SetSize(104, 28)
+            detachBtn:SetFont("NaiFont_Normal")
+            detachBtn:SetTextColor(Theme.textBright)
+            detachBtn:SetText("Detach")
+            detachBtn.Paint = function(self, w, h)
+                local color = self:IsHovered() and Theme.error or Theme.bgDark
+                if self:IsDown() then
+                    color = Color(140, 60, 60)
+                end
+                draw.RoundedBox(4, 0, 0, w, h, color)
+            end
+            detachBtn.DoClick = function()
+                if not IsValid(npc) then return end
+
+                net.Start("NPCPassengers_RemovePassenger")
+                    net.WriteEntity(npc)
+                net.SendToServer()
+
+                timer.Simple(0.15, function()
+                    if IsValid(passengerControlList) then
+                        RefreshPassengersControlList()
+                    end
+                end)
+            end
+        end
+    end
+
+    passengersBtn.DoClick = function()
+        SwitchToPanel(passengersPanel, passengersBtn)
+        RefreshPassengersControlList()
+    end
+
+    CreateSectionHeader(passengersPanel, "Passenger Controls")
+    CreateHelpText(passengersPanel, "Manage active passengers, reassign seats, and detach riders without leaving the settings panel.")
+
+    CreateButton(passengersPanel, "Refresh Passenger List", RefreshPassengersControlList)
+
+    currentVehicleOnlyBtn = CreateButton(passengersPanel, "Show Current Vehicle Only: OFF", function()
+        passengersCurrentVehicleOnly = not passengersCurrentVehicleOnly
+        currentVehicleOnlyBtn:SetText("Show Current Vehicle Only: " .. (passengersCurrentVehicleOnly and "ON" or "OFF"))
+        RefreshPassengersControlList()
+    end)
+
+    CreateButton(passengersPanel, "Make Current Vehicle Passengers Exit", function()
+        if not LocalPlayer():InVehicle() then
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "You need to be in a vehicle to use this.")
+            return
+        end
+
+        RunConsoleCommand("nai_npc_detach_all")
+        timer.Simple(0.15, function()
+            if IsValid(passengerControlList) then
+                RefreshPassengersControlList()
+            end
+        end)
+    end)
+
+    passengerControlList = vgui.Create("DScrollPanel", passengersPanel)
+    passengerControlList:SetTall(420)
+    passengerControlList:Dock(TOP)
+    passengerControlList:DockMargin(5, 5, 5, 5)
+    StyleScrollbar(passengerControlList:GetVBar())
+    passengerControlList.Paint = function(self, w, h)
+        draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
+    end
     
     -- Position Tab
     local posPanel = CreateContentPanel()
