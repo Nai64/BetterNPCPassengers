@@ -1945,17 +1945,15 @@ local function OpenSettingsPanel()
                 surface.SetMaterial(gradientMat)
                 surface.DrawTexturedRect(0, 0, w, h)
 
-                draw.SimpleText(GetPassengerCardDisplayName(npc), "NaiFont_Bold", 76, 18, Theme.textBright)
-                if passengerCardIcons.passenger then
-                    surface.SetDrawColor(255, 255, 255, 190)
-                    surface.SetMaterial(passengerCardIcons.passenger)
-                    surface.DrawTexturedRect(250, 13, 18, 18)
-                end
+                local passengerName = GetPassengerCardDisplayName(npc)
+                draw.SimpleText(passengerName, "NaiFont_Bold", 76, 18, Theme.textBright)
 
                 if passengerCardIcons[status] then
+                    surface.SetFont("NaiFont_Bold")
+                    local nameWidth = surface.GetTextSize(passengerName)
                     surface.SetDrawColor(255, 255, 255, 255)
                     surface.SetMaterial(passengerCardIcons[status])
-                    surface.DrawTexturedRect(274, 11, 22, 22)
+                    surface.DrawTexturedRect(76 + nameWidth + 8, 11, 22, 22)
                 end
 
                 draw.SimpleText((npc:GetClass() or "npc") .. "  |  #" .. npc:EntIndex(), "NaiFont_Small", 76, 38, Theme.textDim)
