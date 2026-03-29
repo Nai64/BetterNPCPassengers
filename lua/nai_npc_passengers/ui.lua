@@ -4151,7 +4151,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.19"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.20"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
@@ -4281,13 +4281,10 @@ function ShowWelcomePanel(forceShow)
     changelog.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
         local changes = {
-                "+ Passenger counts and occupied seats now use shared registries instead of repeated scans",
-                "+ Passenger sit animation upkeep now runs through one shared think loop instead of per-NPC timers",
-                "+ Turret gunners now reuse a tracked NPC target pool instead of rebuilding targets every scan",
-                "+ Client passenger tracking now updates from networked state changes with slower fallback rescans",
-                "+ Seat reassignment, detach, reset, and cleanup paths now share the same cached passenger state",
-                "+ High-passenger and turret-heavy scenes now avoid the worst repeated entity and seat traversal costs",
-                "+ Fixed a UI crash when drawing circular checkboxes"
+                "+ Code cleanup and minor optimizations for better maintainability",
+                "+ Removed redundant comment patterns and verbose sections",
+                "+ Consolidated helper function implementations for clarity",
+                "+ Improved overall readability across addon modules"
             }
         for i, line in ipairs(changes) do
             local col = Theme.text
