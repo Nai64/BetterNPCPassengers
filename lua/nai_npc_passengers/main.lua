@@ -91,6 +91,22 @@ local function ResetAprilFoolsFace(npc)
     end
 end
 
+local function ResetPassengerFacialState(npc)
+    if not IsValid(npc) or not npc:IsNPC() then return end
+
+    ResetAprilFoolsFace(npc)
+    npc:SetPoseParameter("blink", 0)
+    npc:SetPoseParameter("eyes_yaw", 0)
+    npc:SetPoseParameter("eyes_pitch", 0)
+    npc:SetPoseParameter("eyes_updown", 0)
+    npc:SetPoseParameter("eyes_rightleft", 0)
+    npc:SetEyeTarget(npc:EyePos() + npc:GetForward() * 64)
+
+    if npc.InvalidateBoneCache then
+        npc:InvalidateBoneCache()
+    end
+end
+
 local function ApplyAprilFoolsFace(npc, state, curTime)
     if not IsValid(npc) or not state then return end
 
@@ -2265,7 +2281,7 @@ local function CleanupNPCLookState(npcId)
     -- Reset head/eye pose parameters so the NPC doesn't freeze mid-look after ejection
     local npc = Entity(npcId)
     if IsValid(npc) and npc:IsNPC() then
-        ResetAprilFoolsFace(npc)
+        ResetPassengerFacialState(npc)
         npc:SetPoseParameter("head_yaw", 0)
         npc:SetPoseParameter("head_pitch", 0)
         npc:SetPoseParameter("eyes_yaw", 0)
@@ -2757,6 +2773,7 @@ DetachNPC = function(npc)
     npc:SetAngles(Angle(0, 0, 0))
     npc:SetPlaybackRate(1.0)
     npc:ResetSequence(npc:LookupSequence("idle_subtle") or npc:LookupSequence("idle") or 0)
+    ResetPassengerFacialState(npc)
     
     if data.capabilities then
         npc:CapabilitiesClear()
@@ -2843,6 +2860,10 @@ hook.Add("Think", "NPCPassengerThink", function()
     
     for npc, data in pairs(passengersCopy) do
         if not IsValid(npc) or npc:Health() <= 0 then
+            if IsValid(npc) then
+                ResetPassengerFacialState(npc)
+                CleanupNPCLookState(npc:EntIndex())
+            end
             friendlyPassengers[npc] = nil
             CleanupNPCTimers(npc)
             if animationTimers[npc:EntIndex()] then
