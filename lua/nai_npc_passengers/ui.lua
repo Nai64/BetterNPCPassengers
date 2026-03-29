@@ -438,6 +438,8 @@ end
 
 local TransparentColor = Color(0, 0, 0, 0)
 local BlurMaterial = Material("pp/blurscreen")
+local GradientDownMaterial = Material("vgui/gradient-d")
+local GradientRightMaterial = Material("vgui/gradient-r")
 local DrawRoundedSurface
 
 local function WithAlpha(color, alpha)
@@ -497,6 +499,48 @@ end
 local function DrawGlassSurface(panel, x, y, w, h, radius, fillColor, borderColor, blurAmount, blurPasses, blurAlpha)
     DrawClippedBlur(panel, x, y, w, h, blurAmount or 3, blurPasses or 1, blurAlpha or 160)
     DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
+end
+
+local function DrawAcrylicHighlights(x, y, w, h, accentColor, intensity)
+    if w <= 4 or h <= 4 then
+        return
+    end
+
+    local glowColor = accentColor or Theme.accent
+    local highlightStrength = math.Clamp(intensity or 0.5, 0, 1.4)
+    local insetX = x + 1
+    local insetY = y + 1
+    local insetW = math.max(w - 2, 0)
+    local insetH = math.max(h - 2, 0)
+
+    surface.SetMaterial(GradientDownMaterial)
+    surface.SetDrawColor(255, 255, 255, 14 + (highlightStrength * 10))
+    surface.DrawTexturedRect(insetX, insetY, insetW, math.max(math.floor(insetH * 0.58), 1))
+
+    surface.SetMaterial(GradientRightMaterial)
+    surface.SetDrawColor(glowColor.r, glowColor.g, glowColor.b, 10 + (highlightStrength * 16))
+    surface.DrawTexturedRect(insetX, insetY, math.max(math.floor(insetW * 0.8), 1), insetH)
+
+    local sheenTravel = math.max(math.floor(insetH * 0.18), 4)
+    local sheenY = insetY + 4 + math.floor(((math.sin(CurTime() * 1.35 + x * 0.01 + y * 0.02) + 1) * 0.5) * sheenTravel)
+    surface.SetDrawColor(255, 255, 255, 10 + (highlightStrength * 12))
+    surface.DrawRect(insetX + 12, sheenY, math.max(insetW - 24, 0), 1)
+
+    surface.SetDrawColor(255, 255, 255, 4 + (highlightStrength * 3))
+    for step = 0, math.min(math.floor(insetW / 48), 10) do
+        local lineX = insetX + 14 + (step * 48) + math.floor(math.sin(CurTime() * 1.1 + step * 0.9) * 2)
+        surface.DrawRect(lineX, insetY + 8, 1, math.max(insetH - 16, 0))
+    end
+end
+
+local function DrawAcrylicSurface(panel, x, y, w, h, radius, fillColor, borderColor, blurAmount, blurPasses, blurAlpha, accentColor, highlightStrength)
+    local tintColor = fillColor or Theme.glass
+    local outlineColor = borderColor or Theme.glassBorder
+
+    DrawClippedBlur(panel, x, y, w, h, blurAmount or 4.6, blurPasses or 2, blurAlpha or 178)
+    DrawRoundedSurface(x, y, w, h, radius, WithAlpha(tintColor, math.min((tintColor.a or 255) + 8, 255)), outlineColor)
+    DrawRoundedSurface(x + 1, y + 1, math.max(w - 2, 0), math.max(h - 2, 0), math.max(radius - 1, 0), tintColor)
+    DrawAcrylicHighlights(x, y, w, h, accentColor or Theme.accent, highlightStrength or 0.8)
 end
 
 DrawRoundedSurface = function(x, y, w, h, radius, fillColor, borderColor)
@@ -908,10 +952,10 @@ local function CreateButton(parent, text, callback)
 
         draw.RoundedBox(8, 2, 2 - self.pressAnim, w, h, Theme.shadow)
         draw.RoundedBox(7, 0, pushOffset, w, h, WithAlpha(bgColor, 222))
+        DrawAcrylicHighlights(0, pushOffset, w, h, Theme.accentHover, self.hoverAnim + self.pressAnim)
 
-        local gradientMat = Material("vgui/gradient-d")
         surface.SetDrawColor(255, 255, 255, 15)
-        surface.SetMaterial(gradientMat)
+        surface.SetMaterial(GradientDownMaterial)
         surface.DrawTexturedRect(0, pushOffset, w, h / 2)
 
         surface.SetDrawColor(Theme.accentHover.r, Theme.accentHover.g, Theme.accentHover.b, 60)
@@ -1030,8 +1074,8 @@ local function OpenSettingsPanel()
         -- Outer shadow
         draw.RoundedBox(14, 4, 4, w, h, Color(0, 0, 0, 140))
 
-        DrawGlassSurface(self, 0, 0, w, h, 12, Theme.glass, Theme.glassBorder, 5.2, 2, 180)
-        draw.RoundedBox(12, 1, 1, w - 2, h - 2, WithAlpha(Theme.bg, 120))
+        DrawAcrylicSurface(self, 0, 0, w, h, 12, Theme.glass, Theme.glassBorder, 6.1, 3, 186, Theme.accentHover, 1.05)
+        draw.RoundedBox(12, 1, 1, w - 2, h - 2, WithAlpha(Theme.bg, 108))
 
         if aprilMode then
             DrawAprilTripOverlay(w, h, 18)
@@ -1040,10 +1084,9 @@ local function OpenSettingsPanel()
         end
 
         DrawClippedBlur(self, 0, 0, w, 50, 3.4, 1, 120)
-        local gradientMat = Material("vgui/gradient-d")
         local headerAccent = aprilMode and GetAprilTripColor(40, 0.85, 1, 200) or Theme.accentDark
         surface.SetDrawColor(headerAccent.r, headerAccent.g, headerAccent.b, 120)
-        surface.SetMaterial(gradientMat)
+        surface.SetMaterial(GradientDownMaterial)
         draw.RoundedBoxEx(12, 0, 0, w, 50, WithAlpha(Theme.bgDark, 176), true, true, false, false)
         surface.DrawTexturedRect(0, 0, w, 50)
         
@@ -1199,7 +1242,7 @@ local function OpenSettingsPanel()
     navContainer:SetPos(10, 58)
     navContainer:SetSize(panelWidth - 20, panelHeight - 68)
     navContainer.Paint = function(self, w, h)
-        DrawGlassSurface(self, 0, 0, w, h, 8, Theme.glassLight, WithAlpha(Theme.glassBorder, 58), 4.2, 2, 160)
+        DrawAcrylicSurface(self, 0, 0, w, h, 8, Theme.glassLight, WithAlpha(Theme.glassBorder, 58), 4.8, 2, 166, Theme.accent, 0.9)
         if IsAprilFoolsActive() then
             DrawAprilTripOverlay(w, h, 14)
         end
@@ -1210,8 +1253,9 @@ local function OpenSettingsPanel()
     sidebar:SetPos(0, 0)
     sidebar:SetSize(270, panelHeight - 68)
     sidebar.Paint = function(self, w, h)
-        DrawClippedBlur(self, 0, 0, w, h, 3.4, 1, 135)
+        DrawClippedBlur(self, 0, 0, w, h, 4.1, 2, 142)
         draw.RoundedBoxEx(8, 0, 0, w, h, Theme.glassDark, true, false, true, false)
+        DrawAcrylicHighlights(0, 0, w, h, Theme.accentDark, 0.7)
         if IsAprilFoolsActive() then
             DrawAprilTripOverlay(w, h, 16)
         end
@@ -1227,7 +1271,9 @@ local function OpenSettingsPanel()
     contentArea = vgui.Create("DPanel", navContainer)
     contentArea:SetPos(278, 0)
     contentArea:SetSize(panelWidth - 298, panelHeight - 64)
-    contentArea.Paint = function() end
+    contentArea.Paint = function(self, w, h)
+        DrawAcrylicSurface(self, 0, 0, w, h, 8, WithAlpha(Theme.glassLight, 184), WithAlpha(Theme.glassBorder, 38), 3.8, 1, 138, Theme.accentHover, 0.65)
+    end
     
     local currentPanel = nil
     local navButtons = {}
@@ -1275,6 +1321,7 @@ local function OpenSettingsPanel()
             end
 
             draw.RoundedBox(6, 0, pushOffset, w, h, WithAlpha(bgCol, 210))
+            DrawAcrylicHighlights(0, pushOffset, w, h, accentHoverColor, self.activeAnim + self.hoverAnim + self.pressAnim)
 
             if self.activeAnim > 0 then
                 local lineW = 4
@@ -1525,6 +1572,7 @@ local function OpenSettingsPanel()
             bgCol = LerpColor(self.pressAnim, bgCol, Theme.bg)
             DrawClippedBlur(self, 0, pushOffset, w, h, 2 + (self.hoverAnim * 1.2) + (self.pressAnim * 2), 1, 44 + (self.pressAnim * 36))
             DrawRoundedSurface(0, pushOffset, w, h, 8, WithAlpha(bgCol, 208), self:IsHovered() and Theme.accentHover or Theme.border)
+            DrawAcrylicHighlights(0, pushOffset, w, h, Theme.accentHover, self.hoverAnim + self.pressAnim)
 
             draw.SimpleText(tostring(rank), "NaiFont_Small", 14, (h / 2) + pushOffset, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             DrawMarqueeText(self, entry.title, "NaiFont_Normal", 34, 17 + pushOffset, Theme.textBright, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
@@ -1612,7 +1660,7 @@ local function OpenSettingsPanel()
         if IsAprilFoolsActive() then
             borderColor = GetAprilTripColor(200, 0.9, 1, 255)
         end
-        DrawGlassSurface(self, 0, 0, w, h, 10, Theme.glassLight, borderColor, 3.4, 1, 145)
+        DrawAcrylicSurface(self, 0, 0, w, h, 10, Theme.glassLight, borderColor, 4.2, 2, 154, Theme.accentHover, 0.85)
         if IsAprilFoolsActive() then
             DrawAprilTripOverlay(w, h, 18)
         end
@@ -1676,7 +1724,7 @@ local function OpenSettingsPanel()
     searchSuggestions:SetVisible(false)
     searchSuggestions:DockPadding(6, 6, 6, 6)
     searchSuggestions.Paint = function(self, w, h)
-        DrawGlassSurface(self, 0, 0, w, h, 10, Theme.glassLight, Theme.border, 4, 2, 160)
+        DrawAcrylicSurface(self, 0, 0, w, h, 10, Theme.glassLight, Theme.border, 4.8, 2, 168, Theme.accent, 0.95)
         if IsAprilFoolsActive() then
             DrawAprilTripOverlay(w, h, 20)
             DrawAprilSpinner(24, h / 2, 11, 740, 10, 150)
@@ -2129,11 +2177,10 @@ local function OpenSettingsPanel()
     passengerOverviewPanel.scaredPassengers = 0
     passengerOverviewPanel.drowsyPassengers = 0
     passengerOverviewPanel.Paint = function(self, w, h)
-        DrawGlassSurface(self, 0, 0, w, h, 10, Theme.glassDark, WithAlpha(Theme.glassBorder, 40), 3.8, 1, 140)
+        DrawAcrylicSurface(self, 0, 0, w, h, 10, Theme.glassDark, WithAlpha(Theme.glassBorder, 40), 4.6, 2, 150, Theme.accent, 0.78)
 
-        local gradientMat = Material("vgui/gradient-r")
         surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 42)
-        surface.SetMaterial(gradientMat)
+        surface.SetMaterial(GradientRightMaterial)
         surface.DrawTexturedRect(0, 0, w, h)
 
         draw.SimpleText("Passenger Operations", "NaiFont_Bold", 16, 18, Theme.textBright)
@@ -2173,7 +2220,7 @@ local function OpenSettingsPanel()
     passengerControlList:DockMargin(5, 5, 5, 5)
     StyleScrollbar(passengerControlList:GetVBar())
     passengerControlList.Paint = function(self, w, h)
-        DrawGlassSurface(self, 0, 0, w, h, 6, Theme.glassDark, WithAlpha(Theme.glassBorder, 34), 3.2, 1, 132)
+        DrawAcrylicSurface(self, 0, 0, w, h, 6, Theme.glassDark, WithAlpha(Theme.glassBorder, 34), 4.1, 2, 142, Theme.accentDark, 0.66)
     end
     
     -- Position Tab
@@ -3665,8 +3712,9 @@ function ShowWelcomePanel(forceShow)
     
     frame.Paint = function(self, w, h)
         draw.RoundedBox(12, 4, 4, w, h, Color(0, 0, 0, 100))
-        draw.RoundedBox(10, 0, 0, w, h, Theme.bg)
-        draw.RoundedBoxEx(10, 0, 0, w, 44, Theme.bgDark, true, true, false, false)
+        DrawAcrylicSurface(self, 0, 0, w, h, 10, WithAlpha(Theme.glass, 236), Theme.glassBorder, 5.2, 2, 176, Theme.accentHover, 0.96)
+        draw.RoundedBoxEx(10, 0, 0, w, 44, WithAlpha(Theme.bgDark, 176), true, true, false, false)
+        DrawAcrylicHighlights(0, 0, w, 44, Theme.accentHover, 0.82)
         draw.SimpleText(ADDON_DISPLAY_NAME, "NaiFont_Title", 15, 22, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText("v" .. WELCOME_VERSION, "NaiFont_Small", w - 50, 22, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
     end
@@ -3691,7 +3739,9 @@ function ShowWelcomePanel(forceShow)
     local content = vgui.Create("DScrollPanel", frame)
     content:SetPos(15, 54)
     content:SetSize(590, 440)
-    content.Paint = function() end
+    content.Paint = function(self, w, h)
+        DrawAcrylicSurface(self, 0, 0, w, h, 8, WithAlpha(Theme.glassLight, 178), WithAlpha(Theme.glassBorder, 24), 3.2, 1, 130, Theme.accentHover, 0.55)
+    end
     
     local sbar = content:GetVBar()
     sbar:SetWide(6)
@@ -3776,7 +3826,7 @@ function ShowWelcomePanel(forceShow)
     changelog:Dock(TOP)
     changelog:DockMargin(0, 0, 0, 10)
     changelog.Paint = function(self, w, h)
-        draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
+        DrawAcrylicSurface(self, 0, 0, w, h, 6, WithAlpha(Theme.glassDark, 220), WithAlpha(Theme.glassBorder, 24), 3.4, 1, 126, Theme.accentDark, 0.52)
         local changes = {
             "+ Performance: vehicle seat layout cached, rebuilt only on change",
             "+ Performance: animation maintenance throttled per passenger",
