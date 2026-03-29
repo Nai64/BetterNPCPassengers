@@ -1,0 +1,31 @@
+name: Restyled
+
+on:
+  pull_request:
+
+jobs:
+  restyled:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: restyled-io/actions/setup@v4
+      - id: restyler
+        uses: restyled-io/actions/run@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: restyled-io/actions/setup@v4
+      - id: restyler
+        uses: restyled-io/actions/run@v4
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          base: ${{ steps.restyler.outputs.restyled-base }}
+          branch: ${{ steps.restyler.outputs.restyled-head }}
+          title: ${{ steps.restyler.outputs.restyled-title }}
+          body: ${{ steps.restyler.outputs.restyled-body }}
+          labels: "restyled"
+          reviewers: ${{ github.event.pull_request.user.login }}
+          delete-branch: true
+      - uses: restyled-io/actions/run@v4
+        with:
+          suggestions: true
