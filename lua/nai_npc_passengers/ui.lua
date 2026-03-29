@@ -877,22 +877,32 @@ local function CreateCheckbox(parent, label, convar)
     checkbox:SetConVar(convar)
     checkbox.Paint = function(self, w, h)
         local isChecked = self:GetChecked()
-        local col = isChecked and Theme.accent or Theme.bgLighter
-        
+        local centerX, centerY = w / 2, h / 2
+        local radius = math.min(w, h) / 2 - 1
+        local borderCol = isChecked and Theme.accentHover or Theme.border
+        local fillCol = isChecked and Theme.accent or Theme.bgLighter
+
         -- Outer glow for checked state
         if isChecked then
-            draw.RoundedBox(6, -2, -2, w + 4, h + 4, Theme.glow)
+            draw.NoTexture()
+            surface.SetDrawColor(Theme.glow)
+            draw.Circle(centerX, centerY, radius + 3, 32)
         end
-        
-        draw.RoundedBox(5, 0, 0, w, h, col)
-        
-        if isChecked then
-            draw.SimpleText("v", "NaiFont_Bold", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
-        end
-        
+
+        -- Main circle
+        draw.NoTexture()
+        surface.SetDrawColor(fillCol)
+        draw.Circle(centerX, centerY, radius, 32)
+
         -- Border
-        surface.SetDrawColor(isChecked and Theme.accentHover or Theme.border)
-        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        surface.SetDrawColor(borderCol)
+        draw.Circle(centerX, centerY, radius, 32)
+
+        -- Checked dot
+        if isChecked then
+            surface.SetDrawColor(Theme.textBright)
+            draw.Circle(centerX, centerY, radius * 0.5, 32)
+        end
     end
     
     checkbox.OnChange = function(self, val)
@@ -4122,7 +4132,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.17"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.18"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
