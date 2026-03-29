@@ -136,7 +136,9 @@ local clientSwayState = {}
 local trackedPassengerNPCs = {}
 local clientVehicleSeatCache = {}
 local nextPassengerRefresh = 0
+local nextPassengerFullRefresh = 0
 local PASSENGER_TRACK_REFRESH_INTERVAL = 0.5
+local PASSENGER_TRACK_FULL_REFRESH_INTERVAL = 5
 
 local cvBodySway = GetConVar("nai_npc_body_sway")
 local cvBodySwayAmount = GetConVar("nai_npc_body_sway_amount")
@@ -303,16 +305,28 @@ local function GetClientVehicleSeatCount(vehicle)
     return #GetClientVehicleSeats(vehicle)
 end
 
-local function RefreshTrackedPassengers()
-    for ent in pairs(trackedPassengerNPCs) do
-        if not IsValid(ent) or not ent:IsNPC() or not ent:GetNWBool("IsNPCPassenger", false) then
-            trackedPassengerNPCs[ent] = nil
-        end
+local function UpdateTrackedPassenger(ent)
+    if not IsValid(ent) or not ent:IsNPC() or not ent:GetNWBool("IsNPCPassenger", false) then
+        trackedPassengerNPCs[ent] = nil
+        return
     end
 
+    trackedPassengerNPCs[ent] = true
+end
+
+local function RefreshTrackedPassengers(forceRefresh)
+    for ent in pairs(trackedPassengerNPCs) do
+        UpdateTrackedPassenger(ent)
+    end
+
+    local curTime = CurTime()
+    if not forceRefresh and curTime < nextPassengerFullRefresh then return end
+
+    nextPassengerFullRefresh = curTime + PASSENGER_TRACK_FULL_REFRESH_INTERVAL
+
     for _, ent in ipairs(ents.GetAll()) do
-        if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
-            trackedPassengerNPCs[ent] = true
+        if IsValid(ent) and ent:IsNPC() then
+            UpdateTrackedPassenger(ent)
         end
     end
 end
@@ -321,7 +335,7 @@ local function EnsureTrackedPassengersFresh(forceRefresh)
     local curTime = CurTime()
 
     if forceRefresh or curTime >= nextPassengerRefresh then
-        RefreshTrackedPassengers()
+        RefreshTrackedPassengers(forceRefresh)
         nextPassengerRefresh = curTime + PASSENGER_TRACK_REFRESH_INTERVAL
     end
 end
@@ -467,6 +481,24 @@ hook.Add("Think", "NPCPassengers_ClientBodySway", function()
             end
         end
     end
+end)
+
+hook.Add("EntityNetworkedVarChanged", "NPCPassengers_TrackNetworkedPassenger", function(ent, name, _, newValue)
+    if name ~= "IsNPCPassenger" or not IsValid(ent) or not ent:IsNPC() then return end
+
+    if newValue then
+        trackedPassengerNPCs[ent] = true
+    else
+        trackedPassengerNPCs[ent] = nil
+    end
+end)
+
+hook.Add("NetworkEntityCreated", "NPCPassengers_TrackCreatedPassenger", function(ent)
+    timer.Simple(0, function()
+        if IsValid(ent) and ent:IsNPC() then
+            UpdateTrackedPassenger(ent)
+        end
+    end)
 end)
 
 -- Clean up when NPCs are removed
@@ -4090,7 +4122,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.16"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.17"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
@@ -4220,12 +4252,12 @@ function ShowWelcomePanel(forceShow)
     changelog.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
         local changes = {
-            "+ Passenger upkeep now runs on a throttled server cadence instead of every frame",
-            "+ Repeated player relationship refreshes are batched to cut attach-time overhead",
-            "+ Passenger HUD now reuses tracked passengers instead of rescanning every entity update",
-            "+ Passenger control and debug lists reuse cached passenger tracking with manual refresh support",
-            "+ Vehicle seat lookups are now cached client-side and invalidated when seat entities change",
-            "+ Seat sorting and seat-count lookups now reuse cached layouts across the passenger UI",
+            "+ Passenger counts and occupied seats now use shared registries instead of repeated scans",
+            "+ Passenger sit animation upkeep now runs through one shared think loop instead of per-NPC timers",
+            "+ Turret gunners now reuse a tracked NPC target pool instead of rebuilding targets every scan",
+            "+ Client passenger tracking now updates from networked state changes with slower fallback rescans",
+            "+ Seat reassignment, detach, reset, and cleanup paths now share the same cached passenger state",
+            "+ High-passenger and turret-heavy scenes now avoid the worst repeated entity and seat traversal costs",
         }
         for i, line in ipairs(changes) do
             local col = Theme.text

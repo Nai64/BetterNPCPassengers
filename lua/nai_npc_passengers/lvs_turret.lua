@@ -19,6 +19,9 @@ NPCPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets
 -- Cache for performance
 local turretNPCs = NPCPassengers.TurretNPCs
 local activeGunners = {}
+local trackedTurretTargets = {}
+local nextTurretTargetRefresh = 0
+local TURRET_TARGET_REFRESH_INTERVAL = 2
 
 --[[
     Checks if an LVS vehicle has turret/weapon capability for a given seat
@@ -121,6 +124,33 @@ local function LVSGetSeatWeaponInfo(vehicle, seat)
     }
 end
 
+local function IsTurretTargetCandidate(ent)
+    return IsValid(ent) and (ent:IsNPC() or ent:IsNextBot()) and ent:Health() > 0
+end
+
+local function TrackTurretTarget(ent)
+    if IsTurretTargetCandidate(ent) then
+        trackedTurretTargets[ent] = true
+    end
+end
+
+local function RefreshTurretTargetRegistry(forceRefresh)
+    local curTime = CurTime()
+    if not forceRefresh and curTime < nextTurretTargetRefresh then return end
+
+    nextTurretTargetRefresh = curTime + TURRET_TARGET_REFRESH_INTERVAL
+
+    for ent in pairs(trackedTurretTargets) do
+        if not IsTurretTargetCandidate(ent) then
+            trackedTurretTargets[ent] = nil
+        end
+    end
+
+    for _, ent in ipairs(ents.GetAll()) do
+        TrackTurretTarget(ent)
+    end
+end
+
 --[[
     Gets enemies visible to the NPC within range
 ]]
@@ -129,31 +159,10 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
     
     local enemies = {}
     local vehiclePos = vehicle:GetPos()
+    local maxRangeSqr = maxRange * maxRange
     local allowFriendlyFire = NPCPassengers.cv_turret_friendly_fire:GetBool()
-    
-    -- Get all potential targets (NPCs and NextBots)
-    local potentialTargets = {}
-    
-    -- Find all NPCs - we need to iterate all entities since wildcard doesn't work
-    for _, ent in ipairs(ents.GetAll()) do
-        if IsValid(ent) and ent ~= npc and ent:IsNPC() and ent:Health() > 0 then
-            -- Skip other passengers
-            local isPassenger = false
-            if NPCPassengers.TurretNPCs then
-                for passengerNPC, _ in pairs(activeGunners) do
-                    if passengerNPC == ent then
-                        isPassenger = true
-                        break
-                    end
-                end
-            end
-            if not isPassenger then
-                table.insert(potentialTargets, ent)
-            end
-        elseif IsValid(ent) and ent:IsNextBot() and ent:Health() > 0 then
-            table.insert(potentialTargets, ent)
-        end
-    end
+
+    RefreshTurretTargetRegistry()
     
     -- Get the player in the vehicle to check their enemies
     local vehiclePlayer = nil
@@ -168,16 +177,20 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
     end
     
     -- Filter targets
-    for _, target in ipairs(potentialTargets) do
-        local dist = vehiclePos:Distance(target:GetPos())
-        
-        if dist <= maxRange then
+    for target in pairs(trackedTurretTargets) do
+        if target == npc then continue end
+
+        if target:IsNPC() and ((NPCPassengers.IsPassenger and NPCPassengers.IsPassenger(target)) or activeGunners[target] ~= nil) then
+            continue
+        end
+
+        local distSqr = vehiclePos:DistToSqr(target:GetPos())
+        if distSqr <= maxRangeSqr then
             -- Determine if this is an enemy
             -- Since passenger NPC has all relationships set to friendly,
             -- we need to use original relationships or check if target is hostile to player
             local isEnemy = false
-            
-            -- Check original relationships if available
+
             if originalRelationships then
                 for ent, disp in pairs(originalRelationships) do
                     if ent == target then
@@ -186,21 +199,18 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
                     end
                 end
             end
-            
-            -- Check if target is hostile to the player in the vehicle
+
             if not isEnemy and IsValid(vehiclePlayer) then
                 local targetDisp = target:Disposition(vehiclePlayer)
                 isEnemy = (targetDisp == D_HT or targetDisp == D_FR)
-                
-                -- Also check if target is attacking the player
+
                 if not isEnemy and target:IsNPC() and IsValid(target:GetEnemy()) then
                     if target:GetEnemy() == vehiclePlayer or target:GetEnemy():IsPlayer() then
                         isEnemy = true
                     end
                 end
             end
-            
-            -- Check NPC class for common enemies
+
             if not isEnemy then
                 local targetClass = target:GetClass()
                 local hostileClasses = {
@@ -219,26 +229,25 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
                     end
                 end
             end
-            
+
             if not allowFriendlyFire and not isEnemy then
                 continue
             end
-            
-            -- Visibility check from vehicle
+
             local startPos = vehicle:LocalToWorld(vehicle:OBBCenter()) + Vector(0, 0, 50)
             local targetPos = target:WorldSpaceCenter() or target:GetPos() + Vector(0, 0, 40)
-            
+
             local tr = util.TraceLine({
                 start = startPos,
                 endpos = targetPos,
                 filter = {vehicle, npc},
                 mask = MASK_SHOT
             })
-            
+
             if tr.Entity == target or not tr.Hit then
                 table.insert(enemies, {
                     entity = target,
-                    distance = dist,
+                    distance = math.sqrt(distSqr),
                     position = targetPos,
                     velocity = target:GetVelocity(),
                     isEnemy = isEnemy
@@ -807,6 +816,18 @@ end
     Main think hook for all turret NPCs
 ]]
 local lastThinkTime = CurTime()
+
+hook.Add("OnEntityCreated", "NPCPassengers_TurretTargetCreated", function(ent)
+    timer.Simple(0, function()
+        if IsValid(ent) then
+            TrackTurretTarget(ent)
+        end
+    end)
+end)
+
+hook.Add("EntityRemoved", "NPCPassengers_TurretTargetRemoved", function(ent)
+    trackedTurretTargets[ent] = nil
+end)
 
 hook.Add("Think", "NPCPassengerTurretThink", function()
     if not NPCPassengers.cv_turret_enabled:GetBool() then return end

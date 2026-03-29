@@ -14,6 +14,8 @@ local animationTimers = {}
 local npcLookState = {}
 local npcBoardRetryState = {}
 local vehicleSeatCache = {}
+local vehiclePassengerCounts = {}
+local occupiedPassengerSeats = {}
 local addonWasEnabled = true
 local vehicleFilterPatternCache = {
     allowClasses = { raw = nil, patterns = {} },
@@ -31,6 +33,7 @@ local PASSENGER_GENERAL_THINK_INTERVAL = 0.1
 local PASSENGER_RELATIONSHIP_REFRESH_INTERVAL = 2
 
 local nextPassengerGeneralThink = 0
+local nextPassengerAnimationThink = 0
 
 NPCPassengers.LVSCompatResolvers = NPCPassengers.LVSCompatResolvers or {}
 
@@ -46,6 +49,78 @@ end
 function NPCPassengers.GetPassengerData(ent)
     if not IsValid(ent) then return nil end
     return friendlyPassengers[ent]
+end
+
+local function UpdateVehiclePassengerCount(vehicle, delta)
+    if not IsValid(vehicle) then return end
+
+    local vehicleId = vehicle:EntIndex()
+    local newCount = (vehiclePassengerCounts[vehicleId] or 0) + delta
+
+    if newCount > 0 then
+        vehiclePassengerCounts[vehicleId] = newCount
+    else
+        vehiclePassengerCounts[vehicleId] = nil
+    end
+end
+
+local function SetPassengerSeatOccupancy(seat, npc)
+    if not IsValid(seat) or not IsValid(npc) then return end
+    occupiedPassengerSeats[seat] = npc
+end
+
+local function ClearPassengerSeatOccupancy(seat, npc)
+    if not IsValid(seat) then return end
+
+    local occupant = occupiedPassengerSeats[seat]
+    if occupant == nil or npc == nil or occupant == npc or not IsValid(occupant) or friendlyPassengers[occupant] == nil then
+        occupiedPassengerSeats[seat] = nil
+    end
+end
+
+local function SetPassengerData(npc, data)
+    if not IsValid(npc) or not data then return nil end
+
+    local previous = friendlyPassengers[npc]
+    if previous then
+        ClearPassengerSeatOccupancy(previous.seat, npc)
+        UpdateVehiclePassengerCount(previous.vehicle, -1)
+    end
+
+    friendlyPassengers[npc] = data
+    UpdateVehiclePassengerCount(data.vehicle, 1)
+    SetPassengerSeatOccupancy(data.seat, npc)
+    return data
+end
+
+local function UpdatePassengerAttachmentData(npc, data, vehicle, seat, baseLocalPos, baseLocalAng, vehicleType)
+    if not IsValid(npc) or not data then return end
+
+    if data.vehicle ~= vehicle then
+        UpdateVehiclePassengerCount(data.vehicle, -1)
+        data.vehicle = vehicle
+        UpdateVehiclePassengerCount(vehicle, 1)
+    end
+
+    if data.seat ~= seat then
+        ClearPassengerSeatOccupancy(data.seat, npc)
+        data.seat = seat
+        SetPassengerSeatOccupancy(seat, npc)
+    end
+
+    data.baseLocalPos = baseLocalPos
+    data.baseLocalAng = baseLocalAng
+    data.vehicleType = vehicleType
+end
+
+local function RemovePassengerData(npc)
+    local data = friendlyPassengers[npc]
+    if not data then return nil end
+
+    friendlyPassengers[npc] = nil
+    ClearPassengerSeatOccupancy(data.seat, npc)
+    UpdateVehiclePassengerCount(data.vehicle, -1)
+    return data
 end
 
 local function IsDebugModeEnabled()
@@ -619,13 +694,7 @@ end)
 
 local function GetPassengerCount(vehicle)
     if not IsValid(vehicle) then return 0 end
-    local count = 0
-    for _, data in pairs(friendlyPassengers) do
-        if IsValid(data.vehicle) and data.vehicle == vehicle then
-            count = count + 1
-        end
-    end
-    return count
+    return vehiclePassengerCounts[vehicle:EntIndex()] or 0
 end
 
 local function ClearVehicleSeatCache(vehicle)
@@ -790,17 +859,15 @@ local function GetAvailableSeatCount(vehicle)
     local available = 0
     for _, seat in ipairs(seats) do
         if not IsValid(seat:GetDriver()) then
-            local isOccupied = false
-            for npc, data in pairs(friendlyPassengers) do
-                if data.seat == seat then
-                    -- Don't count dead passengers as occupying seats
-                    if not IsValid(npc) or npc:Health() > 0 then
-                        isOccupied = true
-                        break
-                    end
+            local occupant = occupiedPassengerSeats[seat]
+            if occupant ~= nil then
+                if not IsValid(occupant) or occupant:Health() <= 0 or friendlyPassengers[occupant] == nil then
+                    occupiedPassengerSeats[seat] = nil
+                    occupant = nil
                 end
             end
-            if not isOccupied then
+
+            if occupant == nil then
                 available = available + 1
             end
         end
@@ -857,8 +924,11 @@ local function CleanupNPCTimers(npc)
     end
     
     if animationTimers[npcId] then
-        timer.Remove("NPCPassengerAnim_" .. npcId)
         animationTimers[npcId] = nil
+    end
+
+    if IsValid(npc) then
+        npc.NPCPassengerSitSeq = nil
     end
 end
 
@@ -2306,8 +2376,6 @@ StartAnimationEnforcement = function(npc)
     
     ForceSitAnimation(npc)
     
-    local data = friendlyPassengers[npc]
-    
     local sitSeq = npc:LookupSequence("silo_sit")
     if not sitSeq or sitSeq < 0 then
         local fallbacks = {"sit_ground", "sit_chair", "sit", "sitground_idle", "idle_sit", "crouch_idle_pistol"}
@@ -2328,127 +2396,146 @@ StartAnimationEnforcement = function(npc)
     npc:ResetSequence(sitSeq)
     npc:SetCycle(0.5)
     npc:SetPlaybackRate(0)
+    npc.NPCPassengerSitSeq = sitSeq
     
     InitializeLookState(npcId)
-    
-    timer.Create("NPCPassengerAnim_" .. npcId, PASSENGER_ANIM_INTERVAL, 0, function()
-        if not IsValid(npc) or not friendlyPassengers[npc] then
-            timer.Remove("NPCPassengerAnim_" .. npcId)
-            animationTimers[npcId] = nil
-            CleanupNPCLookState(npcId)
-            return
-        end
-        
-        local pdata = friendlyPassengers[npc]
-        if not pdata or not IsValid(pdata.vehicle) then return end
-
-        local curTime = CurTime()
-
-        if curTime >= (pdata.nextMaintenanceAt or 0) then
-            npc:SetEnemy(nil)
-            npc:ClearEnemyMemory()
-            npc:StopMoving()
-            npc:SetNPCState(NPC_STATE_SCRIPT)
-            npc:CapabilitiesClear()
-            npc:SetSaveValue("m_bNPCFreeze", true)
-            npc:SetMoveType(MOVETYPE_NONE)
-
-            if npc.SetAutomaticFrameAdvance then
-                npc:SetAutomaticFrameAdvance(false)
-            end
-
-            if curTime >= (pdata.nextRelationshipRefreshAt or 0) then
-                for _, ply in ipairs(player.GetAll()) do
-                    if IsValid(ply) then
-                        npc:AddEntityRelationship(ply, D_LI, 99)
-                    end
-                end
-
-                pdata.nextRelationshipRefreshAt = curTime + PASSENGER_RELATIONSHIP_REFRESH_INTERVAL
-            end
-
-            pdata.nextMaintenanceAt = curTime + PASSENGER_MAINTENANCE_INTERVAL
-        end
-        
-        -- Don't interfere with gestures while they're playing
-        local npcId = npc:EntIndex()
-        local state = npcLookState[npcId]
-        local isPlayingGesture = state and state.isPlayingGesture and curTime < (state.gestureEndTime or 0)
-        
-        if not isPlayingGesture then
-            if npc.RemoveAllGestures then
-                npc:RemoveAllGestures()
-            end
-            
-            -- Use SetSequence (not ResetSequence) to avoid zeroing all pose parameters
-            -- (head_yaw, head_pitch, blink, etc.) which causes visible jitter every 50ms.
-            if npc:GetSequence() ~= sitSeq then
-                npc:SetSequence(sitSeq)
-            end
-            
-            npc:SetCycle(0.5)
-            npc:SetPlaybackRate(0)
-        end
-
-        if curTime >= (pdata.nextCombatThinkAt or 0) then
-            UpdatePassengerCombat(npc, pdata)
-            pdata.nextCombatThinkAt = curTime + PASSENGER_COMBAT_INTERVAL
-        end
-        
-        -- Head/eye looking behavior (can be disabled in settings)
-        if NPCPassengers.cv_head_look:GetBool() and curTime >= (pdata.nextHeadLookAt or 0) then
-            UpdateNPCHeadLook(npc, pdata)
-            pdata.nextHeadLookAt = curTime + PASSENGER_HEADLOOK_INTERVAL
-        end
-
-        local expectedParent = pdata.seat or pdata.vehicle
-        local shouldSyncTransform = npc:GetParent() ~= expectedParent or curTime >= (pdata.nextTransformSyncAt or 0)
-
-        if shouldSyncTransform and IsValid(expectedParent) then
-            if npc:GetParent() ~= expectedParent then
-                npc:SetParent(expectedParent)
-            end
-
-            local basePos = pdata.baseLocalPos or Vector(0,0,0)
-            local vehOffsets = GetVehicleOffsets(pdata.vehicleType or VEHICLE_TYPE_GENERIC)
-
-            local baseAng
-            if pdata.vehicleType == VEHICLE_TYPE_LVS and IsValid(pdata.vehicle) then
-                local vehicleForwardAng = pdata.vehicle:GetAngles()
-                baseAng = expectedParent:WorldToLocalAngles(vehicleForwardAng)
-            else
-                baseAng = pdata.baseLocalAng or Angle(0,0,0)
-            end
-
-            local offsetPos = Vector(
-                vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
-                vehOffsets.right + NPCPassengers.cv_right_offset:GetFloat(),
-                vehOffsets.height + NPCPassengers.cv_height_offset:GetFloat()
-            )
-            npc:SetLocalPos(basePos + offsetPos)
-            
-            local offsetAng = Angle(
-                vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
-                vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
-                vehOffsets.roll + NPCPassengers.cv_roll_offset:GetFloat()
-            )
-            npc:SetLocalAngles(baseAng + offsetAng)
-
-            pdata.nextTransformSyncAt = curTime + PASSENGER_TRANSFORM_SYNC_INTERVAL
-        end
-    end)
     
     animationTimers[npcId] = true
 end
 
-local function VehicleHasNPCAttached(vehicle)
-    if not IsValid(vehicle) then return false end
-    for _, data in pairs(friendlyPassengers) do
-        if IsValid(data.vehicle) and data.vehicle == vehicle then
-            return true
+local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
+    if curTime >= (pdata.nextMaintenanceAt or 0) then
+        npc:SetEnemy(nil)
+        npc:ClearEnemyMemory()
+        npc:StopMoving()
+        npc:SetNPCState(NPC_STATE_SCRIPT)
+        npc:CapabilitiesClear()
+        npc:SetSaveValue("m_bNPCFreeze", true)
+        npc:SetMoveType(MOVETYPE_NONE)
+
+        if npc.SetAutomaticFrameAdvance then
+            npc:SetAutomaticFrameAdvance(false)
+        end
+
+        if curTime >= (pdata.nextRelationshipRefreshAt or 0) then
+            for _, ply in ipairs(players) do
+                if IsValid(ply) then
+                    npc:AddEntityRelationship(ply, D_LI, 99)
+                end
+            end
+
+            pdata.nextRelationshipRefreshAt = curTime + PASSENGER_RELATIONSHIP_REFRESH_INTERVAL
+        end
+
+        pdata.nextMaintenanceAt = curTime + PASSENGER_MAINTENANCE_INTERVAL
+    end
+
+    local npcId = npc:EntIndex()
+    local state = npcLookState[npcId]
+    local isPlayingGesture = state and state.isPlayingGesture and curTime < (state.gestureEndTime or 0)
+
+    if not isPlayingGesture then
+        if npc.RemoveAllGestures then
+            npc:RemoveAllGestures()
+        end
+
+        local sitSeq = npc.NPCPassengerSitSeq
+        if not sitSeq or sitSeq < 0 then
+            sitSeq = npc:LookupSequence("silo_sit")
+            local fallbacks = {"sit_ground", "sit_chair", "sit", "sitground_idle", "idle_sit", "crouch_idle_pistol"}
+            for _, name in ipairs(fallbacks) do
+                sitSeq = npc:LookupSequence(name)
+                if sitSeq and sitSeq >= 0 then break end
+            end
+
+            npc.NPCPassengerSitSeq = sitSeq
+        end
+
+        if not sitSeq or sitSeq < 0 then sitSeq = 0 end
+
+        if npc:GetSequence() ~= sitSeq then
+            npc:SetSequence(sitSeq)
+        end
+
+        npc:SetCycle(0.5)
+        npc:SetPlaybackRate(0)
+    end
+
+    if curTime >= (pdata.nextCombatThinkAt or 0) then
+        UpdatePassengerCombat(npc, pdata)
+        pdata.nextCombatThinkAt = curTime + PASSENGER_COMBAT_INTERVAL
+    end
+
+    if headLookEnabled and curTime >= (pdata.nextHeadLookAt or 0) then
+        UpdateNPCHeadLook(npc, pdata)
+        pdata.nextHeadLookAt = curTime + PASSENGER_HEADLOOK_INTERVAL
+    end
+
+    local expectedParent = pdata.seat or pdata.vehicle
+    local shouldSyncTransform = npc:GetParent() ~= expectedParent or curTime >= (pdata.nextTransformSyncAt or 0)
+
+    if shouldSyncTransform and IsValid(expectedParent) then
+        if npc:GetParent() ~= expectedParent then
+            npc:SetParent(expectedParent)
+        end
+
+        local basePos = pdata.baseLocalPos or Vector(0, 0, 0)
+        local vehOffsets = GetVehicleOffsets(pdata.vehicleType or VEHICLE_TYPE_GENERIC)
+        local baseAng
+
+        if pdata.vehicleType == VEHICLE_TYPE_LVS and IsValid(pdata.vehicle) then
+            baseAng = expectedParent:WorldToLocalAngles(pdata.vehicle:GetAngles())
+        else
+            baseAng = pdata.baseLocalAng or Angle(0, 0, 0)
+        end
+
+        npc:SetLocalPos(basePos + Vector(
+            vehOffsets.forward + transformOffsets.forward,
+            vehOffsets.right + transformOffsets.right,
+            vehOffsets.height + transformOffsets.height
+        ))
+        npc:SetLocalAngles(baseAng + Angle(
+            vehOffsets.pitch + transformOffsets.pitch,
+            vehOffsets.baseYaw + vehOffsets.yaw + transformOffsets.yaw,
+            vehOffsets.roll + transformOffsets.roll
+        ))
+
+        pdata.nextTransformSyncAt = curTime + PASSENGER_TRANSFORM_SYNC_INTERVAL
+    end
+end
+
+hook.Add("Think", "NPCPassengerAnimationThink", function()
+    if not IsAddonEnabled() then return end
+
+    local curTime = CurTime()
+    if curTime < nextPassengerAnimationThink then return end
+
+    nextPassengerAnimationThink = curTime + PASSENGER_ANIM_INTERVAL
+
+    if next(friendlyPassengers) == nil then return end
+
+    local players = player.GetAll()
+    local headLookEnabled = NPCPassengers.cv_head_look:GetBool()
+    local transformOffsets = {
+        forward = NPCPassengers.cv_forward_offset:GetFloat(),
+        right = NPCPassengers.cv_right_offset:GetFloat(),
+        height = NPCPassengers.cv_height_offset:GetFloat(),
+        pitch = NPCPassengers.cv_pitch_offset:GetFloat(),
+        yaw = NPCPassengers.cv_yaw_offset:GetFloat(),
+        roll = NPCPassengers.cv_roll_offset:GetFloat(),
+    }
+
+    for npc, pdata in pairs(friendlyPassengers) do
+        local npcId = IsValid(npc) and npc:EntIndex() or pdata.npcId
+        if npcId and animationTimers[npcId] and IsValid(npc) and IsValid(pdata.vehicle) then
+            UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
         end
     end
-    return false
+end)
+
+local function VehicleHasNPCAttached(vehicle)
+    if not IsValid(vehicle) then return false end
+    return GetPassengerCount(vehicle) > 0
 end
 
 local function WalkNPCToVehicle(npc, vehicle, callback)
@@ -2615,7 +2702,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     -- Mark as passenger for client-side bone manipulation
     npc:SetNWBool("IsNPCPassenger", true)
     
-    friendlyPassengers[npc] = {
+    SetPassengerData(npc, {
         vehicle = vehicle,
         seat = (parentEntity ~= vehicle) and parentEntity or nil,
         npcId = npc:EntIndex(),
@@ -2631,7 +2718,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
         lastHurtSound = 0,
         lastIdleChatter = CurTime() + 10,
         isHidden = isEnclosed
-    }
+    })
     
     vehicleCooldowns[vehicleId] = CurTime()
     RegisterBoardSuccess(npc)
@@ -2727,7 +2814,6 @@ DetachNPC = function(npc)
         NPCPassengers.UnregisterDriverNPC(npc)
     end
     
-    timer.Remove("NPCPassengerAnim_" .. data.npcId)
     animationTimers[data.npcId] = nil
     CleanupNPCLookState(data.npcId)
     
@@ -2744,7 +2830,7 @@ DetachNPC = function(npc)
         npc:SetColor(Color(255, 255, 255, 255))
         npc:SetNWBool("NPCPassengerHidden", false)
         npc:SetNWBool("IsNPCPassenger", false)
-        friendlyPassengers[npc] = nil
+        RemovePassengerData(npc)
         SafeRemoveEntity(npc)
         return true
     end
@@ -2826,7 +2912,7 @@ DetachNPC = function(npc)
     -- Clear passenger flag for client-side cleanup
     npc:SetNWBool("IsNPCPassenger", false)
     
-    friendlyPassengers[npc] = nil
+    RemovePassengerData(npc)
     
     return true
 end
@@ -2853,11 +2939,6 @@ hook.Add("Think", "NPCPassengerThink", function()
     if next(friendlyPassengers) == nil then
         return
     end
-
-    local passengersCopy = {}
-    for npc, data in pairs(friendlyPassengers) do
-        passengersCopy[npc] = data
-    end
     
     -- Speech settings cache
     local speechEnabled = NPCPassengers.cv_speech_enabled:GetBool()
@@ -2874,23 +2955,23 @@ hook.Add("Think", "NPCPassengerThink", function()
     local ambientEnabled = speechEnabled and NPCPassengers.cv_ambient_sounds:GetBool()
     local ambientInterval = NPCPassengers.cv_ambient_interval:GetFloat()
     local fearReactions = NPCPassengers.cv_fear_reactions:GetBool()
-    local fearSpeedThreshold = NPCPassengers.cv_fear_speed_threshold:GetFloat()
+    local passengersToDetach = nil
+    local passengersToCleanup = nil
     
-    for npc, data in pairs(passengersCopy) do
+    for npc, data in pairs(friendlyPassengers) do
         if not IsValid(npc) or npc:Health() <= 0 then
             if IsValid(npc) then
                 ResetPassengerFacialState(npc)
                 CleanupNPCLookState(npc:EntIndex())
             end
-            friendlyPassengers[npc] = nil
-            CleanupNPCTimers(npc)
-            if animationTimers[npc:EntIndex()] then
-                animationTimers[npc:EntIndex()] = nil
-            end
+            passengersToCleanup = passengersToCleanup or {}
+            passengersToCleanup[#passengersToCleanup + 1] = npc
         elseif not IsValid(data.vehicle) then
-            DetachNPC(npc)
+            passengersToDetach = passengersToDetach or {}
+            passengersToDetach[#passengersToDetach + 1] = npc
         elseif not IsFriendlyNPC(npc, data.vehicle) then
-            DetachNPC(npc)
+            passengersToDetach = passengersToDetach or {}
+            passengersToDetach[#passengersToDetach + 1] = npc
         else
             if not npc:GetParent() then
                 npc:SetParent(data.vehicle)
@@ -3093,6 +3174,26 @@ hook.Add("Think", "NPCPassengerThink", function()
                 
                 -- Process emotion-triggered actions
                 ProcessEmotionActions(npc, state, data.vehicle)
+            end
+        end
+    end
+
+    if passengersToCleanup then
+        for _, npc in ipairs(passengersToCleanup) do
+            if friendlyPassengers[npc] then
+                RemovePassengerData(npc)
+                CleanupNPCTimers(npc)
+                if IsValid(npc) then
+                    animationTimers[npc:EntIndex()] = nil
+                end
+            end
+        end
+    end
+
+    if passengersToDetach then
+        for _, npc in ipairs(passengersToDetach) do
+            if friendlyPassengers[npc] and IsValid(npc) then
+                DetachNPC(npc)
             end
         end
     end
@@ -3402,7 +3503,7 @@ hook.Add("EntityRemoved", "NPCPassengerCleanup", function(ent)
         if NPCPassengers.UnregisterTurretNPC then
             NPCPassengers.UnregisterTurretNPC(ent)
         end
-        friendlyPassengers[ent] = nil
+        RemovePassengerData(ent)
         CleanupNPCTimers(entId)
         CleanupNPCLookState(entId)
         if animationTimers[entId] then
@@ -3421,13 +3522,12 @@ hook.Add("EntityRemoved", "NPCPassengerCleanup", function(ent)
         if IsValid(npc) then
             DetachNPC(npc)
         else
-            friendlyPassengers[npc] = nil
+            RemovePassengerData(npc)
             CleanupNPCTimers(npc)
         end
     end
     
     if animationTimers[entId] then
-        timer.Remove("NPCPassengerAnim_" .. entId)
         animationTimers[entId] = nil
     end
     
@@ -3451,7 +3551,7 @@ ResetPassengerState = function(reason)
                 detached = detached + 1
             end
         else
-            friendlyPassengers[npc] = nil
+            RemovePassengerData(npc)
         end
     end
 
@@ -3459,6 +3559,9 @@ ResetPassengerState = function(reason)
     vehicleCooldowns = {}
     npcBoardRetryState = {}
     vehicleSeatCache = {}
+    vehiclePassengerCounts = {}
+    occupiedPassengerSeats = {}
+    nextPassengerAnimationThink = 0
 
     if IsVerboseDebugEnabled() then
         print("[better npc passengers] reset state reason=" .. tostring(reason or "unknown") .. " detached=" .. tostring(detached))
@@ -3590,15 +3693,21 @@ end)
 local function IsSeatOccupiedByOtherPassenger(seat, ignoredNPC)
     if not IsValid(seat) then return false end
 
-    for existingNpc, data in pairs(friendlyPassengers) do
-        if existingNpc ~= ignoredNPC and data.seat == seat then
-            if not IsValid(existingNpc) or existingNpc:Health() > 0 then
-                return true
-            end
-        end
+    local occupant = occupiedPassengerSeats[seat]
+    if occupant == nil then
+        return false
     end
 
-    return false
+    if occupant == ignoredNPC then
+        return false
+    end
+
+    if not IsValid(occupant) or occupant:Health() <= 0 or friendlyPassengers[occupant] == nil then
+        occupiedPassengerSeats[seat] = nil
+        return false
+    end
+
+    return true
 end
 
 -- Assign NPC to a specific seat index in the player's vehicle
@@ -3664,11 +3773,15 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
             vehOffsets.roll  + NPCPassengers.cv_roll_offset:GetFloat()
         ))
 
-        existingPassengerData.vehicle = rootVehicle
-        existingPassengerData.seat = targetSeat
-        existingPassengerData.baseLocalPos = targetSeat:WorldToLocal(npcPos)
-        existingPassengerData.baseLocalAng = targetSeat:WorldToLocalAngles(npcAng)
-        existingPassengerData.vehicleType = vehicleType
+        UpdatePassengerAttachmentData(
+            npc,
+            existingPassengerData,
+            rootVehicle,
+            targetSeat,
+            targetSeat:WorldToLocal(npcPos),
+            targetSeat:WorldToLocalAngles(npcAng),
+            vehicleType
+        )
         existingPassengerData.lastAngleCheck = CurTime()
         existingPassengerData.nextTransformSyncAt = 0
 
@@ -3713,7 +3826,7 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
     StartAnimationEnforcement(npc)
     npc:SetNWBool("IsNPCPassenger", true)
 
-    friendlyPassengers[npc] = {
+    SetPassengerData(npc, {
         vehicle       = rootVehicle,
         seat          = targetSeat,
         npcId         = npc:EntIndex(),
@@ -3729,7 +3842,7 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
         lastHurtSound = 0,
         lastIdleChatter = CurTime() + 10,
         isHidden      = isEnclosed,
-    }
+    })
 
     vehicleCooldowns[rootVehicle:EntIndex()] = CurTime()
     RegisterBoardSuccess(npc)
@@ -4511,7 +4624,7 @@ function NPCPassengers.MakeNPCDriver(npc, vehicle)
     npc:SetNWBool("IsNPCPassenger", true)
     
     -- Create passenger data entry (so driver gets all passenger behaviors)
-    friendlyPassengers[npc] = {
+    SetPassengerData(npc, {
         vehicle = vehicle,
         seat = driverSeat,
         npcId = npc:EntIndex(),
@@ -4527,7 +4640,7 @@ function NPCPassengers.MakeNPCDriver(npc, vehicle)
         lastHurtSound = 0,
         lastIdleChatter = CurTime() + 10,
         isDriver = true  -- Mark as driver
-    }
+    })
     
     -- Get behavior mode from settings
     local behavior = NPCPassengers.cv_driver_behavior:GetInt()
