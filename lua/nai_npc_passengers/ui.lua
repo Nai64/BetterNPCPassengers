@@ -432,6 +432,35 @@ local function LerpColor(t, col1, col2)
     )
 end
 
+local TransparentColor = Color(0, 0, 0, 0)
+
+local function AnimateButtonVisualState(button, hoverInSpeed, hoverOutSpeed, pressInSpeed, pressOutSpeed)
+    local hovered = button:IsHovered()
+    local pressed = button:IsDown()
+
+    button.hoverAnim = math.Approach(button.hoverAnim or 0, hovered and 1 or 0, FrameTime() * (hovered and (hoverInSpeed or 8) or (hoverOutSpeed or 10)))
+    button.pressAnim = math.Approach(button.pressAnim or 0, pressed and 1 or 0, FrameTime() * (pressed and (pressInSpeed or 18) or (pressOutSpeed or 12)))
+
+    return button.hoverAnim, button.pressAnim
+end
+
+local function HandleButtonHoverSound(button)
+    if button:IsHovered() then
+        if not button.hasPlayedHoverSound then
+            if GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_hover_enabled"):GetBool() then
+                surface.PlaySound("nai_passengers/ui_hover.wav")
+            end
+            button.hasPlayedHoverSound = true
+        end
+    else
+        button.hasPlayedHoverSound = false
+    end
+end
+
+local function GetButtonPushOffset(button, distance)
+    return math.floor((button.pressAnim or 0) * (distance or 2) + 0.5)
+end
+
 local function DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
     if borderColor then
         draw.RoundedBox(radius, x, y, w, h, borderColor)
@@ -816,61 +845,35 @@ local function CreateButton(parent, text, callback)
     btn:SetTall(40)
     btn:Dock(TOP)
     btn:DockMargin(8, 6, 8, 6)
-    btn:SetTextColor(Theme.textBright)
+    btn:SetTextColor(TransparentColor)
     btn.hoverAnim = 0
-    btn.clickAnim = 0
+    btn.pressAnim = 0
     btn.hasPlayedHoverSound = false
     
     btn.Paint = function(self, w, h)
-        -- Hover animation and sound
-        if self:IsHovered() then
-            self.hoverAnim = math.Approach(self.hoverAnim, 1, FrameTime() * 6)
-            if not self.hasPlayedHoverSound then
-                if GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_hover_enabled"):GetBool() then
-                    local volume = GetConVar("nai_npc_ui_sounds_volume"):GetFloat()
-                    surface.PlaySound("nai_passengers/ui_hover.wav")
-                end
-                self.hasPlayedHoverSound = true
-            end
-        else
-            self.hoverAnim = math.Approach(self.hoverAnim, 0, FrameTime() * 8)
-            self.hasPlayedHoverSound = false
-        end
-        
-        -- Click animation
-        if self:IsDown() then
-            self.clickAnim = 1
-        else
-            self.clickAnim = math.Approach(self.clickAnim, 0, FrameTime() * 12)
-        end
-        
-        -- Background with glow
+        AnimateButtonVisualState(self, 6, 8, 18, 12)
+        HandleButtonHoverSound(self)
+
+        local pushOffset = GetButtonPushOffset(self, 2)
         local bgColor = LerpColor(self.hoverAnim, Theme.accent, Theme.accentHover)
-        if self.clickAnim > 0 then
-            bgColor = Theme.accentActive
-        end
-        
-        -- Outer glow on hover
+        bgColor = LerpColor(self.pressAnim, bgColor, Theme.accentActive)
+
         if self.hoverAnim > 0 then
             local glowAlpha = 50 * self.hoverAnim
-            draw.RoundedBox(8, -2, -2, w + 4, h + 4, ColorAlpha(Theme.accent, glowAlpha))
+            draw.RoundedBox(8, -2, -2 + pushOffset, w + 4, h + 4, ColorAlpha(Theme.accent, glowAlpha))
         end
-        
-        -- Shadow
-        draw.RoundedBox(8, 2, 2, w, h, Theme.shadow)
-        
-        -- Main button
-        draw.RoundedBox(7, 0, 0, w, h, bgColor)
-        
-        -- Subtle gradient overlay
+
+        draw.RoundedBox(8, 2, 2 - self.pressAnim, w, h, Theme.shadow)
+        draw.RoundedBox(7, 0, pushOffset, w, h, bgColor)
+
         local gradientMat = Material("vgui/gradient-d")
         surface.SetDrawColor(255, 255, 255, 15)
         surface.SetMaterial(gradientMat)
-        surface.DrawTexturedRect(0, 0, w, h / 2)
-        
-        -- Border highlight
+        surface.DrawTexturedRect(0, pushOffset, w, h / 2)
+
         surface.SetDrawColor(Theme.accentHover.r, Theme.accentHover.g, Theme.accentHover.b, 60)
-        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        surface.DrawOutlinedRect(0, pushOffset, w, h, 1)
+        draw.SimpleText(self:GetText(), "NaiFont_Medium", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     
     btn.DoClick = function()
@@ -1044,31 +1047,30 @@ local function OpenSettingsPanel()
     closeBtn:SetSize(28, 28)
     closeBtn:SetText("")
     closeBtn.hoverAnim = 0
+    closeBtn.pressAnim = 0
     closeBtn.Paint = function(self, w, h)
         local aprilMode = IsAprilFoolsActive()
-        if self:IsHovered() then
-            self.hoverAnim = math.Approach(self.hoverAnim, 1, FrameTime() * 8)
-        else
-            self.hoverAnim = math.Approach(self.hoverAnim, 0, FrameTime() * 10)
-        end
-        
+        AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+        local pushOffset = GetButtonPushOffset(self, 2)
         local baseColor = aprilMode and GetAprilTripColor(330, 0.9, 1, 255) or Theme.bgLight
         local hoverColor = aprilMode and GetAprilTripColor(40, 0.9, 1, 255) or Theme.error
         local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
-        draw.RoundedBox(6, 0, 0, w, h, col)
+        local pressedColor = aprilMode and GetAprilTripColor(10, 0.95, 0.9, 255) or Color(170, 72, 72)
+        col = LerpColor(self.pressAnim, col, pressedColor)
+        draw.RoundedBox(6, 0, pushOffset, w, h, col)
 
         if aprilMode then
-            DrawAprilSpinner(w / 2, h / 2, 11, 920, 70, 125)
+            DrawAprilSpinner(w / 2, (h / 2) + pushOffset, 11, 920, 70, 125)
         end
         
-        -- X icon
         local iconColor = aprilMode and GetAprilTripColor(120, 0.2, 1, 255) or Theme.textBright
         if aprilMode then
-            DrawRotatingCross(w / 2, h / 2, 7, CurTime() * 720 + self.hoverAnim * 50, iconColor)
+            DrawRotatingCross(w / 2, (h / 2) + pushOffset, 7, CurTime() * 720 + self.hoverAnim * 50, iconColor)
         else
             surface.SetDrawColor(iconColor)
-            surface.DrawLine(8, 8, w - 8, h - 8)
-            surface.DrawLine(w - 8, 8, 8, h - 8)
+            surface.DrawLine(8, 8 + pushOffset, w - 8, h - 8 + pushOffset)
+            surface.DrawLine(w - 8, 8 + pushOffset, 8, h - 8 + pushOffset)
         end
     end
     closeBtn.DoClick = function()
@@ -1195,33 +1197,23 @@ local function OpenSettingsPanel()
         btn:SetTall(46)
         btn.isActive = false
         btn.hoverAnim = 0
+        btn.pressAnim = 0
         btn.activeAnim = 0
         btn.iconPath = icon
         btn.hasPlayedHoverSound = false
         
         btn.Paint = function(self, w, h)
             local aprilMode = IsAprilFoolsActive()
-            -- Animation states
             if self.isActive then
                 self.activeAnim = math.Approach(self.activeAnim, 1, FrameTime() * 10)
             else
                 self.activeAnim = math.Approach(self.activeAnim, 0, FrameTime() * 10)
             end
-            
-            if self:IsHovered() then
-                self.hoverAnim = math.Approach(self.hoverAnim, 1, FrameTime() * 8)
-                if not self.hasPlayedHoverSound then
-                    if GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_hover_enabled"):GetBool() then
-                        surface.PlaySound("nai_passengers/ui_hover.wav")
-                    end
-                    self.hasPlayedHoverSound = true
-                end
-            else
-                self.hoverAnim = math.Approach(self.hoverAnim, 0, FrameTime() * 10)
-                self.hasPlayedHoverSound = false
-            end
-            
-            -- Background
+
+            AnimateButtonVisualState(self, 8, 10, 18, 12)
+            HandleButtonHoverSound(self)
+
+            local pushOffset = GetButtonPushOffset(self, 2)
             local bgCol = Theme.bgLight
             local accentColor = aprilMode and GetAprilTripColor(30 + self:GetY(), 0.9, 1, 255) or Theme.accent
             local accentHoverColor = aprilMode and GetAprilTripColor(90 + self:GetY(), 0.9, 1, 255) or Theme.accentHover
@@ -1230,34 +1222,29 @@ local function OpenSettingsPanel()
             elseif self.hoverAnim > 0 then
                 bgCol = LerpColor(self.hoverAnim, Theme.bgLight, Theme.bgLighter)
             end
-            
-            draw.RoundedBox(6, 0, 0, w, h, bgCol)
-            
-            -- Active indicator line
+            bgCol = LerpColor(self.pressAnim, bgCol, aprilMode and GetAprilTripColor(0, 0.95, 0.86, 255) or Theme.accentActive)
+
+            draw.RoundedBox(6, 0, pushOffset, w, h, bgCol)
+
             if self.activeAnim > 0 then
                 local lineW = 4
-                draw.RoundedBox(2, 0, 0, lineW, h, accentHoverColor)
-                
-                -- Glow effect
+                draw.RoundedBox(2, 0, pushOffset, lineW, h, accentHoverColor)
                 surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 60 * self.activeAnim)
-                surface.DrawRect(-2, 0, w + 4, h)
+                surface.DrawRect(-2, pushOffset, w + 4, h)
             end
-            
-            -- Hover line
+
             if self.hoverAnim > 0 and not self.isActive then
                 surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 40 * self.hoverAnim)
-                surface.DrawRect(0, h - 2, w, 2)
+                surface.DrawRect(0, h - 2 + pushOffset, w, 2)
             end
-            
-            -- Icon with color
+
             local iconCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
             surface.SetDrawColor(iconCol)
             surface.SetMaterial(Material(icon))
-            surface.DrawTexturedRect(12, (h - 18) / 2, 18, 18)
-            
-            -- Text
+            surface.DrawTexturedRect(12, ((h - 18) / 2) + pushOffset, 18, 18)
+
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
-            DrawMarqueeText(self, label, "NaiFont_Normal", 38, h/2, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
+            DrawMarqueeText(self, label, "NaiFont_Normal", 38, (h / 2) + pushOffset, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
         end
         
         table.insert(navButtons, btn)
@@ -1477,14 +1464,20 @@ local function OpenSettingsPanel()
         result:SetTall(52)
         result:Dock(TOP)
         result:DockMargin(0, rank == 1 and 0 or 4, 0, 0)
+        result.hoverAnim = 0
+        result.pressAnim = 0
 
         result.Paint = function(self, w, h)
-            local bgCol = self:IsHovered() and Theme.bgLighter or Theme.bgDark
-            DrawRoundedSurface(0, 0, w, h, 8, bgCol, self:IsHovered() and Theme.accentHover or Theme.border)
+            AnimateButtonVisualState(self, 10, 12, 18, 12)
 
-            draw.SimpleText(tostring(rank), "NaiFont_Small", 14, h / 2, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            DrawMarqueeText(self, entry.title, "NaiFont_Normal", 34, 17, Theme.textBright, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
-            DrawMarqueeText(self, entry.panelName .. " / " .. entry.section, "NaiFont_Small", 34, 34, Theme.textDim, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
+            local pushOffset = GetButtonPushOffset(self, 2)
+            local bgCol = LerpColor(self.hoverAnim, Theme.bgDark, Theme.bgLighter)
+            bgCol = LerpColor(self.pressAnim, bgCol, Theme.bg)
+            DrawRoundedSurface(0, pushOffset, w, h, 8, bgCol, self:IsHovered() and Theme.accentHover or Theme.border)
+
+            draw.SimpleText(tostring(rank), "NaiFont_Small", 14, (h / 2) + pushOffset, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            DrawMarqueeText(self, entry.title, "NaiFont_Normal", 34, 17 + pushOffset, Theme.textBright, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
+            DrawMarqueeText(self, entry.panelName .. " / " .. entry.section, "NaiFont_Small", 34, 34 + pushOffset, Theme.textDim, math.max(w - 46, 0), TEXT_ALIGN_TOP, 28, 18)
         end
 
         result.DoClick = function()
@@ -1993,17 +1986,23 @@ local function OpenSettingsPanel()
             assignBtn:SetPos(198, 146)
             assignBtn:SetSize(136, 28)
             assignBtn:SetFont("NaiFont_Normal")
-            assignBtn:SetTextColor(Theme.textBright)
+            assignBtn:SetTextColor(TransparentColor)
             assignBtn:SetText("Assign Seat")
+            assignBtn.hoverAnim = 0
+            assignBtn.pressAnim = 0
             assignBtn.Paint = function(self, w, h)
                 local enabled = IsValid(npc) and IsPassengerInLocalPlayersVehicle(npc)
+                AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+                local pushOffset = GetButtonPushOffset(self, enabled and 2 or 0)
                 local baseColor = enabled and Theme.accent or Theme.bgDark
                 local hoverColor = enabled and Theme.accentHover or Theme.bgDark
-                local color = self:IsHovered() and hoverColor or baseColor
-                if self:IsDown() and enabled then
-                    color = Theme.accentActive
+                local color = LerpColor(self.hoverAnim, baseColor, hoverColor)
+                if enabled then
+                    color = LerpColor(self.pressAnim, color, Theme.accentActive)
                 end
-                draw.RoundedBox(4, 0, 0, w, h, color)
+                draw.RoundedBox(4, 0, pushOffset, w, h, color)
+                draw.SimpleText(self:GetText(), "NaiFont_Normal", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
             end
             assignBtn.DoClick = function()
                 if not IsValid(npc) then return end
@@ -2031,14 +2030,18 @@ local function OpenSettingsPanel()
             detachBtn:SetPos(344, 146)
             detachBtn:SetSize(104, 28)
             detachBtn:SetFont("NaiFont_Normal")
-            detachBtn:SetTextColor(Theme.textBright)
+            detachBtn:SetTextColor(TransparentColor)
             detachBtn:SetText("Detach")
+            detachBtn.hoverAnim = 0
+            detachBtn.pressAnim = 0
             detachBtn.Paint = function(self, w, h)
-                local color = self:IsHovered() and Theme.error or Theme.bgDark
-                if self:IsDown() then
-                    color = Color(140, 60, 60)
-                end
-                draw.RoundedBox(4, 0, 0, w, h, color)
+                AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+                local pushOffset = GetButtonPushOffset(self, 2)
+                local color = LerpColor(self.hoverAnim, Theme.bgDark, Theme.error)
+                color = LerpColor(self.pressAnim, color, Color(140, 60, 60))
+                draw.RoundedBox(4, 0, pushOffset, w, h, color)
+                draw.SimpleText(self:GetText(), "NaiFont_Normal", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
             end
             detachBtn.DoClick = function()
                 if not IsValid(npc) then return end
@@ -2537,9 +2540,11 @@ local function OpenSettingsPanel()
         
         local btn = vgui.Create("DButton", container)
         btn:SetFont("NaiFont_Normal")
-        btn:SetTextColor(Theme.text)
+        btn:SetTextColor(TransparentColor)
         btn:SetSize(120, 35)
         btn.isBinding = false
+        btn.hoverAnim = 0
+        btn.pressAnim = 0
         
         -- Load saved keybind
         local cvar = GetConVar(convar)
@@ -2555,14 +2560,18 @@ local function OpenSettingsPanel()
         end
         
         btn.Paint = function(self, w, h)
+            AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+            local pushOffset = GetButtonPushOffset(self, self.isBinding and 0 or 2)
             local col = Color(60, 60, 70)
             if self.isBinding then
                 col = Theme.accentActive
-            elseif self:IsHovered() then
-                col = Theme.accent
+            else
+                col = LerpColor(self.hoverAnim, Color(60, 60, 70), Theme.accent)
+                col = LerpColor(self.pressAnim, col, Color(50, 50, 60))
             end
-            if self:IsDown() and not self.isBinding then col = Color(50, 50, 60) end
-            draw.RoundedBox(4, 0, 0, w, h, col)
+            draw.RoundedBox(4, 0, pushOffset, w, h, col)
+            draw.SimpleText(self:GetText(), "NaiFont_Normal", w / 2, (h / 2) + pushOffset, Theme.text, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
         end
         
         btn.DoClick = function()
@@ -3662,17 +3671,17 @@ function ShowWelcomePanel(forceShow)
     settingsBtn:SetTall(38)
     settingsBtn:Dock(TOP)
     settingsBtn:DockMargin(0, 0, 0, 15)
-    settingsBtn:SetTextColor(Theme.textBright)
+    settingsBtn:SetTextColor(TransparentColor)
     settingsBtn.hoverAnim = 0
+    settingsBtn.pressAnim = 0
     settingsBtn.Paint = function(self, w, h)
-        if self:IsHovered() then
-            self.hoverAnim = math.Approach(self.hoverAnim, 1, FrameTime() * 5)
-        else
-            self.hoverAnim = math.Approach(self.hoverAnim, 0, FrameTime() * 5)
-        end
+        AnimateButtonVisualState(self, 5, 5, 18, 12)
+
+        local pushOffset = GetButtonPushOffset(self, 2)
         local bgColor = LerpColor(self.hoverAnim, Theme.accent, Theme.accentHover)
-        if self:IsDown() then bgColor = Theme.accentActive end
-        draw.RoundedBox(6, 0, 0, w, h, bgColor)
+        bgColor = LerpColor(self.pressAnim, bgColor, Theme.accentActive)
+        draw.RoundedBox(6, 0, pushOffset, w, h, bgColor)
+        draw.SimpleText(self:GetText(), "NaiFont_Medium", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     settingsBtn.DoClick = function()
         frame:Close()
@@ -3770,17 +3779,17 @@ function ShowWelcomePanel(forceShow)
     okBtn:SetSize(120, 36)
     okBtn:SetText("Got it!")
     okBtn:SetFont("NaiFont_Medium")
-    okBtn:SetTextColor(Theme.textBright)
+    okBtn:SetTextColor(TransparentColor)
     okBtn.hoverAnim = 0
+    okBtn.pressAnim = 0
     okBtn.Paint = function(self, w, h)
-        if self:IsHovered() then
-            self.hoverAnim = math.Approach(self.hoverAnim, 1, FrameTime() * 5)
-        else
-            self.hoverAnim = math.Approach(self.hoverAnim, 0, FrameTime() * 5)
-        end
+        AnimateButtonVisualState(self, 5, 5, 18, 12)
+
+        local pushOffset = GetButtonPushOffset(self, 2)
         local bgColor = LerpColor(self.hoverAnim, Theme.success, Color(100, 200, 120))
-        if self:IsDown() then bgColor = Color(60, 160, 80) end
-        draw.RoundedBox(6, 0, 0, w, h, bgColor)
+        bgColor = LerpColor(self.pressAnim, bgColor, Color(60, 160, 80))
+        draw.RoundedBox(6, 0, pushOffset, w, h, bgColor)
+        draw.SimpleText(self:GetText(), "NaiFont_Medium", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     okBtn.DoClick = function()
         if dontShowCheck:GetChecked() then
