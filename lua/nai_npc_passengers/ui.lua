@@ -134,7 +134,9 @@ local selectionExpireTime = 0
 local spineBoneCache = {}
 local clientSwayState = {}
 local trackedPassengerNPCs = {}
+local clientVehicleSeatCache = {}
 local nextPassengerRefresh = 0
+local PASSENGER_TRACK_REFRESH_INTERVAL = 0.5
 
 local cvBodySway = GetConVar("nai_npc_body_sway")
 local cvBodySwayAmount = GetConVar("nai_npc_body_sway_amount")
@@ -163,21 +165,99 @@ local function GetPassengerControlVehicle(npc)
     return GetClientRootVehicle(parent)
 end
 
+local function ClearClientVehicleSeatCache(vehicle)
+    if isnumber(vehicle) then
+        clientVehicleSeatCache[vehicle] = nil
+        return
+    end
+
+    if not IsValid(vehicle) then return end
+    clientVehicleSeatCache[vehicle:EntIndex()] = nil
+end
+
+local function AddClientSeat(seats, seatLookup, seat)
+    if not IsValid(seat) or seatLookup[seat] then return end
+
+    seatLookup[seat] = true
+    seats[#seats + 1] = seat
+end
+
 local function GetClientVehicleSeats(vehicle)
     if not IsValid(vehicle) then return {} end
 
-    local seats = {}
+    local vehicleId = vehicle:EntIndex()
+    local class = vehicle:GetClass() or ""
+    local children = vehicle:GetChildren()
+    local childCount = #children
+    local cached = clientVehicleSeatCache[vehicleId]
 
-    if vehicle.GetDriverSeat then
-        local driverSeat = vehicle:GetDriverSeat()
-        if IsValid(driverSeat) then
-            seats[#seats + 1] = driverSeat
+    if cached and cached.childCount == childCount and cached.className == class then
+        local seats = cached.seats
+        local validSeats = true
+
+        for index = 1, #seats do
+            if not IsValid(seats[index]) then
+                validSeats = false
+                break
+            end
+        end
+
+        if validSeats then
+            return seats
         end
     end
 
-    for _, child in ipairs(vehicle:GetChildren()) do
+    local seats = {}
+    local seatLookup = {}
+
+    if vehicle.GetDriverSeat then
+        local driverSeat = vehicle:GetDriverSeat()
+        AddClientSeat(seats, seatLookup, driverSeat)
+    end
+
+    if IsValid(vehicle.DriverSeat) then
+        AddClientSeat(seats, seatLookup, vehicle.DriverSeat)
+    end
+
+    if vehicle.GetPassengerSeats then
+        for _, seat in pairs(vehicle:GetPassengerSeats()) do
+            AddClientSeat(seats, seatLookup, seat)
+        end
+    end
+
+    if vehicle.GetGunnerSeats then
+        for _, seat in pairs(vehicle:GetGunnerSeats()) do
+            AddClientSeat(seats, seatLookup, seat)
+        end
+    end
+
+    if vehicle.pSeat then
+        for _, seat in pairs(vehicle.pSeat) do
+            AddClientSeat(seats, seatLookup, seat)
+        end
+    end
+
+    if vehicle.GetSeats then
+        for _, seat in pairs(vehicle:GetSeats()) do
+            AddClientSeat(seats, seatLookup, seat)
+        end
+    end
+
+    if vehicle.Seats then
+        for _, seat in pairs(vehicle.Seats) do
+            AddClientSeat(seats, seatLookup, seat)
+        end
+    end
+
+    if vehicle.seats then
+        for _, seat in ipairs(vehicle.seats) do
+            AddClientSeat(seats, seatLookup, seat)
+        end
+    end
+
+    for _, child in ipairs(children) do
         if IsValid(child) and child:GetClass() == "prop_vehicle_prisoner_pod" then
-            seats[#seats + 1] = child
+            AddClientSeat(seats, seatLookup, child)
         end
     end
 
@@ -186,6 +266,12 @@ local function GetClientVehicleSeats(vehicle)
         local posB = vehicle:WorldToLocal(b:GetPos())
         return posA.x > posB.x
     end)
+
+    clientVehicleSeatCache[vehicleId] = {
+        seats = seats,
+        childCount = childCount,
+        className = class,
+    }
 
     return seats
 end
@@ -231,6 +317,31 @@ local function RefreshTrackedPassengers()
     end
 end
 
+local function EnsureTrackedPassengersFresh(forceRefresh)
+    local curTime = CurTime()
+
+    if forceRefresh or curTime >= nextPassengerRefresh then
+        RefreshTrackedPassengers()
+        nextPassengerRefresh = curTime + PASSENGER_TRACK_REFRESH_INTERVAL
+    end
+end
+
+local function GetTrackedPassengerEntities(forceRefresh)
+    EnsureTrackedPassengersFresh(forceRefresh)
+
+    local passengers = {}
+
+    for ent in pairs(trackedPassengerNPCs) do
+        if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
+            passengers[#passengers + 1] = ent
+        else
+            trackedPassengerNPCs[ent] = nil
+        end
+    end
+
+    return passengers
+end
+
 -- Get spine bones for an NPC (cached)
 local function GetSpineBones(npc)
     local entIdx = npc:EntIndex()
@@ -261,11 +372,9 @@ hook.Add("Think", "NPCPassengers_ClientBodySway", function()
 
     if not cvBodySway or not cvBodySway:GetBool() then return end
 
-    local curTime = CurTime()
-    if curTime >= nextPassengerRefresh then
-        RefreshTrackedPassengers()
-        nextPassengerRefresh = curTime + 1
-    end
+    EnsureTrackedPassengersFresh()
+
+    if next(trackedPassengerNPCs) == nil then return end
 
     local swayAmount = cvBodySwayAmount and cvBodySwayAmount:GetFloat() or 1
     local crashFlinchEnabled = cvCrashFlinch and cvCrashFlinch:GetBool() or true
@@ -367,6 +476,13 @@ hook.Add("EntityRemoved", "NPCPassengers_CleanBoneCache", function(ent)
         spineBoneCache[entIdx] = nil
         clientSwayState[entIdx] = nil
         trackedPassengerNPCs[ent] = nil
+    end
+
+    ClearClientVehicleSeatCache(ent)
+
+    local parent = ent:GetParent()
+    if IsValid(parent) then
+        ClearClientVehicleSeatCache(parent)
     end
 end)
 
@@ -2040,7 +2156,7 @@ local function OpenSettingsPanel()
         passengerOverviewPanel:InvalidateLayout(true)
     end
 
-    local function RefreshPassengersControlList()
+    local function RefreshPassengersControlList(forceRefresh)
         if not IsValid(passengerControlList) then
             return
         end
@@ -2055,17 +2171,15 @@ local function OpenSettingsPanel()
 
         passengerFilterQuery = NormalizeSearchText(IsValid(passengerFilterEntry) and passengerFilterEntry:GetValue() or passengerFilterQuery)
 
-        for _, ent in ipairs(ents.GetAll()) do
-            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
-                allPassengers[#allPassengers + 1] = ent
-                local passengerVehicle = GetPassengerControlVehicle(ent)
-                local status = select(1, GetPassengerCardStatus(ent))
-                local currentSeat = GetClientVehicleSeatIndex(passengerVehicle, ent:GetParent()) or 1
+        for _, ent in ipairs(GetTrackedPassengerEntities(forceRefresh)) do
+            allPassengers[#allPassengers + 1] = ent
+            local passengerVehicle = GetPassengerControlVehicle(ent)
+            local status = select(1, GetPassengerCardStatus(ent))
+            local currentSeat = GetClientVehicleSeatIndex(passengerVehicle, ent:GetParent()) or 1
 
-                if (not passengersCurrentVehicleOnly or (IsValid(currentVehicle) and passengerVehicle == currentVehicle))
-                    and PassengerMatchesFilter(ent, passengerVehicle, status, currentSeat) then
-                    passengers[#passengers + 1] = ent
-                end
+            if (not passengersCurrentVehicleOnly or (IsValid(currentVehicle) and passengerVehicle == currentVehicle))
+                and PassengerMatchesFilter(ent, passengerVehicle, status, currentSeat) then
+                passengers[#passengers + 1] = ent
             end
         end
 
@@ -2450,7 +2564,9 @@ local function OpenSettingsPanel()
         passengerFilterEntry:SetSize(math.max(w - sortWidth - clearWidth - 44, 120), 24)
     end
 
-    CreateButton(passengersPanel, "Refresh Passenger List", RefreshPassengersControlList)
+    CreateButton(passengersPanel, "Refresh Passenger List", function()
+        RefreshPassengersControlList(true)
+    end)
 
     currentVehicleOnlyBtn = CreateButton(passengersPanel, "Show Current Vehicle Only: OFF", function()
         passengersCurrentVehicleOnly = not passengersCurrentVehicleOnly
@@ -3159,13 +3275,7 @@ local function OpenSettingsPanel()
     local function RefreshPassengerList()
         passengerListPanel:Clear()
         
-        -- Request passenger list from server
-        local passengers = {}
-        for _, ent in ipairs(ents.GetAll()) do
-            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
-                table.insert(passengers, ent)
-            end
-        end
+        local passengers = GetTrackedPassengerEntities(true)
         
         if #passengers == 0 then
             local noPassengers = vgui.Create("DLabel", passengerListPanel)
@@ -3980,7 +4090,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.15"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.16"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
@@ -4110,17 +4220,12 @@ function ShowWelcomePanel(forceShow)
     changelog.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
         local changes = {
-            "+ Passenger panel search filter for names, classes, seats, status, and vehicles",
-            "+ Passenger panel sort selector (vehicle, name, seat, health, status)",
-            "+ Auto-refresh toggle for the visible passenger list",
-            "+ Overview counters now show total, visible, hidden, dead, scared, and drowsy riders",
-            "+ Seat reassignment dropdown now uses the vehicle's real seat count",
-            "+ Per-passenger Copy Summary button for quick bug reports",
-            "+ Per-passenger Copy Debug button for seat/entity diagnostics",
-            "+ Copy Visible Passenger List action for sharing the current filtered set",
-            "+ New keybinds to toggle the passenger HUD and cycle HUD position",
-            "+ Debug HUD key now toggles the target debug overlay instantly",
-            "* Removed the obsolete 'Assign Seat' context-menu entry",
+            "+ Passenger upkeep now runs on a throttled server cadence instead of every frame",
+            "+ Repeated player relationship refreshes are batched to cut attach-time overhead",
+            "+ Passenger HUD now reuses tracked passengers instead of rescanning every entity update",
+            "+ Passenger control and debug lists reuse cached passenger tracking with manual refresh support",
+            "+ Vehicle seat lookups are now cached client-side and invalidated when seat entities change",
+            "+ Seat sorting and seat-count lookups now reuse cached layouts across the passenger UI",
         }
         for i, line in ipairs(changes) do
             local col = Theme.text
@@ -4556,24 +4661,23 @@ hook.Add("HUDPaint", "NPCPassengers_StatusHUD", function()
         
         -- Clean up smoothed values for invalid/removed NPCs
         local validNPCs = {}
+        local trackedPassengers = GetTrackedPassengerEntities()
         
-        for _, ent in ipairs(ents.GetAll()) do
-            if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
-                local status, intensity = GetPassengerStatus(ent)
-                if showCalm or status ~= "calm" then
-                    local health = ent:Health()
-                    local maxHealth = ent:GetMaxHealth()
-                    table.insert(hudPassengers, {
-                        npc = ent,
-                        name = GetNPCDisplayName(ent),
-                        status = status,
-                        intensity = intensity,
-                        health = health,
-                        maxHealth = maxHealth,
-                        healthPercent = maxHealth > 0 and (health / maxHealth) or 1,
-                    })
-                    validNPCs[ent:EntIndex()] = true
-                end
+        for _, ent in ipairs(trackedPassengers) do
+            local status, intensity = GetPassengerStatus(ent)
+            if showCalm or status ~= "calm" then
+                local health = ent:Health()
+                local maxHealth = ent:GetMaxHealth()
+                table.insert(hudPassengers, {
+                    npc = ent,
+                    name = GetNPCDisplayName(ent),
+                    status = status,
+                    intensity = intensity,
+                    health = health,
+                    maxHealth = maxHealth,
+                    healthPercent = maxHealth > 0 and (health / maxHealth) or 1,
+                })
+                validNPCs[ent:EntIndex()] = true
             end
         end
         

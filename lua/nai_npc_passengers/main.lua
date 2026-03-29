@@ -27,6 +27,10 @@ local PASSENGER_MAINTENANCE_INTERVAL = 0.35
 local PASSENGER_HEADLOOK_INTERVAL = 0.05
 local PASSENGER_COMBAT_INTERVAL = 0.12
 local PASSENGER_TRANSFORM_SYNC_INTERVAL = 0.1
+local PASSENGER_GENERAL_THINK_INTERVAL = 0.1
+local PASSENGER_RELATIONSHIP_REFRESH_INTERVAL = 2
+
+local nextPassengerGeneralThink = 0
 
 NPCPassengers.LVSCompatResolvers = NPCPassengers.LVSCompatResolvers or {}
 
@@ -2353,10 +2357,14 @@ StartAnimationEnforcement = function(npc)
                 npc:SetAutomaticFrameAdvance(false)
             end
 
-            for _, ply in ipairs(player.GetAll()) do
-                if IsValid(ply) then
-                    npc:AddEntityRelationship(ply, D_LI, 99)
+            if curTime >= (pdata.nextRelationshipRefreshAt or 0) then
+                for _, ply in ipairs(player.GetAll()) do
+                    if IsValid(ply) then
+                        npc:AddEntityRelationship(ply, D_LI, 99)
+                    end
                 end
+
+                pdata.nextRelationshipRefreshAt = curTime + PASSENGER_RELATIONSHIP_REFRESH_INTERVAL
             end
 
             pdata.nextMaintenanceAt = curTime + PASSENGER_MAINTENANCE_INTERVAL
@@ -2834,12 +2842,22 @@ hook.Add("Think", "NPCPassengerThink", function()
     end
     addonWasEnabled = true
 
+    local curTime = CurTime()
+
+    if curTime < nextPassengerGeneralThink then
+        return
+    end
+
+    nextPassengerGeneralThink = curTime + PASSENGER_GENERAL_THINK_INTERVAL
+
+    if next(friendlyPassengers) == nil then
+        return
+    end
+
     local passengersCopy = {}
     for npc, data in pairs(friendlyPassengers) do
         passengersCopy[npc] = data
     end
-    
-    local curTime = CurTime()
     
     -- Speech settings cache
     local speechEnabled = NPCPassengers.cv_speech_enabled:GetBool()
