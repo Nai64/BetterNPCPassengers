@@ -1826,34 +1826,6 @@ local function OpenSettingsPanel()
         return classNames[npc:GetClass() or ""] or string.upper(string.Replace(npc:GetClass() or "unknown", "npc_", ""))
     end
 
-    local function CreatePassengerModelCard(parent, npc)
-        local modelPanel = vgui.Create("DModelPanel", parent)
-        modelPanel:SetSize(112, 144)
-        modelPanel:SetMouseInputEnabled(false)
-        modelPanel:SetKeyboardInputEnabled(false)
-        modelPanel:SetModel(IsValid(npc) and (npc:GetModel() or "") or "")
-        modelPanel.LayoutEntity = function() end
-        modelPanel.Paint = function(self, w, h)
-            draw.RoundedBox(10, 0, 0, w, h, Color(18, 22, 28, 220))
-            self:DrawModel()
-        end
-
-        if IsValid(npc) then
-            local mn, mx = modelPanel.Entity:GetRenderBounds()
-            local center = (mn + mx) * 0.5
-            local size = math.max((mx - mn):Length(), 32)
-            modelPanel:SetLookAt(center)
-            modelPanel:SetCamPos(center + Vector(size * 0.7, size * 0.12, size * 0.2))
-            modelPanel:SetFOV(24)
-
-            if npc.GetSkin and modelPanel.Entity.SetSkin then
-                modelPanel.Entity:SetSkin(npc:GetSkin() or 0)
-            end
-        end
-
-        return modelPanel
-    end
-
     local function DrawInfoPill(x, y, w, h, text, fillColor, textColor)
         draw.RoundedBox(6, x, y, w, h, fillColor)
         draw.SimpleText(text, "NaiFont_Small", x + w / 2, y + h / 2, textColor or Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
@@ -1976,44 +1948,41 @@ local function OpenSettingsPanel()
                 if passengerCardIcons.passenger then
                     surface.SetDrawColor(255, 255, 255, 190)
                     surface.SetMaterial(passengerCardIcons.passenger)
-                    surface.DrawTexturedRect(128, 16, 18, 18)
+                    surface.DrawTexturedRect(24, 16, 18, 18)
                 end
 
                 if passengerCardIcons[status] then
                     surface.SetDrawColor(255, 255, 255, 255)
                     surface.SetMaterial(passengerCardIcons[status])
-                    surface.DrawTexturedRect(150, 14, 22, 22)
+                    surface.DrawTexturedRect(46, 14, 22, 22)
                 end
 
-                draw.SimpleText(GetPassengerCardDisplayName(npc), "NaiFont_Bold", 178, 18, Theme.textBright)
-                draw.SimpleText((npc:GetClass() or "npc") .. "  |  #" .. npc:EntIndex(), "NaiFont_Small", 178, 38, Theme.textDim)
-                draw.SimpleText(IsValid(passengerVehicle) and ("Vehicle: " .. passengerVehicle:GetClass()) or "Vehicle: Unknown", "NaiFont_Small", 178, 58, Theme.text)
+                draw.SimpleText(GetPassengerCardDisplayName(npc), "NaiFont_Bold", 76, 18, Theme.textBright)
+                draw.SimpleText((npc:GetClass() or "npc") .. "  |  #" .. npc:EntIndex(), "NaiFont_Small", 76, 38, Theme.textDim)
+                draw.SimpleText(IsValid(passengerVehicle) and ("Vehicle: " .. passengerVehicle:GetClass()) or "Vehicle: Unknown", "NaiFont_Small", 76, 58, Theme.text)
 
-                DrawInfoPill(178, 82, 92, 22, "Seat " .. currentSeat, Color(30, 36, 44, 240), Theme.textBright)
-                DrawInfoPill(278, 82, 96, 22, statusLabel, Color(statusColor.r, statusColor.g, statusColor.b, 220), Theme.bgDark)
-                DrawInfoPill(382, 82, 118, 22, matchingVehicle and "Same Vehicle" or "Other Vehicle", matchingVehicle and Color(46, 78, 62, 230) or Color(54, 58, 68, 230), matchingVehicle and Theme.success or Theme.textDim)
-                DrawInfoPill(508, 82, 86, 22, npc:GetNWBool("NPCPassengerHidden", false) and "Hidden" or "Visible", Color(30, 36, 44, 230), Theme.textBright)
+                DrawInfoPill(76, 82, 92, 22, "Seat " .. currentSeat, Color(30, 36, 44, 240), Theme.textBright)
+                DrawInfoPill(176, 82, 96, 22, statusLabel, Color(statusColor.r, statusColor.g, statusColor.b, 220), Theme.bgDark)
+                DrawInfoPill(280, 82, 118, 22, matchingVehicle and "Same Vehicle" or "Other Vehicle", matchingVehicle and Color(46, 78, 62, 230) or Color(54, 58, 68, 230), matchingVehicle and Theme.success or Theme.textDim)
+                DrawInfoPill(406, 82, 86, 22, npc:GetNWBool("NPCPassengerHidden", false) and "Hidden" or "Visible", Color(30, 36, 44, 230), Theme.textBright)
 
-                local healthBarX = 178
+                local healthBarX = 76
                 local healthBarY = 114
-                local healthBarW = w - 202
+                local healthBarW = w - 100
                 draw.RoundedBox(6, healthBarX, healthBarY, healthBarW, 14, Theme.bgDark)
                 draw.RoundedBox(6, healthBarX, healthBarY, math.max(healthBarW * healthFrac, 10), 14, Color(112, 214, 136))
                 draw.SimpleText(string.format("Health %d / %d", healthValue, maxHealth), "NaiFont_Small", healthBarX + 10, healthBarY + 7, Theme.bgDark, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
-                local intensityBarX = 178
+                local intensityBarX = 76
                 local intensityBarY = 138
-                local intensityBarW = w - 202
+                local intensityBarW = w - 100
                 draw.RoundedBox(6, intensityBarX, intensityBarY, intensityBarW, 10, Theme.bgDark)
                 draw.RoundedBox(6, intensityBarX, intensityBarY, math.max(intensityBarW * math.Clamp(intensity, 0.05, 1), 8), 10, Color(statusColor.r, statusColor.g, statusColor.b, 225))
                 draw.SimpleText(string.format("Status intensity %.0f%%", math.Clamp(intensity, 0, 1) * 100), "NaiFont_Small", intensityBarX + intensityBarW, intensityBarY - 8, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
             end
 
-            local portrait = CreatePassengerModelCard(npcPanel, npc)
-            portrait:SetPos(16, 16)
-
             local seatCombo = vgui.Create("DComboBox", npcPanel)
-            seatCombo:SetPos(178, 148)
+            seatCombo:SetPos(76, 148)
             seatCombo:SetSize(112, 24)
             seatCombo:SetFont("NaiFont_Small")
             for seatNumber = 1, seatChoices do
@@ -2023,7 +1992,7 @@ local function OpenSettingsPanel()
             seatCombo:SetValue("Seat " .. currentSeat)
 
             local assignBtn = vgui.Create("DButton", npcPanel)
-            assignBtn:SetPos(300, 146)
+            assignBtn:SetPos(198, 146)
             assignBtn:SetSize(136, 28)
             assignBtn:SetFont("NaiFont_Normal")
             assignBtn:SetTextColor(Theme.textBright)
@@ -2061,7 +2030,7 @@ local function OpenSettingsPanel()
             end
 
             local detachBtn = vgui.Create("DButton", npcPanel)
-            detachBtn:SetPos(446, 146)
+            detachBtn:SetPos(344, 146)
             detachBtn:SetSize(104, 28)
             detachBtn:SetFont("NaiFont_Normal")
             detachBtn:SetTextColor(Theme.textBright)
