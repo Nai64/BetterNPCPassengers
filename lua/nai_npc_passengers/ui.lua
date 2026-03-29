@@ -844,6 +844,29 @@ end
 -- Main Settings Panel
 local settingsFrame = nil
 
+local function AreUIAnimationsEnabled()
+    local cvar = GetConVar("nai_npc_ui_animations")
+    return cvar and cvar:GetBool()
+end
+
+local function AnimateSettingsFrameIn(frame, targetX, targetY)
+    if not IsValid(frame) then
+        return
+    end
+
+    if not AreUIAnimationsEnabled() then
+        frame:SetPos(targetX, targetY)
+        frame:SetAlpha(255)
+        return
+    end
+
+    frame:Stop()
+    frame:SetAlpha(0)
+    frame:SetPos(targetX, ScrH() + 24)
+    frame:AlphaTo(255, 0.18, 0)
+    frame:MoveTo(targetX, targetY, 0.22, 0, 0.22)
+end
+
 local function OpenSettingsPanel()
     if IsValid(settingsFrame) then
         settingsFrame:Remove()
@@ -855,10 +878,41 @@ local function OpenSettingsPanel()
     settingsFrame = vgui.Create("DFrame")
     settingsFrame:SetSize(panelWidth, panelHeight)
     settingsFrame:Center()
+    local targetX, targetY = settingsFrame:GetPos()
     settingsFrame:SetTitle("")
     settingsFrame:SetDraggable(true)
-    settingsFrame:MakePopup()
     settingsFrame:SetDeleteOnClose(true)
+    settingsFrame.isClosingAnimated = false
+
+    local defaultClose = settingsFrame.Close
+    settingsFrame.Close = function(self)
+        if not IsValid(self) then
+            return
+        end
+
+        if self.isClosingAnimated then
+            return
+        end
+
+        if not AreUIAnimationsEnabled() then
+            defaultClose(self)
+            return
+        end
+
+        self.isClosingAnimated = true
+        self:SetMouseInputEnabled(false)
+        self:SetKeyboardInputEnabled(false)
+        self:Stop()
+        local closeX = self:GetX()
+        self:AlphaTo(0, 0.14, 0)
+        self:MoveTo(closeX, ScrH() + 24, 0.18, 0, 0.18, function()
+            if IsValid(self) then
+                defaultClose(self)
+            end
+        end)
+    end
+    settingsFrame:MakePopup()
+    AnimateSettingsFrameIn(settingsFrame, targetX, targetY)
     
     settingsFrame.Paint = function(self, w, h)
         local aprilMode = IsAprilFoolsActive()
@@ -954,7 +1008,9 @@ local function OpenSettingsPanel()
         end
     end
     closeBtn.DoClick = function()
-        settingsFrame:Close()
+        if IsValid(settingsFrame) then
+            settingsFrame:Close()
+        end
     end
 
     local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches, searchStatus, searchClearBtn
