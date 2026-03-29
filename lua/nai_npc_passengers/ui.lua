@@ -7,6 +7,12 @@ NPCPassengers.Modules.ui = true
 local ADDON_DISPLAY_NAME = "Better NPC Passengers"
 local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
 local DEFAULT_FONT_NAME = "Tahoma"
+local HUD_POSITION_NAMES = {
+    [0] = "Top Left",
+    [1] = "Top Right",
+    [2] = "Bottom Left",
+    [3] = "Bottom Right",
+}
 
 -- Better NPC Passengers UI
 -- Dark theme settings panel with custom Metropolis font
@@ -80,6 +86,28 @@ hook.Add("Think", "NPCPassengers_Keybinds", function()
     if WasKeyJustPressed(keyExitAll) then
         RunConsoleCommand("nai_npc_exit_all")
     end
+
+    local keyToggleHUD = GetConVarIntSafe("nai_npc_key_toggle_hud", 0)
+    if WasKeyJustPressed(keyToggleHUD) then
+        local currentVal = GetConVarBoolSafe("nai_npc_hud_enabled", true)
+        RunConsoleCommand("nai_npc_hud_enabled", currentVal and "0" or "1")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Passenger HUD: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
+    end
+
+    local keyCycleHUDPosition = GetConVarIntSafe("nai_npc_key_cycle_hud_position", 0)
+    if WasKeyJustPressed(keyCycleHUDPosition) then
+        local currentPos = GetConVarIntSafe("nai_npc_hud_position", 1)
+        local nextPos = (currentPos + 1) % 4
+        RunConsoleCommand("nai_npc_hud_position", tostring(nextPos))
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "HUD Position: ", Color(180, 220, 255), HUD_POSITION_NAMES[nextPos] or "Unknown")
+    end
+
+    local keyDebugHUD = GetConVarIntSafe("nai_npc_key_debug_hud", 0)
+    if WasKeyJustPressed(keyDebugHUD) then
+        local currentVal = GetConVarBoolSafe("nai_npc_hud_target_debug", false)
+        RunConsoleCommand("nai_npc_hud_target_debug", currentVal and "0" or "1")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Target Debug: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
+    end
     
     -- Debug keybinds (only if debug mode is enabled)
     if GetConVarBoolSafe("nai_npc_debug_mode", false) then
@@ -135,17 +163,8 @@ local function GetPassengerControlVehicle(npc)
     return GetClientRootVehicle(parent)
 end
 
-local function IsPassengerInLocalPlayersVehicle(npc)
-    local ply = LocalPlayer()
-    if not IsValid(ply) or not ply:InVehicle() then return false end
-
-    local playerVehicle = GetClientRootVehicle(ply:GetVehicle())
-    local passengerVehicle = GetPassengerControlVehicle(npc)
-    return IsValid(playerVehicle) and IsValid(passengerVehicle) and playerVehicle == passengerVehicle
-end
-
-local function GetClientVehicleSeatIndex(vehicle, seatEntity)
-    if not IsValid(vehicle) or not IsValid(seatEntity) then return nil end
+local function GetClientVehicleSeats(vehicle)
+    if not IsValid(vehicle) then return {} end
 
     local seats = {}
 
@@ -168,6 +187,23 @@ local function GetClientVehicleSeatIndex(vehicle, seatEntity)
         return posA.x > posB.x
     end)
 
+    return seats
+end
+
+local function IsPassengerInLocalPlayersVehicle(npc)
+    local ply = LocalPlayer()
+    if not IsValid(ply) or not ply:InVehicle() then return false end
+
+    local playerVehicle = GetClientRootVehicle(ply:GetVehicle())
+    local passengerVehicle = GetPassengerControlVehicle(npc)
+    return IsValid(playerVehicle) and IsValid(passengerVehicle) and playerVehicle == passengerVehicle
+end
+
+local function GetClientVehicleSeatIndex(vehicle, seatEntity)
+    if not IsValid(vehicle) or not IsValid(seatEntity) then return nil end
+
+    local seats = GetClientVehicleSeats(vehicle)
+
     for index, seat in ipairs(seats) do
         if seat == seatEntity then
             return index
@@ -175,6 +211,10 @@ local function GetClientVehicleSeatIndex(vehicle, seatEntity)
     end
 
     return nil
+end
+
+local function GetClientVehicleSeatCount(vehicle)
+    return #GetClientVehicleSeats(vehicle)
 end
 
 local function RefreshTrackedPassengers()
@@ -1725,7 +1765,14 @@ local function OpenSettingsPanel()
     local passengerControlList
     local passengersCurrentVehicleOnly = false
     local currentVehicleOnlyBtn
+    local passengerAutoRefreshBtn
     local passengerOverviewPanel
+    local passengerFilterEntry
+    local passengerVisiblePassengers = {}
+    local passengerFilterQuery = ""
+    local passengerAutoRefreshEnabled = false
+    local nextPassengerAutoRefresh = 0
+    local passengerSortMode = "vehicle"
     local passengerCardIcons = {}
     local passengerCardIconsLoaded = false
 
@@ -1824,15 +1871,153 @@ local function OpenSettingsPanel()
         draw.SimpleText(text, "NaiFont_Small", x + w / 2, y + h / 2, textColor or Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 
-    local function UpdatePassengerOverview(passengers, currentVehicle)
+    local passengerSortLabels = {
+        vehicle = "Vehicle",
+        name = "Name",
+        seat = "Seat",
+        health = "Health",
+        status = "Status",
+    }
+
+    local passengerStatusOrder = {
+        scared = 1,
+        alert = 2,
+        drowsy = 3,
+        calm = 4,
+        dead = 5,
+        default = 6,
+    }
+
+    local function CopyPassengerText(text, successMessage)
+        if not text or text == "" then
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "Nothing to copy.")
+            return
+        end
+
+        if not SetClipboardText then
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "Clipboard access is not available in this build.")
+            return
+        end
+
+        SetClipboardText(text)
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, successMessage or "Copied to clipboard.")
+    end
+
+    local function BuildPassengerSummaryLine(npc, passengerVehicle, status, intensity, currentSeat)
+        local passengerName = GetPassengerCardDisplayName(npc)
+        local vehicleClass = IsValid(passengerVehicle) and (passengerVehicle:GetClass() or "unknown") or "unknown"
+        local statusLabel = passengerStatusLabels[status] or passengerStatusLabels.default
+        local healthValue = math.max(IsValid(npc) and npc:Health() or 0, 0)
+        local maxHealth = math.max(IsValid(npc) and npc:GetMaxHealth() or 1, 1)
+
+        return string.format(
+            "%s | class=%s | ent=%d | status=%s (%d%%) | health=%d/%d | seat=%d | vehicle=%s",
+            passengerName,
+            IsValid(npc) and (npc:GetClass() or "npc") or "npc",
+            IsValid(npc) and npc:EntIndex() or -1,
+            statusLabel,
+            math.floor(math.Clamp(intensity or 0, 0, 1) * 100 + 0.5),
+            healthValue,
+            maxHealth,
+            currentSeat or 1,
+            vehicleClass
+        )
+    end
+
+    local function BuildPassengerDebugLine(npc, passengerVehicle, currentSeat)
+        local seatEntity = IsValid(npc) and npc:GetParent() or nil
+        return string.format(
+            "npc=%s[%d] | vehicle=%s[%d] | seat_entity=%s[%d] | seat_index=%d | hidden=%s",
+            IsValid(npc) and (npc:GetClass() or "npc") or "npc",
+            IsValid(npc) and npc:EntIndex() or -1,
+            IsValid(passengerVehicle) and (passengerVehicle:GetClass() or "unknown") or "unknown",
+            IsValid(passengerVehicle) and passengerVehicle:EntIndex() or -1,
+            IsValid(seatEntity) and (seatEntity:GetClass() or "seat") or "none",
+            IsValid(seatEntity) and seatEntity:EntIndex() or -1,
+            currentSeat or 1,
+            tostring(IsValid(npc) and npc:GetNWBool("NPCPassengerHidden", false) or false)
+        )
+    end
+
+    local function PassengerMatchesFilter(npc, passengerVehicle, status, currentSeat)
+        if passengerFilterQuery == "" then
+            return true
+        end
+
+        local searchText = NormalizeSearchText(table.concat({
+            GetPassengerCardDisplayName(npc),
+            IsValid(npc) and (npc:GetClass() or "") or "",
+            passengerStatusLabels[status] or status or "",
+            IsValid(passengerVehicle) and (passengerVehicle:GetClass() or "") or "",
+            IsValid(passengerVehicle) and (passengerVehicle:GetModel() or "") or "",
+            "seat " .. tostring(currentSeat or 1),
+            tostring(IsValid(npc) and npc:EntIndex() or -1),
+            IsValid(npc) and (npc:GetNWBool("NPCPassengerHidden", false) and "hidden" or "visible") or "",
+        }, " "))
+
+        return string.find(searchText, passengerFilterQuery, 1, true) ~= nil
+    end
+
+    local function ComparePassengers(a, b, currentVehicle)
+        local vehicleA = GetPassengerControlVehicle(a)
+        local vehicleB = GetPassengerControlVehicle(b)
+        local aInCurrent = IsValid(currentVehicle) and vehicleA == currentVehicle
+        local bInCurrent = IsValid(currentVehicle) and vehicleB == currentVehicle
+
+        if aInCurrent ~= bInCurrent then
+            return aInCurrent
+        end
+
+        if passengerSortMode == "name" then
+            local nameA = NormalizeSearchText(GetPassengerCardDisplayName(a))
+            local nameB = NormalizeSearchText(GetPassengerCardDisplayName(b))
+            if nameA ~= nameB then
+                return nameA < nameB
+            end
+        elseif passengerSortMode == "seat" then
+            local seatA = GetClientVehicleSeatIndex(vehicleA, a:GetParent()) or math.huge
+            local seatB = GetClientVehicleSeatIndex(vehicleB, b:GetParent()) or math.huge
+            if seatA ~= seatB then
+                return seatA < seatB
+            end
+        elseif passengerSortMode == "health" then
+            local healthA = math.max(a:Health(), 0)
+            local healthB = math.max(b:Health(), 0)
+            if healthA ~= healthB then
+                return healthA > healthB
+            end
+        elseif passengerSortMode == "status" then
+            local statusA = passengerStatusOrder[select(1, GetPassengerCardStatus(a))] or passengerStatusOrder.default
+            local statusB = passengerStatusOrder[select(1, GetPassengerCardStatus(b))] or passengerStatusOrder.default
+            if statusA ~= statusB then
+                return statusA < statusB
+            end
+        end
+
+        local classA = a:GetClass() or ""
+        local classB = b:GetClass() or ""
+        if classA == classB then
+            return a:EntIndex() < b:EntIndex()
+        end
+
+        return classA < classB
+    end
+
+    local function UpdatePassengerOverview(passengers, currentVehicle, totalPassengerCount)
         if not IsValid(passengerOverviewPanel) then
             return
         end
 
-        passengerOverviewPanel.totalPassengers = #passengers
+        passengerOverviewPanel.totalPassengers = totalPassengerCount or #passengers
+        passengerOverviewPanel.visiblePassengers = #passengers
         passengerOverviewPanel.currentVehiclePassengers = 0
         passengerOverviewPanel.scaredPassengers = 0
         passengerOverviewPanel.drowsyPassengers = 0
+        passengerOverviewPanel.deadPassengers = 0
+        passengerOverviewPanel.hiddenPassengers = 0
+        passengerOverviewPanel.filterSummary = passengerFilterQuery ~= "" and passengerFilterQuery or (passengersCurrentVehicleOnly and "Current vehicle only" or "All passengers")
+        passengerOverviewPanel.sortSummary = passengerSortLabels[passengerSortMode] or passengerSortLabels.vehicle
+        passengerOverviewPanel.autoRefreshEnabled = passengerAutoRefreshEnabled
 
         for _, npc in ipairs(passengers) do
             local status = GetPassengerCardStatus(npc)
@@ -1843,6 +2028,12 @@ local function OpenSettingsPanel()
                 passengerOverviewPanel.scaredPassengers = passengerOverviewPanel.scaredPassengers + 1
             elseif status == "drowsy" then
                 passengerOverviewPanel.drowsyPassengers = passengerOverviewPanel.drowsyPassengers + 1
+            elseif status == "dead" then
+                passengerOverviewPanel.deadPassengers = passengerOverviewPanel.deadPassengers + 1
+            end
+
+            if npc:GetNWBool("NPCPassengerHidden", false) then
+                passengerOverviewPanel.hiddenPassengers = passengerOverviewPanel.hiddenPassengers + 1
             end
         end
 
@@ -1858,38 +2049,33 @@ local function OpenSettingsPanel()
         passengerControlList:Clear()
 
         local passengers = {}
+        local allPassengers = {}
         local ply = LocalPlayer()
         local currentVehicle = IsValid(ply) and ply:InVehicle() and GetClientRootVehicle(ply:GetVehicle()) or nil
 
+        passengerFilterQuery = NormalizeSearchText(IsValid(passengerFilterEntry) and passengerFilterEntry:GetValue() or passengerFilterQuery)
+
         for _, ent in ipairs(ents.GetAll()) do
             if IsValid(ent) and ent:IsNPC() and ent:GetNWBool("IsNPCPassenger", false) then
+                allPassengers[#allPassengers + 1] = ent
                 local passengerVehicle = GetPassengerControlVehicle(ent)
-                if not passengersCurrentVehicleOnly or (IsValid(currentVehicle) and passengerVehicle == currentVehicle) then
+                local status = select(1, GetPassengerCardStatus(ent))
+                local currentSeat = GetClientVehicleSeatIndex(passengerVehicle, ent:GetParent()) or 1
+
+                if (not passengersCurrentVehicleOnly or (IsValid(currentVehicle) and passengerVehicle == currentVehicle))
+                    and PassengerMatchesFilter(ent, passengerVehicle, status, currentSeat) then
                     passengers[#passengers + 1] = ent
                 end
             end
         end
 
         table.sort(passengers, function(a, b)
-            local vehicleA = GetPassengerControlVehicle(a)
-            local vehicleB = GetPassengerControlVehicle(b)
-            local aInCurrent = IsValid(currentVehicle) and vehicleA == currentVehicle
-            local bInCurrent = IsValid(currentVehicle) and vehicleB == currentVehicle
-
-            if aInCurrent ~= bInCurrent then
-                return aInCurrent
-            end
-
-            local classA = a:GetClass() or ""
-            local classB = b:GetClass() or ""
-            if classA == classB then
-                return a:EntIndex() < b:EntIndex()
-            end
-
-            return classA < classB
+            return ComparePassengers(a, b, currentVehicle)
         end)
 
-        UpdatePassengerOverview(passengers, currentVehicle)
+        passengerVisiblePassengers = passengers
+
+        UpdatePassengerOverview(passengers, currentVehicle, #allPassengers)
 
         if #passengers == 0 then
             local noPassengers = vgui.Create("DLabel", passengerControlList)
@@ -1902,6 +2088,8 @@ local function OpenSettingsPanel()
 
             if passengersCurrentVehicleOnly and not IsValid(currentVehicle) then
                 noPassengers:SetText("No current vehicle detected. Sit in a vehicle or disable the current-vehicle filter.")
+            elseif passengerFilterQuery ~= "" then
+                noPassengers:SetText("No passengers matched your filter. Try a name, class, seat number, status, or vehicle class.")
             elseif passengersCurrentVehicleOnly then
                 noPassengers:SetText("No passengers found in your current vehicle.")
             else
@@ -1921,7 +2109,7 @@ local function OpenSettingsPanel()
             local maxHealth = math.max(npc:GetMaxHealth(), 1)
             local healthValue = math.max(npc:Health(), 0)
             local healthFrac = math.Clamp(healthValue / maxHealth, 0, 1)
-            local seatChoices = math.max(currentSeat + 2, 8)
+            local seatChoices = math.max(GetClientVehicleSeatCount(passengerVehicle), currentSeat, 1)
 
             local npcPanel = vgui.Create("DPanel", passengerControlList)
             npcPanel:Dock(TOP)
@@ -1973,9 +2161,8 @@ local function OpenSettingsPanel()
             end
 
             local seatCombo = vgui.Create("DComboBox", npcPanel)
-            seatCombo:SetPos(76, 148)
-            seatCombo:SetSize(112, 24)
             seatCombo:SetFont("NaiFont_Small")
+            seatCombo:SetSortItems(false)
             for seatNumber = 1, seatChoices do
                 seatCombo:AddChoice("Seat " .. seatNumber, seatNumber)
             end
@@ -1983,8 +2170,6 @@ local function OpenSettingsPanel()
             seatCombo:SetValue("Seat " .. currentSeat)
 
             local assignBtn = vgui.Create("DButton", npcPanel)
-            assignBtn:SetPos(198, 146)
-            assignBtn:SetSize(136, 28)
             assignBtn:SetFont("NaiFont_Normal")
             assignBtn:SetTextColor(TransparentColor)
             assignBtn:SetText("Assign Seat")
@@ -2027,8 +2212,6 @@ local function OpenSettingsPanel()
             end
 
             local detachBtn = vgui.Create("DButton", npcPanel)
-            detachBtn:SetPos(344, 146)
-            detachBtn:SetSize(104, 28)
             detachBtn:SetFont("NaiFont_Normal")
             detachBtn:SetTextColor(TransparentColor)
             detachBtn:SetText("Detach")
@@ -2056,26 +2239,107 @@ local function OpenSettingsPanel()
                     end
                 end)
             end
+
+            local summaryBtn = vgui.Create("DButton", npcPanel)
+            summaryBtn:SetFont("NaiFont_Normal")
+            summaryBtn:SetTextColor(TransparentColor)
+            summaryBtn:SetText("Copy Summary")
+            summaryBtn.hoverAnim = 0
+            summaryBtn.pressAnim = 0
+            summaryBtn.Paint = function(self, w, h)
+                AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+                local pushOffset = GetButtonPushOffset(self, 2)
+                local color = LerpColor(self.hoverAnim, Theme.bgDark, Color(56, 88, 112))
+                color = LerpColor(self.pressAnim, color, Color(46, 72, 92))
+                draw.RoundedBox(4, 0, pushOffset, w, h, color)
+                draw.SimpleText(self:GetText(), "NaiFont_Normal", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            end
+            summaryBtn.DoClick = function()
+                if not IsValid(npc) then return end
+
+                local liveVehicle = GetPassengerControlVehicle(npc)
+                local liveStatus, liveIntensity = GetPassengerCardStatus(npc)
+                local liveSeat = GetClientVehicleSeatIndex(liveVehicle, npc:GetParent()) or currentSeat
+                CopyPassengerText(BuildPassengerSummaryLine(npc, liveVehicle, liveStatus, liveIntensity, liveSeat), "Passenger summary copied.")
+            end
+
+            local debugBtn = vgui.Create("DButton", npcPanel)
+            debugBtn:SetFont("NaiFont_Normal")
+            debugBtn:SetTextColor(TransparentColor)
+            debugBtn:SetText("Copy Debug")
+            debugBtn.hoverAnim = 0
+            debugBtn.pressAnim = 0
+            debugBtn.Paint = function(self, w, h)
+                AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+                local pushOffset = GetButtonPushOffset(self, 2)
+                local color = LerpColor(self.hoverAnim, Theme.bgDark, Color(72, 74, 94))
+                color = LerpColor(self.pressAnim, color, Color(58, 60, 78))
+                draw.RoundedBox(4, 0, pushOffset, w, h, color)
+                draw.SimpleText(self:GetText(), "NaiFont_Normal", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+            end
+            debugBtn.DoClick = function()
+                if not IsValid(npc) then return end
+
+                local liveVehicle = GetPassengerControlVehicle(npc)
+                local liveSeat = GetClientVehicleSeatIndex(liveVehicle, npc:GetParent()) or currentSeat
+                CopyPassengerText(BuildPassengerDebugLine(npc, liveVehicle, liveSeat), "Passenger debug info copied.")
+            end
+
+            npcPanel.PerformLayout = function(self, w, h)
+                local seatX = 76
+                local seatY = 148
+                local seatW = 108
+                local actionX = seatX + seatW + 10
+                local actionY = 146
+                local spacing = 8
+                local actionW = math.max(math.floor((w - actionX - 16 - (spacing * 3)) / 4), 92)
+
+                seatCombo:SetPos(seatX, seatY)
+                seatCombo:SetSize(seatW, 24)
+
+                assignBtn:SetPos(actionX, actionY)
+                assignBtn:SetSize(actionW, 28)
+
+                detachBtn:SetPos(actionX + actionW + spacing, actionY)
+                detachBtn:SetSize(actionW, 28)
+
+                summaryBtn:SetPos(actionX + (actionW + spacing) * 2, actionY)
+                summaryBtn:SetSize(actionW, 28)
+
+                debugBtn:SetPos(actionX + (actionW + spacing) * 3, actionY)
+                debugBtn:SetSize(actionW, 28)
+            end
         end
     end
 
     passengersBtn.DoClick = function()
         SwitchToPanel(passengersPanel, passengersBtn)
+        nextPassengerAutoRefresh = 0
         RefreshPassengersControlList()
     end
 
     CreateSectionHeader(passengersPanel, "Passenger Controls")
-    CreateHelpText(passengersPanel, "Manage active passengers, reassign seats, and detach riders without leaving the settings panel.")
+    CreateHelpText(passengersPanel, "Manage active passengers, filter by name/class/status, copy debug info, reassign seats, and detach riders without leaving the settings panel.")
 
     passengerOverviewPanel = vgui.Create("DPanel", passengersPanel)
-    passengerOverviewPanel:SetTall(104)
+    passengerOverviewPanel:SetTall(140)
     passengerOverviewPanel:Dock(TOP)
     passengerOverviewPanel:DockMargin(8, 6, 8, 6)
     passengerOverviewPanel.totalPassengers = 0
+    passengerOverviewPanel.visiblePassengers = 0
     passengerOverviewPanel.currentVehiclePassengers = 0
     passengerOverviewPanel.scaredPassengers = 0
     passengerOverviewPanel.drowsyPassengers = 0
+    passengerOverviewPanel.deadPassengers = 0
+    passengerOverviewPanel.hiddenPassengers = 0
     passengerOverviewPanel.Paint = function(self, w, h)
+        local filterSummary = self.filterSummary or "All passengers"
+        if string.len(filterSummary) > 44 then
+            filterSummary = string.sub(filterSummary, 1, 41) .. "..."
+        end
+
         draw.RoundedBox(10, 0, 0, w, h, Theme.bgDark)
 
         local gradientMat = Material("vgui/gradient-r")
@@ -2084,12 +2348,106 @@ local function OpenSettingsPanel()
         surface.DrawTexturedRect(0, 0, w, h)
 
         draw.SimpleText("Passenger Operations", "NaiFont_Bold", 16, 18, Theme.textBright)
-        draw.SimpleText("Live overview for all currently attached riders", "NaiFont_Small", 16, 40, Theme.textDim)
+        draw.SimpleText("Filter: " .. filterSummary, "NaiFont_Small", 16, 40, Theme.textDim)
+        draw.SimpleText("Sort: " .. (self.sortSummary or passengerSortLabels.vehicle) .. "  |  Auto Refresh: " .. (self.autoRefreshEnabled and "ON" or "OFF"), "NaiFont_Small", 16, 58, Theme.textDim)
 
-        DrawInfoPill(16, 62, 120, 26, "Total: " .. self.totalPassengers, Theme.bgLighter, Theme.textBright)
-        DrawInfoPill(146, 62, 172, 26, "Current Vehicle: " .. self.currentVehiclePassengers, Color(38, 58, 72, 220), Theme.textBright)
-        DrawInfoPill(328, 62, 116, 26, "Scared: " .. self.scaredPassengers, Color(98, 40, 40, 220), Theme.textBright)
-        DrawInfoPill(454, 62, 122, 26, "Drowsy: " .. self.drowsyPassengers, Color(44, 60, 92, 220), Theme.textBright)
+        DrawInfoPill(16, 86, 110, 26, "Total: " .. self.totalPassengers, Theme.bgLighter, Theme.textBright)
+        DrawInfoPill(136, 86, 126, 26, "Showing: " .. self.visiblePassengers, Color(34, 52, 64, 220), Theme.textBright)
+        DrawInfoPill(272, 86, 174, 26, "Current Vehicle: " .. self.currentVehiclePassengers, Color(38, 58, 72, 220), Theme.textBright)
+        DrawInfoPill(456, 86, 108, 26, "Hidden: " .. self.hiddenPassengers, Color(44, 50, 64, 220), Theme.textBright)
+        DrawInfoPill(16, 116, 92, 20, "Dead: " .. self.deadPassengers, Color(62, 62, 72, 220), Theme.textBright)
+        DrawInfoPill(116, 116, 106, 20, "Scared: " .. self.scaredPassengers, Color(98, 40, 40, 220), Theme.textBright)
+        DrawInfoPill(230, 116, 110, 20, "Drowsy: " .. self.drowsyPassengers, Color(44, 60, 92, 220), Theme.textBright)
+    end
+
+    local passengerToolbar = vgui.Create("DPanel", passengersPanel)
+    passengerToolbar.SearchLabel = "Passenger Filter"
+    passengerToolbar.SearchDescription = "Filter active passengers by name, class, seat, status, or vehicle."
+    passengerToolbar:Dock(TOP)
+    passengerToolbar:DockMargin(8, 4, 8, 4)
+    passengerToolbar:SetTall(40)
+    passengerToolbar.Paint = function(self, w, h)
+        DrawRoundedSurface(0, 0, w, h, 8, Theme.bgDark, Theme.border)
+    end
+
+    local passengerSortCombo = vgui.Create("DComboBox", passengerToolbar)
+    passengerSortCombo.SearchLabel = "Passenger Sort"
+    passengerSortCombo.SearchDescription = "Sort the visible passenger list by vehicle, name, seat, health, or status."
+    passengerSortCombo:SetFont("NaiFont_Small")
+    passengerSortCombo:SetTextColor(Theme.text)
+    passengerSortCombo:SetSortItems(false)
+    passengerSortCombo.Paint = function(self, w, h)
+        draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
+        surface.SetDrawColor(self:IsMenuOpen() and Theme.accent or Theme.border)
+        surface.DrawOutlinedRect(0, 0, w, h, 1)
+        draw.SimpleText("v", "NaiFont_Small", w - 14, h / 2, Theme.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+    passengerSortCombo:AddChoice("Vehicle First", "vehicle")
+    passengerSortCombo:AddChoice("Name A-Z", "name")
+    passengerSortCombo:AddChoice("Seat Number", "seat")
+    passengerSortCombo:AddChoice("Highest Health", "health")
+    passengerSortCombo:AddChoice("Status Priority", "status")
+    passengerSortCombo:SetValue("Vehicle First")
+    passengerSortCombo.OnSelect = function(self, index, value, data)
+        passengerSortMode = data or "vehicle"
+        RefreshPassengersControlList()
+    end
+
+    local passengerFilterClearBtn = vgui.Create("DButton", passengerToolbar)
+    passengerFilterClearBtn:SetText("")
+    passengerFilterClearBtn:SetSize(18, 18)
+    passengerFilterClearBtn:SetVisible(false)
+    passengerFilterClearBtn.Paint = function(self, w, h)
+        local color = self:IsHovered() and Theme.textBright or Theme.textDim
+        draw.SimpleText("x", "NaiFont_Bold", w / 2, h / 2 - 1, color, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+    passengerFilterClearBtn.DoClick = function()
+        if not IsValid(passengerFilterEntry) then
+            return
+        end
+
+        passengerFilterEntry:SetText("")
+        passengerFilterQuery = ""
+        passengerFilterClearBtn:SetVisible(false)
+        RefreshPassengersControlList()
+        passengerFilterEntry:RequestFocus()
+    end
+
+    passengerFilterEntry = vgui.Create("DTextEntry", passengerToolbar)
+    passengerFilterEntry:SetFont("NaiFont_Normal")
+    passengerFilterEntry:SetTextColor(Theme.text)
+    passengerFilterEntry:SetDrawBackground(false)
+    passengerFilterEntry:SetUpdateOnType(true)
+    passengerFilterEntry.Paint = function(self, w, h)
+        self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
+
+        if self:GetValue() == "" and not self:HasFocus() then
+            draw.SimpleText("Filter passengers...", "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
+    end
+    passengerFilterEntry.OnChange = function(self)
+        passengerFilterQuery = NormalizeSearchText(self:GetValue())
+        passengerFilterClearBtn:SetVisible(passengerFilterQuery ~= "")
+        RefreshPassengersControlList()
+    end
+    passengerFilterEntry.OnKeyCodeTyped = function(self, key)
+        if key == KEY_ESCAPE and self:GetValue() ~= "" then
+            passengerFilterClearBtn:DoClick()
+            return true
+        end
+    end
+
+    passengerToolbar.PerformLayout = function(self, w, h)
+        local sortWidth = 154
+        local clearWidth = 18
+        local margin = 10
+
+        passengerSortCombo:SetPos(w - sortWidth - margin, 6)
+        passengerSortCombo:SetSize(sortWidth, 28)
+
+        passengerFilterClearBtn:SetPos(w - sortWidth - clearWidth - 18, math.floor((h - clearWidth) / 2))
+        passengerFilterEntry:SetPos(12, 7)
+        passengerFilterEntry:SetSize(math.max(w - sortWidth - clearWidth - 44, 120), 24)
     end
 
     CreateButton(passengersPanel, "Refresh Passenger List", RefreshPassengersControlList)
@@ -2098,6 +2456,32 @@ local function OpenSettingsPanel()
         passengersCurrentVehicleOnly = not passengersCurrentVehicleOnly
         currentVehicleOnlyBtn:SetText("Show Current Vehicle Only: " .. (passengersCurrentVehicleOnly and "ON" or "OFF"))
         RefreshPassengersControlList()
+    end)
+
+    passengerAutoRefreshBtn = CreateButton(passengersPanel, "Auto Refresh Visible List: OFF", function()
+        passengerAutoRefreshEnabled = not passengerAutoRefreshEnabled
+        nextPassengerAutoRefresh = 0
+        passengerAutoRefreshBtn:SetText("Auto Refresh Visible List: " .. (passengerAutoRefreshEnabled and "ON" or "OFF"))
+        RefreshPassengersControlList()
+    end)
+
+    CreateButton(passengersPanel, "Copy Visible Passenger List", function()
+        if #passengerVisiblePassengers == 0 then
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "No visible passengers to copy.")
+            return
+        end
+
+        local lines = {}
+        for _, npc in ipairs(passengerVisiblePassengers) do
+            if IsValid(npc) then
+                local liveVehicle = GetPassengerControlVehicle(npc)
+                local liveStatus, liveIntensity = GetPassengerCardStatus(npc)
+                local liveSeat = GetClientVehicleSeatIndex(liveVehicle, npc:GetParent()) or 1
+                lines[#lines + 1] = BuildPassengerSummaryLine(npc, liveVehicle, liveStatus, liveIntensity, liveSeat)
+            end
+        end
+
+        CopyPassengerText(table.concat(lines, "\n"), #lines .. " passenger summaries copied.")
     end)
 
     CreateButton(passengersPanel, "Make Current Vehicle Passengers Exit", function()
@@ -2121,6 +2505,23 @@ local function OpenSettingsPanel()
     StyleScrollbar(passengerControlList:GetVBar())
     passengerControlList.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
+    end
+
+    settingsFrame.Think = function(self)
+        if not passengerAutoRefreshEnabled then
+            return
+        end
+
+        if currentPanel ~= passengersPanel then
+            return
+        end
+
+        if CurTime() < nextPassengerAutoRefresh then
+            return
+        end
+
+        nextPassengerAutoRefresh = CurTime() + 0.75
+        RefreshPassengersControlList()
     end
     
     -- Position Tab
@@ -2409,8 +2810,7 @@ local function OpenSettingsPanel()
         end
     end
     local currentPos = GetConVar("nai_npc_hud_position"):GetInt()
-    local posNames = {[0] = "Top Left", [1] = "Top Right", [2] = "Bottom Left", [3] = "Bottom Right"}
-    posCombo:SetValue(posNames[currentPos] or "Top Right")
+    posCombo:SetValue(HUD_POSITION_NAMES[currentPos] or "Top Right")
     posCombo.OnSelect = function(self, index, value, data)
         RunConsoleCommand("nai_npc_hud_position", tostring(data))
     end
@@ -2654,13 +3054,26 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(keybindsPanel, 10)
+    CreateSectionHeader(keybindsPanel, "HUD Controls")
+    CreateHelpText(keybindsPanel, "Quick HUD controls for showing, moving, and debugging the passenger overlay.")
+
+    local hudKeybinds = {
+        {name = "Toggle Passenger HUD", cvar = "nai_npc_key_toggle_hud", desc = "Show or hide the passenger status HUD"},
+        {name = "Cycle HUD Position", cvar = "nai_npc_key_cycle_hud_position", desc = "Move the passenger HUD through all four corners"},
+        {name = "Toggle Target Debug", cvar = "nai_npc_key_debug_hud", desc = "Toggle the small target debug overlay"},
+    }
+
+    for _, keybind in ipairs(hudKeybinds) do
+        CreateKeybindButton(keybindsPanel, keybind.name, keybind.cvar, keybind.desc)
+    end
+
+    CreateSpacer(keybindsPanel, 10)
     CreateSectionHeader(keybindsPanel, "Debug Controls")
     CreateHelpText(keybindsPanel, "Debug keybinds only work when Debug Mode is enabled.")
     
     local debugKeybinds = {
         {name = "Test Random Gesture", cvar = "nai_npc_key_test_gesture", desc = "Play a random gesture on nearest passenger"},
         {name = "Reset All NPCs", cvar = "nai_npc_key_reset_all", desc = "Reset animation states for all passengers"},
-        {name = "Toggle Debug HUD", cvar = "nai_npc_key_debug_hud", desc = "Show debug information overlay"},
     }
     
     for _, keybind in ipairs(debugKeybinds) do
@@ -2676,6 +3089,8 @@ local function OpenSettingsPanel()
             nai_npc_key_menu = KEY_F6,
             nai_npc_key_exit_all = KEY_Y,
             nai_npc_key_cycle_view = KEY_V,
+            nai_npc_key_toggle_hud = KEY_F8,
+            nai_npc_key_cycle_hud_position = KEY_F9,
         }
 
         for convar, keyCode in pairs(recommendedKeys) do
@@ -3565,7 +3980,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = "2.4" -- Change this when you want to show the popup again after updates
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.15"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
@@ -3689,22 +4104,23 @@ function ShowWelcomePanel(forceShow)
     end
     
     local changelog = vgui.Create("DPanel", content)
-    changelog:SetTall(185)
+    changelog:SetTall(208)
     changelog:Dock(TOP)
     changelog:DockMargin(0, 0, 0, 10)
     changelog.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
         local changes = {
-            "+ Performance: vehicle seat layout cached, rebuilt only on change",
-            "+ Performance: animation maintenance throttled per passenger",
-            "+ Performance: client body-sway uses tracked table, no ents.GetAll()",
-            "+ Vehicle allow/deny filter convars with CSV wildcard support",
-            "+ Boarding retry cooldown on repeated board failures",
-            "+ Squad-only auto-join mode (nai_npc_auto_join_squad_only)",
-            "+ Global enable/disable toggle (nai_npc_enabled)",
-            "* Fix: first-board failures due to uninitialized seat list",
-            "* Removed Nai Base API dependency (internal rename only)",
-            "* ConVar names (nai_npc_*) unchanged - existing configs preserved",
+            "+ Passenger panel search filter for names, classes, seats, status, and vehicles",
+            "+ Passenger panel sort selector (vehicle, name, seat, health, status)",
+            "+ Auto-refresh toggle for the visible passenger list",
+            "+ Overview counters now show total, visible, hidden, dead, scared, and drowsy riders",
+            "+ Seat reassignment dropdown now uses the vehicle's real seat count",
+            "+ Per-passenger Copy Summary button for quick bug reports",
+            "+ Per-passenger Copy Debug button for seat/entity diagnostics",
+            "+ Copy Visible Passenger List action for sharing the current filtered set",
+            "+ New keybinds to toggle the passenger HUD and cycle HUD position",
+            "+ Debug HUD key now toggles the target debug overlay instantly",
+            "* Removed the obsolete 'Assign Seat' context-menu entry",
         }
         for i, line in ipairs(changes) do
             local col = Theme.text

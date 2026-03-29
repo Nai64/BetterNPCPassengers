@@ -18,7 +18,7 @@ NPCPassengers.IsFirstApril = NPCPassengers.IsFirstApril or function()
     return dateInfo and dateInfo.month == 4 and dateInfo.day == 1
 end
 
-NPCPassengers.Version = NPCPassengers.Version or "2.5.14"
+NPCPassengers.Version = NPCPassengers.Version or "2.5.15"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-03-29"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -202,6 +202,8 @@ if CLIENT then
     NPCPassengers.cv_key_hold_fire = CreateClientConVar("nai_npc_key_hold_fire", "0", true, false, "Keybind: NPCs hold fire")
     NPCPassengers.cv_key_open_fire = CreateClientConVar("nai_npc_key_open_fire", "0", true, false, "Keybind: NPCs open fire")
     NPCPassengers.cv_key_cycle_view = CreateClientConVar("nai_npc_key_cycle_view", "0", true, false, "Keybind: Cycle passenger view")
+    NPCPassengers.cv_key_toggle_hud = CreateClientConVar("nai_npc_key_toggle_hud", "0", true, false, "Keybind: Toggle passenger HUD")
+    NPCPassengers.cv_key_cycle_hud_position = CreateClientConVar("nai_npc_key_cycle_hud_position", "0", true, false, "Keybind: Cycle passenger HUD position")
     NPCPassengers.cv_key_test_gesture = CreateClientConVar("nai_npc_key_test_gesture", "0", true, false, "Keybind: Test random gesture")
     NPCPassengers.cv_key_reset_all = CreateClientConVar("nai_npc_key_reset_all", "0", true, false, "Keybind: Reset all NPCs")
     NPCPassengers.cv_key_debug_hud = CreateClientConVar("nai_npc_key_debug_hud", "0", true, false, "Keybind: Toggle debug HUD")
