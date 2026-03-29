@@ -144,6 +144,39 @@ local function IsPassengerInLocalPlayersVehicle(npc)
     return IsValid(playerVehicle) and IsValid(passengerVehicle) and playerVehicle == passengerVehicle
 end
 
+local function GetClientVehicleSeatIndex(vehicle, seatEntity)
+    if not IsValid(vehicle) or not IsValid(seatEntity) then return nil end
+
+    local seats = {}
+
+    if vehicle.GetDriverSeat then
+        local driverSeat = vehicle:GetDriverSeat()
+        if IsValid(driverSeat) then
+            seats[#seats + 1] = driverSeat
+        end
+    end
+
+    for _, child in ipairs(vehicle:GetChildren()) do
+        if IsValid(child) and child:GetClass() == "prop_vehicle_prisoner_pod" then
+            seats[#seats + 1] = child
+        end
+    end
+
+    table.sort(seats, function(a, b)
+        local posA = vehicle:WorldToLocal(a:GetPos())
+        local posB = vehicle:WorldToLocal(b:GetPos())
+        return posA.x > posB.x
+    end)
+
+    for index, seat in ipairs(seats) do
+        if seat == seatEntity then
+            return index
+        end
+    end
+
+    return nil
+end
+
 local function RefreshTrackedPassengers()
     for ent in pairs(trackedPassengerNPCs) do
         if not IsValid(ent) or not ent:IsNPC() or not ent:GetNWBool("IsNPCPassenger", false) then
@@ -1699,12 +1732,164 @@ local function OpenSettingsPanel()
     local passengerControlList
     local passengersCurrentVehicleOnly = false
     local currentVehicleOnlyBtn
+    local passengerOverviewPanel
+    local passengerCardIcons = {}
+    local passengerCardIconsLoaded = false
+
+    local passengerStatusColors = {
+        calm = Color(105, 208, 140),
+        alert = Color(255, 191, 84),
+        scared = Color(255, 110, 110),
+        drowsy = Color(124, 177, 255),
+        dead = Color(112, 118, 130),
+        default = Color(180, 180, 180),
+    }
+
+    local passengerStatusLabels = {
+        calm = "Calm",
+        alert = "Alert",
+        scared = "Scared",
+        drowsy = "Drowsy",
+        dead = "Dead",
+        default = "Unknown",
+    }
+
+    local function LoadPassengerCardIcons()
+        if passengerCardIconsLoaded then
+            return
+        end
+
+        passengerCardIconsLoaded = true
+        for _, iconName in ipairs({"passenger", "calm", "alert", "scared", "drowsy", "dead"}) do
+            local material = Material("nai_passengers/icon_" .. iconName .. ".png", "smooth mips")
+            if not material:IsError() then
+                passengerCardIcons[iconName] = material
+            end
+        end
+    end
+
+    local function GetPassengerCardStatus(npc)
+        if not IsValid(npc) then
+            return "default", 0
+        end
+
+        local alertThreshold = GetConVar("nai_npc_hud_alert_threshold")
+        local fearThreshold = GetConVar("nai_npc_hud_fear_threshold")
+        local drowsyThreshold = GetConVar("nai_npc_hud_drowsy_threshold")
+        local drowsyTime = GetConVar("nai_npc_drowsy_time")
+
+        local alertLevel = npc:GetNWFloat("NPCPassengerAlertLevel", 0)
+        local fearLevel = npc:GetNWFloat("NPCPassengerFearLevel", 0)
+        local isDrowsy = npc:GetNWBool("NPCPassengerIsDrowsy", false)
+        local calmTime = npc:GetNWFloat("NPCPassengerCalmTime", 0)
+
+        local at = alertThreshold and alertThreshold:GetFloat() or 0.3
+        local ft = fearThreshold and fearThreshold:GetFloat() or 0.5
+        local dt = drowsyThreshold and drowsyThreshold:GetFloat() or 0.7
+        local drowsyTimeVal = drowsyTime and drowsyTime:GetFloat() or 60
+
+        if npc:Health() <= 0 or not npc:Alive() then
+            return "dead", 1
+        elseif fearLevel >= ft then
+            return "scared", fearLevel
+        elseif alertLevel >= at then
+            return "alert", alertLevel
+        elseif isDrowsy or (drowsyTimeVal > 0 and calmTime / drowsyTimeVal >= dt) then
+            return "drowsy", calmTime / math.max(1, drowsyTimeVal)
+        else
+            return "calm", 0
+        end
+    end
+
+    local function GetPassengerCardDisplayName(npc)
+        if not IsValid(npc) then return "Unknown" end
+
+        local targetName = npc:GetNWString("targetname", "")
+        if targetName == "" and npc.GetInternalVariable then
+            targetName = npc:GetInternalVariable("m_iName") or ""
+        end
+        if targetName and targetName ~= "" then return targetName end
+
+        local classNames = {
+            ["npc_citizen"] = "Citizen",
+            ["npc_alyx"] = "Alyx",
+            ["npc_barney"] = "Barney",
+            ["npc_monk"] = "Father Grigori",
+            ["npc_eli"] = "Eli",
+            ["npc_kleiner"] = "Dr. Kleiner",
+            ["npc_mossman"] = "Dr. Mossman",
+            ["npc_breen"] = "Dr. Breen",
+            ["npc_vortigaunt"] = "Vortigaunt",
+            ["npc_dog"] = "Dog",
+        }
+
+        return classNames[npc:GetClass() or ""] or string.upper(string.Replace(npc:GetClass() or "unknown", "npc_", ""))
+    end
+
+    local function CreatePassengerModelCard(parent, npc)
+        local modelPanel = vgui.Create("DModelPanel", parent)
+        modelPanel:SetSize(112, 144)
+        modelPanel:SetMouseInputEnabled(false)
+        modelPanel:SetKeyboardInputEnabled(false)
+        modelPanel:SetModel(IsValid(npc) and (npc:GetModel() or "") or "")
+        modelPanel.LayoutEntity = function() end
+        modelPanel.Paint = function(self, w, h)
+            draw.RoundedBox(10, 0, 0, w, h, Color(18, 22, 28, 220))
+            self:DrawModel()
+        end
+
+        if IsValid(npc) then
+            local mn, mx = modelPanel.Entity:GetRenderBounds()
+            local center = (mn + mx) * 0.5
+            local size = math.max((mx - mn):Length(), 32)
+            modelPanel:SetLookAt(center)
+            modelPanel:SetCamPos(center + Vector(size * 0.7, size * 0.12, size * 0.2))
+            modelPanel:SetFOV(24)
+
+            if npc.GetSkin and modelPanel.Entity.SetSkin then
+                modelPanel.Entity:SetSkin(npc:GetSkin() or 0)
+            end
+        end
+
+        return modelPanel
+    end
+
+    local function DrawInfoPill(x, y, w, h, text, fillColor, textColor)
+        draw.RoundedBox(6, x, y, w, h, fillColor)
+        draw.SimpleText(text, "NaiFont_Small", x + w / 2, y + h / 2, textColor or Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+
+    local function UpdatePassengerOverview(passengers, currentVehicle)
+        if not IsValid(passengerOverviewPanel) then
+            return
+        end
+
+        passengerOverviewPanel.totalPassengers = #passengers
+        passengerOverviewPanel.currentVehiclePassengers = 0
+        passengerOverviewPanel.scaredPassengers = 0
+        passengerOverviewPanel.drowsyPassengers = 0
+
+        for _, npc in ipairs(passengers) do
+            local status = GetPassengerCardStatus(npc)
+            if currentVehicle and GetPassengerControlVehicle(npc) == currentVehicle then
+                passengerOverviewPanel.currentVehiclePassengers = passengerOverviewPanel.currentVehiclePassengers + 1
+            end
+            if status == "scared" then
+                passengerOverviewPanel.scaredPassengers = passengerOverviewPanel.scaredPassengers + 1
+            elseif status == "drowsy" then
+                passengerOverviewPanel.drowsyPassengers = passengerOverviewPanel.drowsyPassengers + 1
+            end
+        end
+
+        passengerOverviewPanel:InvalidateLayout(true)
+    end
 
     local function RefreshPassengersControlList()
         if not IsValid(passengerControlList) then
             return
         end
 
+        LoadPassengerCardIcons()
         passengerControlList:Clear()
 
         local passengers = {}
@@ -1739,6 +1924,8 @@ local function OpenSettingsPanel()
             return classA < classB
         end)
 
+        UpdatePassengerOverview(passengers, currentVehicle)
+
         if #passengers == 0 then
             local noPassengers = vgui.Create("DLabel", passengerControlList)
             noPassengers:SetFont("NaiFont_Normal")
@@ -1760,38 +1947,84 @@ local function OpenSettingsPanel()
         end
 
         for _, npc in ipairs(passengers) do
+            local passengerVehicle = GetPassengerControlVehicle(npc)
+            local matchingVehicle = IsPassengerInLocalPlayersVehicle(npc)
+            local status, intensity = GetPassengerCardStatus(npc)
+            local statusColor = passengerStatusColors[status] or passengerStatusColors.default
+            local statusLabel = passengerStatusLabels[status] or passengerStatusLabels.default
+            local currentSeat = GetClientVehicleSeatIndex(passengerVehicle, npc:GetParent()) or 1
+            local maxHealth = math.max(npc:GetMaxHealth(), 1)
+            local healthValue = math.max(npc:Health(), 0)
+            local healthFrac = math.Clamp(healthValue / maxHealth, 0, 1)
+            local seatChoices = math.max(currentSeat + 2, 8)
+
             local npcPanel = vgui.Create("DPanel", passengerControlList)
             npcPanel:Dock(TOP)
-            npcPanel:SetTall(124)
-            npcPanel:DockMargin(8, 4, 8, 4)
+            npcPanel:SetTall(176)
+            npcPanel:DockMargin(8, 6, 8, 6)
             npcPanel.Paint = function(self, w, h)
                 if not IsValid(npc) then return end
 
-                draw.RoundedBox(6, 0, 0, w, h, Theme.bgLighter)
+                draw.RoundedBox(10, 0, 0, w, h, Theme.bgLighter)
+                draw.RoundedBox(10, 0, 0, 10, h, statusColor)
 
-                local passengerVehicle = GetPassengerControlVehicle(npc)
-                local vehicleName = IsValid(passengerVehicle) and passengerVehicle:GetClass() or "Unknown vehicle"
-                local matchingVehicle = IsPassengerInLocalPlayersVehicle(npc)
-                local healthText = string.format("Health: %d", math.max(npc:Health(), 0))
+                local gradientMat = Material("vgui/gradient-r")
+                surface.SetDrawColor(statusColor.r, statusColor.g, statusColor.b, 35)
+                surface.SetMaterial(gradientMat)
+                surface.DrawTexturedRect(0, 0, w, h)
 
-                draw.SimpleText(npc:GetClass() .. " #" .. npc:EntIndex(), "NaiFont_Bold", 12, 12, Theme.textBright)
-                draw.SimpleText("Vehicle: " .. vehicleName, "NaiFont_Small", 12, 34, Theme.textDim)
-                draw.SimpleText(healthText, "NaiFont_Small", 12, 52, Theme.textDim)
-                draw.SimpleText(matchingVehicle and "You can reassign this passenger right now." or "Get in the same vehicle to reassign seats.", "NaiFont_Small", 12, 70, matchingVehicle and Theme.success or Theme.textDim)
+                if passengerCardIcons.passenger then
+                    surface.SetDrawColor(255, 255, 255, 190)
+                    surface.SetMaterial(passengerCardIcons.passenger)
+                    surface.DrawTexturedRect(128, 16, 18, 18)
+                end
+
+                if passengerCardIcons[status] then
+                    surface.SetDrawColor(255, 255, 255, 255)
+                    surface.SetMaterial(passengerCardIcons[status])
+                    surface.DrawTexturedRect(150, 14, 22, 22)
+                end
+
+                draw.SimpleText(GetPassengerCardDisplayName(npc), "NaiFont_Bold", 178, 18, Theme.textBright)
+                draw.SimpleText((npc:GetClass() or "npc") .. "  |  #" .. npc:EntIndex(), "NaiFont_Small", 178, 38, Theme.textDim)
+                draw.SimpleText(IsValid(passengerVehicle) and ("Vehicle: " .. passengerVehicle:GetClass()) or "Vehicle: Unknown", "NaiFont_Small", 178, 58, Theme.text)
+
+                DrawInfoPill(178, 82, 92, 22, "Seat " .. currentSeat, Color(30, 36, 44, 240), Theme.textBright)
+                DrawInfoPill(278, 82, 96, 22, statusLabel, Color(statusColor.r, statusColor.g, statusColor.b, 220), Theme.bgDark)
+                DrawInfoPill(382, 82, 118, 22, matchingVehicle and "Same Vehicle" or "Other Vehicle", matchingVehicle and Color(46, 78, 62, 230) or Color(54, 58, 68, 230), matchingVehicle and Theme.success or Theme.textDim)
+                DrawInfoPill(508, 82, 86, 22, npc:GetNWBool("NPCPassengerHidden", false) and "Hidden" or "Visible", Color(30, 36, 44, 230), Theme.textBright)
+
+                local healthBarX = 178
+                local healthBarY = 114
+                local healthBarW = w - 202
+                draw.RoundedBox(6, healthBarX, healthBarY, healthBarW, 14, Theme.bgDark)
+                draw.RoundedBox(6, healthBarX, healthBarY, math.max(healthBarW * healthFrac, 10), 14, Color(112, 214, 136))
+                draw.SimpleText(string.format("Health %d / %d", healthValue, maxHealth), "NaiFont_Small", healthBarX + 10, healthBarY + 7, Theme.bgDark, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+                local intensityBarX = 178
+                local intensityBarY = 138
+                local intensityBarW = w - 202
+                draw.RoundedBox(6, intensityBarX, intensityBarY, intensityBarW, 10, Theme.bgDark)
+                draw.RoundedBox(6, intensityBarX, intensityBarY, math.max(intensityBarW * math.Clamp(intensity, 0.05, 1), 8), 10, Color(statusColor.r, statusColor.g, statusColor.b, 225))
+                draw.SimpleText(string.format("Status intensity %.0f%%", math.Clamp(intensity, 0, 1) * 100), "NaiFont_Small", intensityBarX + intensityBarW, intensityBarY - 8, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
             end
+
+            local portrait = CreatePassengerModelCard(npcPanel, npc)
+            portrait:SetPos(16, 16)
 
             local seatCombo = vgui.Create("DComboBox", npcPanel)
-            seatCombo:SetPos(12, 90)
-            seatCombo:SetSize(104, 24)
+            seatCombo:SetPos(178, 148)
+            seatCombo:SetSize(112, 24)
             seatCombo:SetFont("NaiFont_Small")
-            for seatNumber = 1, 8 do
+            for seatNumber = 1, seatChoices do
                 seatCombo:AddChoice("Seat " .. seatNumber, seatNumber)
             end
-            seatCombo:SetValue("Seat 1")
+            seatCombo:ChooseOptionID(currentSeat)
+            seatCombo:SetValue("Seat " .. currentSeat)
 
             local assignBtn = vgui.Create("DButton", npcPanel)
-            assignBtn:SetPos(126, 88)
-            assignBtn:SetSize(118, 28)
+            assignBtn:SetPos(300, 146)
+            assignBtn:SetSize(136, 28)
             assignBtn:SetFont("NaiFont_Normal")
             assignBtn:SetTextColor(Theme.textBright)
             assignBtn:SetText("Assign Seat")
@@ -1828,7 +2061,7 @@ local function OpenSettingsPanel()
             end
 
             local detachBtn = vgui.Create("DButton", npcPanel)
-            detachBtn:SetPos(252, 88)
+            detachBtn:SetPos(446, 146)
             detachBtn:SetSize(104, 28)
             detachBtn:SetFont("NaiFont_Normal")
             detachBtn:SetTextColor(Theme.textBright)
@@ -1863,6 +2096,31 @@ local function OpenSettingsPanel()
 
     CreateSectionHeader(passengersPanel, "Passenger Controls")
     CreateHelpText(passengersPanel, "Manage active passengers, reassign seats, and detach riders without leaving the settings panel.")
+
+    passengerOverviewPanel = vgui.Create("DPanel", passengersPanel)
+    passengerOverviewPanel:SetTall(104)
+    passengerOverviewPanel:Dock(TOP)
+    passengerOverviewPanel:DockMargin(8, 6, 8, 6)
+    passengerOverviewPanel.totalPassengers = 0
+    passengerOverviewPanel.currentVehiclePassengers = 0
+    passengerOverviewPanel.scaredPassengers = 0
+    passengerOverviewPanel.drowsyPassengers = 0
+    passengerOverviewPanel.Paint = function(self, w, h)
+        draw.RoundedBox(10, 0, 0, w, h, Theme.bgDark)
+
+        local gradientMat = Material("vgui/gradient-r")
+        surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 42)
+        surface.SetMaterial(gradientMat)
+        surface.DrawTexturedRect(0, 0, w, h)
+
+        draw.SimpleText("Passenger Operations", "NaiFont_Bold", 16, 18, Theme.textBright)
+        draw.SimpleText("Live overview for all currently attached riders", "NaiFont_Small", 16, 40, Theme.textDim)
+
+        DrawInfoPill(16, 62, 120, 26, "Total: " .. self.totalPassengers, Theme.bgLighter, Theme.textBright)
+        DrawInfoPill(146, 62, 172, 26, "Current Vehicle: " .. self.currentVehiclePassengers, Color(38, 58, 72, 220), Theme.textBright)
+        DrawInfoPill(328, 62, 116, 26, "Scared: " .. self.scaredPassengers, Color(98, 40, 40, 220), Theme.textBright)
+        DrawInfoPill(454, 62, 122, 26, "Drowsy: " .. self.drowsyPassengers, Color(44, 60, 92, 220), Theme.textBright)
+    end
 
     CreateButton(passengersPanel, "Refresh Passenger List", RefreshPassengersControlList)
 
