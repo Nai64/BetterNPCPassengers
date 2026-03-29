@@ -849,6 +849,25 @@ local function CreateHelpText(parent, text)
     return help
 end
 
+-- Ensure a safe draw.Circle implementation exists (some environments don't provide it)
+if not draw.Circle then
+    function draw.Circle(cx, cy, radius, segs)
+        segs = segs or 32
+        local verts = {}
+        for i = 0, segs do
+            local a = math.rad((i / segs) * 360)
+            verts[#verts + 1] = {
+                x = cx + math.cos(a) * radius,
+                y = cy + math.sin(a) * radius,
+                u = (math.cos(a) + 1) * 0.5,
+                v = (math.sin(a) + 1) * 0.5
+            }
+        end
+        draw.NoTexture()
+        surface.DrawPoly(verts)
+    end
+end
+
 local function CreateCheckbox(parent, label, convar)
     local container = vgui.Create("DPanel", parent)
     container.SearchLabel = label
@@ -4132,7 +4151,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.18"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.19"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
@@ -4262,13 +4281,14 @@ function ShowWelcomePanel(forceShow)
     changelog.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
         local changes = {
-            "+ Passenger counts and occupied seats now use shared registries instead of repeated scans",
-            "+ Passenger sit animation upkeep now runs through one shared think loop instead of per-NPC timers",
-            "+ Turret gunners now reuse a tracked NPC target pool instead of rebuilding targets every scan",
-            "+ Client passenger tracking now updates from networked state changes with slower fallback rescans",
-            "+ Seat reassignment, detach, reset, and cleanup paths now share the same cached passenger state",
-            "+ High-passenger and turret-heavy scenes now avoid the worst repeated entity and seat traversal costs",
-        }
+                "+ Passenger counts and occupied seats now use shared registries instead of repeated scans",
+                "+ Passenger sit animation upkeep now runs through one shared think loop instead of per-NPC timers",
+                "+ Turret gunners now reuse a tracked NPC target pool instead of rebuilding targets every scan",
+                "+ Client passenger tracking now updates from networked state changes with slower fallback rescans",
+                "+ Seat reassignment, detach, reset, and cleanup paths now share the same cached passenger state",
+                "+ High-passenger and turret-heavy scenes now avoid the worst repeated entity and seat traversal costs",
+                "+ Fixed a UI crash when drawing circular checkboxes"
+            }
         for i, line in ipairs(changes) do
             local col = Theme.text
             if string.sub(line, 1, 1) == "*" then col = Theme.textDim end
