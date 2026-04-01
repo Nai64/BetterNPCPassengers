@@ -1065,6 +1065,9 @@ local function StyleScrollbar(sbar)
     sbar:SetWide(8)
     sbar:SetHideButtons(true)
     
+    -- Track this scrollbar for live updates
+    table.insert(sidebarScrollbars, sbar)
+    
     -- Smooth scrolling
     if not sbar.smoothScroll then
         sbar.smoothScroll = 0
@@ -1104,6 +1107,7 @@ end
 
 -- Main Settings Panel
 local settingsFrame = nil
+local sidebarScrollbars = {}
 
 local function AreUIAnimationsEnabled()
     local cvar = GetConVar("nai_npc_ui_animations")
@@ -3525,8 +3529,24 @@ local function OpenSettingsPanel()
     CreateCheckbox(interfacePanel, "Show Tooltips", "nai_npc_ui_tooltips")
     CreateHelpText(interfacePanel, "Display helpful tooltips when hovering over settings")
 
-    CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
+    local _, scrollSmoothSlider = CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
     CreateHelpText(interfacePanel, "Lower values = smoother but slower scrolling (0.01-1)")
+    
+    -- Apply scroll smoothness immediately when changed
+    if scrollSmoothSlider and scrollSmoothSlider.OnValueChanged then
+        local originalOnValueChanged = scrollSmoothSlider.OnValueChanged
+        scrollSmoothSlider.OnValueChanged = function(self, val)
+            if originalOnValueChanged then
+                originalOnValueChanged(self, val)
+            end
+            -- Update all existing scrollbars
+            for _, sbar in ipairs(sidebarScrollbars or {}) do
+                if IsValid(sbar) then
+                    sbar.smoothScrollSpeed = math.Clamp(val, 0.01, 1)
+                end
+            end
+        end
+    end
 
     CreateSpacer(interfacePanel, 10)
     CreateSectionHeader(interfacePanel, "Performance & Technical")
@@ -4076,7 +4096,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.29"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.30"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
