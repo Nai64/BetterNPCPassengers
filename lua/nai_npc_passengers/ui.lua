@@ -1061,13 +1061,16 @@ local function CreateSpacer(parent, height)
     return spacer
 end
 
+-- Track all scrollbars for live smoothness updates
+local sidebarScrollbars = {}
+
 local function StyleScrollbar(sbar)
     sbar:SetWide(8)
     sbar:SetHideButtons(true)
-    
+
     -- Track this scrollbar for live updates
     table.insert(sidebarScrollbars, sbar)
-    
+
     -- Smooth scrolling
     if not sbar.smoothScroll then
         sbar.smoothScroll = 0
@@ -1076,14 +1079,14 @@ local function StyleScrollbar(sbar)
         local smoothness = GetConVar("nai_npc_ui_scroll_smoothness")
         sbar.smoothScrollSpeed = smoothness and math.Clamp(smoothness:GetFloat(), 0.01, 1) or 0.15
     end
-    
+
     sbar.Think = function(self)
         if self.smoothScroll ~= self.scrollTarget then
             self.smoothScroll = Lerp(self.smoothScrollSpeed, self.smoothScroll, self.scrollTarget)
             self:SetScroll(self.smoothScroll)
         end
     end
-    
+
     sbar.OnMouseWheeled = function(self, delta)
         local parent = self:GetParent()
         local canvas = parent and parent.GetCanvas and parent:GetCanvas()
@@ -1093,7 +1096,7 @@ local function StyleScrollbar(sbar)
         self.scrollTarget = math.Clamp(self.scrollTarget, 0, scrollMax)
         return true
     end
-    
+
     sbar.Paint = function(self, w, h)
         draw.RoundedBox(4, 0, 0, w, h, Theme.bgDark)
     end
@@ -1107,7 +1110,6 @@ end
 
 -- Main Settings Panel
 local settingsFrame = nil
-local sidebarScrollbars = {}
 
 local function AreUIAnimationsEnabled()
     local cvar = GetConVar("nai_npc_ui_animations")
@@ -4096,7 +4098,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.30"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.31"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
