@@ -2,3 +2,6 @@
 *.file
 *.zip
 .qwen/
+*.txt
+*.ps1
+*.json
