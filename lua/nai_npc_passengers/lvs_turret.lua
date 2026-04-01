@@ -28,16 +28,16 @@ local TURRET_TARGET_REFRESH_INTERVAL = 2
 ]]
 local function LVSGetSeatWeaponInfo(vehicle, seat)
     if not IsValid(vehicle) then return nil end
-    
+
     -- Check if this is an LVS vehicle
     local isLVS = vehicle.LVS or vehicle.IsLVS or string.find(vehicle:GetClass() or "", "lvs_")
     if not isLVS then
         return nil
     end
-    
+
     -- Try to get pod index from seat
     local podIndex = nil
-    
+
     if IsValid(seat) then
         if seat.lvsGetPodIndex then
             podIndex = seat:lvsGetPodIndex()
@@ -59,15 +59,23 @@ local function LVSGetSeatWeaponInfo(vehicle, seat)
         end
     end
     
-    -- Default to pod 2 (first gunner) if no index found but seat exists
-    if not podIndex and IsValid(seat) then
+    -- If no seat provided or no pod index found, try to get gunner seats
+    if not podIndex and vehicle.GetGunnerSeats then
+        local gunnerSeats = vehicle:GetGunnerSeats()
+        if gunnerSeats and #gunnerSeats > 0 then
+            podIndex = 2 -- Default to first gunner seat
+        end
+    end
+
+    -- Default to pod 2 (first gunner) if no index found but vehicle has weapons
+    if not podIndex and vehicle.WEAPONS and table.Count(vehicle.WEAPONS) > 1 then
         podIndex = 2
     end
-    
+
     -- Check if vehicle has weapons for this pod
     local hasWeapons = false
     local weaponData = nil
-    
+
     if vehicle.WEAPONS then
         if podIndex and vehicle.WEAPONS[podIndex] then
             weaponData = vehicle.WEAPONS[podIndex]
@@ -85,10 +93,10 @@ local function LVSGetSeatWeaponInfo(vehicle, seat)
             end
         end
     end
-    
+
     -- Check for turret control
     local hasTurret = vehicle.TurretPodIndex == podIndex or vehicle.TurretPodIndex ~= nil
-    
+
     -- Get weapon handler entity if exists
     local weaponHandler = nil
     if IsValid(seat) then
@@ -99,7 +107,7 @@ local function LVSGetSeatWeaponInfo(vehicle, seat)
     if not IsValid(weaponHandler) and vehicle.GetWeaponHandler then
         weaponHandler = vehicle:GetWeaponHandler(podIndex or 1)
     end
-    
+
     -- Check for gunner entities attached to the vehicle
     if not IsValid(weaponHandler) then
         for _, child in ipairs(vehicle:GetChildren()) do
@@ -109,7 +117,7 @@ local function LVSGetSeatWeaponInfo(vehicle, seat)
             end
         end
     end
-    
+
     -- Even if no weapons found, return info for LVS vehicles so we can still aim
     -- This allows NPC head tracking toward enemies even without shooting
     return {
@@ -334,13 +342,13 @@ end
 local function CreateTurretController(npc, passengerData)
     local vehicle = passengerData.vehicle
     local seat = passengerData.seat
-    
+
     local weaponInfo = LVSGetSeatWeaponInfo(vehicle, seat)
     if not weaponInfo then return nil end
-    
+
     -- Store original relationships from passenger data
     local originalRelationships = passengerData.relationships or {}
-    
+
     return {
         npc = npc,
         vehicle = vehicle,
@@ -355,7 +363,8 @@ local function CreateTurretController(npc, passengerData)
         targetYaw = 0,
         targetPitch = 0,
         isTracking = false,
-        scanTimer = 0
+        scanTimer = 0,
+        gunnerEntity = nil
     }
 end
 
@@ -774,8 +783,40 @@ function NPCPassengers.RegisterTurretNPC(npc, passengerData)
     if activeGunners[npc] then return true end
     if NPCPassengers.DriverNPCs and NPCPassengers.DriverNPCs[npc:EntIndex()] then return false end
 
+    local vehicle = passengerData.vehicle
+    if not IsValid(vehicle) then return false end
+
+    -- Check if this is an LVS vehicle
+    local isLVS = vehicle.LVS or vehicle.IsLVS or string.find(vehicle:GetClass() or "", "lvs_")
+    if not isLVS then return false end
+
     local seat = passengerData.seat
-    if not IsValid(seat) then return false end
+    
+    -- If no seat assigned, try to find a gunner seat on the vehicle
+    if not IsValid(seat) then
+        -- Check if vehicle has gunner capability
+        if vehicle.GetGunnerSeats then
+            local gunnerSeats = vehicle:GetGunnerSeats()
+            if gunnerSeats and #gunnerSeats > 0 then
+                seat = gunnerSeats[1]
+            end
+        end
+    end
+    
+    -- If still no seat, check for turret capability on vehicle
+    if not IsValid(seat) then
+        if vehicle.TurretPodIndex or (vehicle.WEAPONS and table.Count(vehicle.WEAPONS) > 1) then
+            -- Vehicle has turret capability, create controller without specific seat
+            local controller = CreateTurretController(npc, passengerData)
+            if controller then
+                activeGunners[npc] = controller
+                return true
+            end
+        end
+        return false
+    end
+    
+    -- Don't register driver seat (pod 1) as turret gunner
     if seat.lvsGetPodIndex and seat:lvsGetPodIndex() == 1 then
         return false
     end

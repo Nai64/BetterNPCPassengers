@@ -2678,13 +2678,11 @@ DetachNPC = function(npc)
         npc:EmitSound(exitSounds[math.random(#exitSounds)], vol, pitch)
     end
     
-    -- DISABLED: Unregister from turret control
-    --[[ LVS TURRET DISABLED
+    -- Unregister from turret control
     if NPCPassengers.UnregisterTurretNPC then
         NPCPassengers.UnregisterTurretNPC(npc)
     end
-    --]]
-    
+
     -- Unregister from driver control
     if NPCPassengers.UnregisterDriverNPC then
         NPCPassengers.UnregisterDriverNPC(npc)

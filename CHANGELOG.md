@@ -1,5 +1,16 @@
 # Better NPC Passengers Changelog
 
+## v2.5.24
+
+### Bug Fixes
+- **Fixed NPCs not shooting from LVS gunner seats** — improved turret registration to handle cases where seat is not explicitly assigned; now properly detects gunner seats via `GetGunnerSeats()` and falls back to vehicle turret capability
+- **Fixed turret controller cleanup** — re-enabled turret unregistration in `DetachNPC` to properly clean up turret controllers when NPCs leave vehicles
+- **Fixed NPC face posing reset after ejection** — facial flex weights and eye pose parameters are no longer reset when NPCs leave vehicles, preserving any custom face posing applied by users
+- **Fixed NPC returning to boarding position after ejection** — walk timer is now properly cleaned up when NPCs detach from vehicles, preventing them from attempting to return to the original boarding location
+
+### Removals
+- **April Fools joke mode removed** — completely removed the April Fools chaos mode including chaotic UI effects, random face posing, and passenger explosion gag
+
 ## v2.5.23
 
 ### Bug Fixes
