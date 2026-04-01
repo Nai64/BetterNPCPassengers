@@ -737,6 +737,20 @@ local function CreateSectionHeader(parent, text)
     header:SetTall(38)
     header:Dock(TOP)
     header:DockMargin(0, 15, 0, 8)
+    
+    -- Animation state for hover scale
+    header.textHoverScale = 1
+    header.lastHovered = false
+    
+    header.Think = function(self)
+        -- Smooth text scale animation on hover
+        local isHovered = self:IsHovered()
+        local targetScale = isHovered and 1.2 or 1
+        if self.textHoverScale ~= targetScale then
+            self.textHoverScale = Lerp(0.15, self.textHoverScale, targetScale)
+        end
+    end
+    
     header.Paint = function(self, w, h)
         local accentColor = Theme.accent
 
@@ -752,13 +766,29 @@ local function CreateSectionHeader(parent, text)
 
         -- Glow effect
         draw.RoundedBox(0, 0, h - 3, w, 3, Color(accentColor.r, accentColor.g, accentColor.b, Theme.glow.a or 30))
-        
-        -- Icon
+
+        -- Icon (fixed size, no scaling)
         surface.SetDrawColor(accentColor)
         surface.SetMaterial(Material("icon16/star.png"))
         surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
 
-        DrawMarqueeText(self, text, "NaiFont_Medium", 36, h/2, Theme.textBright, math.max(w - 48, 0), TEXT_ALIGN_CENTER, 32, 18)
+        -- Text with hover scale
+        local textCol = Theme.textBright
+        local baseY = h / 2
+        local baseX = 36
+        
+        if self.textHoverScale ~= 1 then
+            -- Calculate centered offset for scaled text
+            surface.SetFont("NaiFont_Medium")
+            local textWidth = surface.GetTextSize(text)
+            local scaledWidth = textWidth * self.textHoverScale
+            local offsetX = (textWidth - scaledWidth) / 2
+            
+            -- Draw scaled text
+            draw.SimpleText(text, "NaiFont_Medium", baseX + offsetX, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        else
+            DrawMarqueeText(self, text, "NaiFont_Medium", baseX, baseY, textCol, math.max(w - 48, 0), TEXT_ALIGN_CENTER, 32, 18)
+        end
     end
     return header
 end
@@ -1442,18 +1472,18 @@ local function OpenSettingsPanel()
             surface.DrawTexturedRect(12, ((h - 18) / 2) + pushOffset, 18, 18)
 
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
-            
+
             -- Draw text with hover scale
             local baseY = (h / 2) + pushOffset
             if self.textHoverScale ~= 1 then
-                local scaledFont = "NaiFont_Normal"
+                -- Calculate centered offset for scaled text
+                surface.SetFont("NaiFont_Normal")
                 local textWidth = surface.GetTextSize(label)
-                local offsetX = (textWidth - textWidth * self.textHoverScale) / 2
-                surface.SetFont(scaledFont)
-                surface.SetTextPos(38 + offsetX, baseY)
-                surface.SetTextColor(textCol.r, textCol.g, textCol.b, textCol.a)
-                surface.DrawTexturedRect(38 + offsetX, baseY, textWidth * self.textHoverScale, surface.GetTextSize(label))
-                draw.SimpleText(label, scaledFont, 38 + offsetX, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+                local scaledWidth = textWidth * self.textHoverScale
+                local offsetX = (textWidth - scaledWidth) / 2
+                
+                -- Draw scaled text centered
+                draw.SimpleText(label, "NaiFont_Normal", 38 + offsetX, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             else
                 DrawMarqueeText(self, label, "NaiFont_Normal", 38, baseY, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
             end
@@ -4152,7 +4182,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.33"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.34"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
