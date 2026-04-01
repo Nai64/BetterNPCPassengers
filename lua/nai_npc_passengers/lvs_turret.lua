@@ -358,6 +358,7 @@ local function CreateTurretController(npc, passengerData)
         currentTarget = nil,
         targetAcquiredTime = 0,
         lastFireTime = 0,
+        lastTargetNotifyTime = 0,
         aimYaw = 0,
         aimPitch = 0,
         targetYaw = 0,
@@ -656,13 +657,14 @@ end
 local function StopFiring(controller)
     local weaponInfo = controller.weaponInfo
     local vehicle = controller.vehicle
-    
+    local npc = controller.npc
+
     -- Stop the gunner entity
     if IsValid(controller.gunnerEntity) then
         controller.gunnerEntity._AIFireInput = false
         controller.gunnerEntity._attackStarted = nil
         controller.gunnerEntity._ai_look_dir = nil
-        
+
         -- Finish attack if weapon has FinishAttack/StopAttack
         if controller.gunnerEntity.WeaponsFinish then
             pcall(controller.gunnerEntity.WeaponsFinish, controller.gunnerEntity)
@@ -673,7 +675,7 @@ local function StopFiring(controller)
             end
         end
     end
-    
+
     if IsValid(weaponInfo.weaponHandler) then
         weaponInfo.weaponHandler._AIFireInput = false
         weaponInfo.weaponHandler._ai_look_dir = nil
@@ -684,7 +686,7 @@ local function StopFiring(controller)
             pcall(weaponInfo.weaponHandler.FinishAttack, weaponInfo.weaponHandler)
         end
     end
-    
+
     -- IMPORTANT: Disable AI gunners on the vehicle
     if IsValid(vehicle) then
         if vehicle.SetAIGunners then
@@ -742,10 +744,18 @@ local function TurretNPCThink(controller, dt)
             local newTarget = enemies[1]
             
             -- Check if this is a new target
-            if not controller.currentTarget or 
+            if not controller.currentTarget or
                controller.currentTarget.entity ~= newTarget.entity then
                 controller.currentTarget = newTarget
                 controller.targetAcquiredTime = curTime
+                -- QoL: Notify when turret acquires new target
+                if IsValid(vehicle:GetDriver()) then
+                    local driver = vehicle:GetDriver()
+                    if IsValid(driver) and driver:IsPlayer() then
+                        local targetName = newTarget.entity:GetClass() or "enemy"
+                        driver:ChatPrint("[Better NPC Passengers] Turret acquired target: " .. targetName)
+                    end
+                end
             else
                 -- Update existing target info
                 controller.currentTarget.position = newTarget.position
@@ -755,6 +765,16 @@ local function TurretNPCThink(controller, dt)
         else
             if controller.currentTarget then
                 StopFiring(controller)
+                -- QoL: Notify when turret loses target
+                if controller.lastTargetNotifyTime and (curTime - controller.lastTargetNotifyTime) > 5 then
+                    if IsValid(vehicle:GetDriver()) then
+                        local driver = vehicle:GetDriver()
+                        if IsValid(driver) and driver:IsPlayer() then
+                            driver:ChatPrint("[Better NPC Passengers] Turret lost target")
+                            controller.lastTargetNotifyTime = curTime
+                        end
+                    end
+                end
             end
             controller.currentTarget = nil
         end
@@ -778,7 +798,16 @@ end
     Register an NPC as a turret gunner
 ]]
 function NPCPassengers.RegisterTurretNPC(npc, passengerData)
-    if not NPCPassengers.cv_turret_enabled:GetBool() then return false end
+    if not NPCPassengers.cv_turret_enabled:GetBool() then 
+        -- QoL: Inform player turret system is disabled
+        if IsValid(passengerData.vehicle) and IsValid(passengerData.vehicle:GetDriver()) then
+            local driver = passengerData.vehicle:GetDriver()
+            if IsValid(driver) and driver:IsPlayer() then
+                driver:ChatPrint("[Better NPC Passengers] Turret control is disabled (nai_npc_turret_enabled = 0)")
+            end
+        end
+        return false 
+    end
     if not IsValid(npc) or not passengerData then return false end
     if activeGunners[npc] then return true end
     if NPCPassengers.DriverNPCs and NPCPassengers.DriverNPCs[npc:EntIndex()] then return false end
@@ -788,10 +817,19 @@ function NPCPassengers.RegisterTurretNPC(npc, passengerData)
 
     -- Check if this is an LVS vehicle
     local isLVS = vehicle.LVS or vehicle.IsLVS or string.find(vehicle:GetClass() or "", "lvs_")
-    if not isLVS then return false end
+    if not isLVS then 
+        -- QoL: Inform player vehicle is not LVS
+        if IsValid(vehicle:GetDriver()) then
+            local driver = vehicle:GetDriver()
+            if IsValid(driver) and driver:IsPlayer() then
+                driver:ChatPrint("[Better NPC Passengers] Vehicle does not support turret control")
+            end
+        end
+        return false 
+    end
 
     local seat = passengerData.seat
-    
+
     -- If no seat assigned, try to find a gunner seat on the vehicle
     if not IsValid(seat) then
         -- Check if vehicle has gunner capability
@@ -802,7 +840,7 @@ function NPCPassengers.RegisterTurretNPC(npc, passengerData)
             end
         end
     end
-    
+
     -- If still no seat, check for turret capability on vehicle
     if not IsValid(seat) then
         if vehicle.TurretPodIndex or (vehicle.WEAPONS and table.Count(vehicle.WEAPONS) > 1) then
@@ -810,12 +848,19 @@ function NPCPassengers.RegisterTurretNPC(npc, passengerData)
             local controller = CreateTurretController(npc, passengerData)
             if controller then
                 activeGunners[npc] = controller
+                -- QoL: Notify player of successful turret assignment
+                if IsValid(vehicle:GetDriver()) then
+                    local driver = vehicle:GetDriver()
+                    if IsValid(driver) and driver:IsPlayer() then
+                        driver:ChatPrint("[Better NPC Passengers] NPC assigned to turret!")
+                    end
+                end
                 return true
             end
         end
         return false
     end
-    
+
     -- Don't register driver seat (pod 1) as turret gunner
     if seat.lvsGetPodIndex and seat:lvsGetPodIndex() == 1 then
         return false
@@ -825,6 +870,20 @@ function NPCPassengers.RegisterTurretNPC(npc, passengerData)
     if not controller then return false end
 
     activeGunners[npc] = controller
+
+    -- QoL: Small delay before turret starts scanning (prevents instant target acquisition)
+    controller.scanTimer = 0.5
+
+    -- QoL: Notify player of successful turret assignment with sound and message
+    if IsValid(vehicle:GetDriver()) then
+        local driver = vehicle:GetDriver()
+        if IsValid(driver) and driver:IsPlayer() then
+            driver:ChatPrint("[Better NPC Passengers] NPC assigned to turret!")
+            -- Play a subtle confirmation sound
+            driver:SendLua("surface.PlaySound(\"buttons/blip1.wav\")")
+        end
+    end
+
     return true
 end
 
