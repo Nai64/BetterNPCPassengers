@@ -1064,6 +1064,27 @@ end
 local function StyleScrollbar(sbar)
     sbar:SetWide(8)
     sbar:SetHideButtons(true)
+    
+    -- Smooth scrolling
+    if not sbar.smoothScroll then
+        sbar.smoothScroll = 0
+        sbar.scrollTarget = 0
+        sbar.smoothScrollSpeed = 0.15
+    end
+    
+    sbar.Think = function(self)
+        if self.smoothScroll ~= self.scrollTarget then
+            self.smoothScroll = Lerp(self.smoothScrollSpeed, self.smoothScroll, self.scrollTarget)
+            self:SetScroll(self.smoothScroll)
+        end
+    end
+    
+    sbar.OnMouseWheeled = function(self, delta)
+        self.scrollTarget = self.scrollTarget - delta * 50
+        self.scrollTarget = math.Clamp(self.scrollTarget, 0, self:GetCanvasHeight() - self:GetTall())
+        return true
+    end
+    
     sbar.Paint = function(self, w, h)
         draw.RoundedBox(4, 0, 0, w, h, Theme.bgDark)
     end
@@ -4045,7 +4066,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.25"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.26"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
