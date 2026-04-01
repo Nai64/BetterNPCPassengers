@@ -1080,8 +1080,11 @@ local function StyleScrollbar(sbar)
     end
     
     sbar.OnMouseWheeled = function(self, delta)
+        local parent = self:GetParent()
+        local canvasHeight = parent and parent:GetCanvasHeight() or 0
+        local scrollMax = math.max(0, canvasHeight - self:GetTall())
         self.scrollTarget = self.scrollTarget - delta * 50
-        self.scrollTarget = math.Clamp(self.scrollTarget, 0, self:GetCanvasHeight() - self:GetTall())
+        self.scrollTarget = math.Clamp(self.scrollTarget, 0, scrollMax)
         return true
     end
     
@@ -4066,7 +4069,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.26"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.27"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
