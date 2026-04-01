@@ -740,7 +740,6 @@ local function CreateSectionHeader(parent, text)
     
     -- Animation state for hover scale
     header.textHoverScale = 1
-    header.lastHovered = false
     
     header.Think = function(self)
         -- Smooth text scale animation on hover
@@ -772,23 +771,29 @@ local function CreateSectionHeader(parent, text)
         surface.SetMaterial(Material("icon16/star.png"))
         surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
 
-        -- Text with hover scale
+        -- Text with hover scale using cam.PushModelMatrix
         local textCol = Theme.textBright
-        local baseY = h / 2
         local baseX = 36
+        local baseY = h / 2
         
-        if self.textHoverScale ~= 1 then
-            -- Calculate centered offset for scaled text
-            surface.SetFont("NaiFont_Medium")
-            local textWidth = surface.GetTextSize(text)
-            local scaledWidth = textWidth * self.textHoverScale
-            local offsetX = (textWidth - scaledWidth) / 2
-            
-            -- Draw scaled text
-            draw.SimpleText(text, "NaiFont_Medium", baseX + offsetX, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        else
-            DrawMarqueeText(self, text, "NaiFont_Medium", baseX, baseY, textCol, math.max(w - 48, 0), TEXT_ALIGN_CENTER, 32, 18)
-        end
+        -- Get text dimensions
+        surface.SetFont("NaiFont_Medium")
+        local textWidth, textHeight = surface.GetTextSize(text)
+        
+        -- Calculate offset to center the scaled text
+        local scale = self.textHoverScale
+        local offsetX = (textWidth - textWidth * scale) / 2
+        
+        -- Apply scaling transform
+        local matrix = Matrix()
+        matrix:Translate(Vector(baseX + offsetX, baseY, 0))
+        matrix:Scale(Vector(scale, scale, 1))
+        cam.PushModelMatrix(matrix)
+        
+        -- Draw text at origin (transform handles position/scale)
+        draw.SimpleText(text, "NaiFont_Medium", 0, 0, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        
+        cam.PopModelMatrix()
     end
     return header
 end
@@ -1473,20 +1478,28 @@ local function OpenSettingsPanel()
 
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
 
-            -- Draw text with hover scale
+            -- Draw text with hover scale using cam.PushModelMatrix
             local baseY = (h / 2) + pushOffset
-            if self.textHoverScale ~= 1 then
-                -- Calculate centered offset for scaled text
-                surface.SetFont("NaiFont_Normal")
-                local textWidth = surface.GetTextSize(label)
-                local scaledWidth = textWidth * self.textHoverScale
-                local offsetX = (textWidth - scaledWidth) / 2
-                
-                -- Draw scaled text centered
-                draw.SimpleText(label, "NaiFont_Normal", 38 + offsetX, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            else
-                DrawMarqueeText(self, label, "NaiFont_Normal", 38, baseY, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
-            end
+            local baseX = 38
+            
+            -- Get text dimensions
+            surface.SetFont("NaiFont_Normal")
+            local textWidth = surface.GetTextSize(label)
+            
+            -- Calculate offset to center the scaled text
+            local scale = self.textHoverScale
+            local offsetX = (textWidth - textWidth * scale) / 2
+            
+            -- Apply scaling transform
+            local matrix = Matrix()
+            matrix:Translate(Vector(baseX + offsetX, baseY, 0))
+            matrix:Scale(Vector(scale, scale, 1))
+            cam.PushModelMatrix(matrix)
+            
+            -- Draw text at origin (transform handles position/scale)
+            draw.SimpleText(label, "NaiFont_Normal", 0, 0, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            
+            cam.PopModelMatrix()
         end
 
         table.insert(navButtons, btn)
@@ -4182,7 +4195,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.34"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.35"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
