@@ -845,31 +845,39 @@ local function CreateCheckbox(parent, label, convar)
     checkbox:SetSize(20, 20)
     checkbox:SetConVar(convar)
     
-    -- Animation state for checkbox tick
-    checkbox.animScale = 0
-    checkbox.animTarget = 0
-    checkbox.lastChecked = false
+    -- Animation state for checkbox tick/untick
+    checkbox.animScale = 1
+    checkbox.animTarget = 1
+    checkbox.lastChecked = checkbox:GetChecked()
     
+    -- Override background to remove square
     checkbox.Paint = function(self, w, h)
+        -- Don't draw default background
+    end
+    
+    -- Custom animated rendering
+    checkbox.Think = function(self)
         local isChecked = self:GetChecked()
         
         -- Animate scale on state change
         if isChecked ~= self.lastChecked then
-            self.animTarget = isChecked and 1.2 or 0
+            self.animTarget = isChecked and 1.2 or 1
             self.lastChecked = isChecked
         end
         
         -- Lerp animation
         self.animScale = Lerp(0.25, self.animScale, self.animTarget)
-        if self.animScale < 0.05 then self.animScale = 0 end
-        
+    end
+
+    checkbox.PaintOver = function(self, w, h)
+        local isChecked = self:GetChecked()
         local centerX, centerY = w / 2, h / 2
         local radius = math.min(w, h) / 2 - 1
         local borderCol = isChecked and Theme.accentHover or Theme.border
         local fillCol = isChecked and Theme.accent or Theme.bgLighter
 
         -- Outer glow for checked state (with animation)
-        if isChecked and self.animScale > 0.1 then
+        if isChecked then
             draw.NoTexture()
             surface.SetDrawColor(Theme.glow.r, Theme.glow.g, Theme.glow.b, Theme.glow.a * self.animScale)
             draw.Circle(centerX, centerY, (radius + 3) * self.animScale, 32)
@@ -878,7 +886,7 @@ local function CreateCheckbox(parent, label, convar)
         -- Main circle (with pop animation)
         draw.NoTexture()
         surface.SetDrawColor(fillCol)
-        local animRadius = radius * (isChecked and (1 + (self.animScale - 1) * 0.15) or 1)
+        local animRadius = radius * self.animScale
         draw.Circle(centerX, centerY, animRadius, 32)
 
         -- Border
@@ -1381,7 +1389,18 @@ local function OpenSettingsPanel()
         btn.activeAnim = 0
         btn.iconPath = icon
         btn.hasPlayedHoverSound = false
+        btn.textHoverScale = 1
+        btn.lastHovered = false
         
+        btn.Think = function(self)
+            -- Smooth text scale animation on hover
+            local isHovered = self:IsHovered()
+            local targetScale = isHovered and 1.2 or 1
+            if self.textHoverScale ~= targetScale then
+                self.textHoverScale = Lerp(0.15, self.textHoverScale, targetScale)
+            end
+        end
+
         btn.Paint = function(self, w, h)
             if self.isActive then
                 self.activeAnim = math.Approach(self.activeAnim, 1, FrameTime() * 10)
@@ -1423,9 +1442,23 @@ local function OpenSettingsPanel()
             surface.DrawTexturedRect(12, ((h - 18) / 2) + pushOffset, 18, 18)
 
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
-            DrawMarqueeText(self, label, "NaiFont_Normal", 38, (h / 2) + pushOffset, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
+            
+            -- Draw text with hover scale
+            local baseY = (h / 2) + pushOffset
+            if self.textHoverScale ~= 1 then
+                local scaledFont = "NaiFont_Normal"
+                local textWidth = surface.GetTextSize(label)
+                local offsetX = (textWidth - textWidth * self.textHoverScale) / 2
+                surface.SetFont(scaledFont)
+                surface.SetTextPos(38 + offsetX, baseY)
+                surface.SetTextColor(textCol.r, textCol.g, textCol.b, textCol.a)
+                surface.DrawTexturedRect(38 + offsetX, baseY, textWidth * self.textHoverScale, surface.GetTextSize(label))
+                draw.SimpleText(label, scaledFont, 38 + offsetX, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            else
+                DrawMarqueeText(self, label, "NaiFont_Normal", 38, baseY, textCol, math.max(w - 50, 0), TEXT_ALIGN_CENTER, 28, 18)
+            end
         end
-        
+
         table.insert(navButtons, btn)
         return btn
     end
@@ -4119,7 +4152,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.32"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.33"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
