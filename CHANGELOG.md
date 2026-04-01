@@ -1,5 +1,10 @@
 # Better NPC Passengers Changelog
 
+## v2.5.22
+
+### Bug Fixes
+- **Fixed NPC returning to boarding position after ejection** — walk timer is now properly cleaned up when NPCs detach from vehicles, preventing them from attempting to return to the original boarding location
+
 ## v2.5.21
 
 ### Improvements

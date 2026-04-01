@@ -2813,7 +2813,10 @@ DetachNPC = function(npc)
     if NPCPassengers.UnregisterDriverNPC then
         NPCPassengers.UnregisterDriverNPC(npc)
     end
-    
+
+    -- Clean up walk timer to prevent NPC from returning to boarding position
+    timer.Remove("NPCPassengerWalk_" .. data.npcId)
+
     animationTimers[data.npcId] = nil
     CleanupNPCLookState(data.npcId)
     
