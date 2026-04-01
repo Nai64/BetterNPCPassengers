@@ -738,62 +738,54 @@ local function CreateSectionHeader(parent, text)
     header:Dock(TOP)
     header:DockMargin(0, 15, 0, 8)
     
-    -- Animation state for hover scale
-    header.textHoverScale = 1
+    -- Animation state for hover
+    header.hoverAlpha = 0
     
     header.Think = function(self)
-        -- Smooth text scale animation on hover
+        -- Smooth hover alpha animation
         local isHovered = self:IsHovered()
-        local targetScale = isHovered and 1.2 or 1
-        if self.textHoverScale ~= targetScale then
-            self.textHoverScale = Lerp(0.15, self.textHoverScale, targetScale)
+        local targetAlpha = isHovered and 255 or 0
+        if self.hoverAlpha ~= targetAlpha then
+            self.hoverAlpha = Lerp(0.15, self.hoverAlpha, targetAlpha)
         end
     end
     
     header.Paint = function(self, w, h)
         local accentColor = Theme.accent
 
-        -- Gradient background
+        -- Gradient background (intensifies on hover)
         local gradientMat = Material("vgui/gradient-d")
-        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 80)
+        local bgAlpha = 80 + (self.hoverAlpha * 0.4)
+        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, bgAlpha)
         surface.SetMaterial(gradientMat)
         surface.DrawTexturedRect(0, 0, w, h)
 
-        -- Accent line at bottom
-        surface.SetDrawColor(accentColor)
+        -- Accent line at bottom (brightens on hover)
+        local lineAlpha = 255
+        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, lineAlpha)
         surface.DrawRect(0, h - 3, w, 3)
 
-        -- Glow effect
-        draw.RoundedBox(0, 0, h - 3, w, 3, Color(accentColor.r, accentColor.g, accentColor.b, Theme.glow.a or 30))
+        -- Glow effect (intensifies on hover)
+        local glowAlpha = 30 + (self.hoverAlpha * 0.7)
+        draw.RoundedBox(0, 0, h - 3, w, 3, Color(accentColor.r, accentColor.g, accentColor.b, glowAlpha))
 
-        -- Icon (fixed size, no scaling)
-        surface.SetDrawColor(accentColor)
+        -- Icon (brightens on hover)
+        local iconAlpha = 200 + (self.hoverAlpha * 0.2)
+        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, iconAlpha)
         surface.SetMaterial(Material("icon16/star.png"))
         surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
 
-        -- Text with hover scale using cam.PushModelMatrix
-        local textCol = Theme.textBright
+        -- Text (brightens on hover, slight position shift for "pop" effect)
+        local textAlpha = 255
+        local textCol = Color(textAlpha, textAlpha, textAlpha)
         local baseX = 36
         local baseY = h / 2
         
-        -- Get text dimensions
-        surface.SetFont("NaiFont_Medium")
-        local textWidth, textHeight = surface.GetTextSize(text)
+        -- Subtle position shift on hover (simulates scale without actual scaling)
+        local hoverOffset = (self.hoverAlpha / 255) * 2
+        local offsetX = hoverOffset
         
-        -- Calculate offset to center the scaled text
-        local scale = self.textHoverScale
-        local offsetX = (textWidth - textWidth * scale) / 2
-        
-        -- Apply scaling transform
-        local matrix = Matrix()
-        matrix:Translate(Vector(baseX + offsetX, baseY, 0))
-        matrix:Scale(Vector(scale, scale, 1))
-        cam.PushModelMatrix(matrix)
-        
-        -- Draw text at origin (transform handles position/scale)
-        draw.SimpleText(text, "NaiFont_Medium", 0, 0, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-        
-        cam.PopModelMatrix()
+        draw.SimpleText(text, "NaiFont_Medium", baseX + offsetX, baseY - hoverOffset, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
     return header
 end
@@ -1424,15 +1416,14 @@ local function OpenSettingsPanel()
         btn.activeAnim = 0
         btn.iconPath = icon
         btn.hasPlayedHoverSound = false
-        btn.textHoverScale = 1
-        btn.lastHovered = false
+        btn.hoverAlpha = 0
         
         btn.Think = function(self)
-            -- Smooth text scale animation on hover
+            -- Smooth hover alpha animation
             local isHovered = self:IsHovered()
-            local targetScale = isHovered and 1.2 or 1
-            if self.textHoverScale ~= targetScale then
-                self.textHoverScale = Lerp(0.15, self.textHoverScale, targetScale)
+            local targetAlpha = isHovered and 255 or 0
+            if self.hoverAlpha ~= targetAlpha then
+                self.hoverAlpha = Lerp(0.15, self.hoverAlpha, targetAlpha)
             end
         end
 
@@ -1477,29 +1468,12 @@ local function OpenSettingsPanel()
             surface.DrawTexturedRect(12, ((h - 18) / 2) + pushOffset, 18, 18)
 
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
-
-            -- Draw text with hover scale using cam.PushModelMatrix
             local baseY = (h / 2) + pushOffset
-            local baseX = 38
             
-            -- Get text dimensions
-            surface.SetFont("NaiFont_Normal")
-            local textWidth = surface.GetTextSize(label)
+            -- Subtle position shift on hover (simulates scale without actual scaling)
+            local hoverOffset = (self.hoverAlpha / 255) * 1.5
             
-            -- Calculate offset to center the scaled text
-            local scale = self.textHoverScale
-            local offsetX = (textWidth - textWidth * scale) / 2
-            
-            -- Apply scaling transform
-            local matrix = Matrix()
-            matrix:Translate(Vector(baseX + offsetX, baseY, 0))
-            matrix:Scale(Vector(scale, scale, 1))
-            cam.PushModelMatrix(matrix)
-            
-            -- Draw text at origin (transform handles position/scale)
-            draw.SimpleText(label, "NaiFont_Normal", 0, 0, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-            
-            cam.PopModelMatrix()
+            draw.SimpleText(label, "NaiFont_Normal", 38 + hoverOffset, baseY - hoverOffset, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
 
         table.insert(navButtons, btn)
@@ -4195,7 +4169,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.35"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.36"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
