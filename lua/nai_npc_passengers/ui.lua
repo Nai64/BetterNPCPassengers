@@ -844,36 +844,57 @@ local function CreateCheckbox(parent, label, convar)
     checkbox:SetPos(8, 6)
     checkbox:SetSize(20, 20)
     checkbox:SetConVar(convar)
+    
+    -- Animation state for checkbox tick
+    checkbox.animScale = 0
+    checkbox.animTarget = 0
+    checkbox.lastChecked = false
+    
     checkbox.Paint = function(self, w, h)
         local isChecked = self:GetChecked()
+        
+        -- Animate scale on state change
+        if isChecked ~= self.lastChecked then
+            self.animTarget = isChecked and 1.2 or 0
+            self.lastChecked = isChecked
+        end
+        
+        -- Lerp animation
+        self.animScale = Lerp(0.25, self.animScale, self.animTarget)
+        if self.animScale < 0.05 then self.animScale = 0 end
+        
         local centerX, centerY = w / 2, h / 2
         local radius = math.min(w, h) / 2 - 1
         local borderCol = isChecked and Theme.accentHover or Theme.border
         local fillCol = isChecked and Theme.accent or Theme.bgLighter
 
-        -- Outer glow for checked state
-        if isChecked then
+        -- Outer glow for checked state (with animation)
+        if isChecked and self.animScale > 0.1 then
             draw.NoTexture()
-            surface.SetDrawColor(Theme.glow)
-            draw.Circle(centerX, centerY, radius + 3, 32)
+            surface.SetDrawColor(Theme.glow.r, Theme.glow.g, Theme.glow.b, Theme.glow.a * self.animScale)
+            draw.Circle(centerX, centerY, (radius + 3) * self.animScale, 32)
         end
 
-        -- Main circle
+        -- Main circle (with pop animation)
         draw.NoTexture()
         surface.SetDrawColor(fillCol)
-        draw.Circle(centerX, centerY, radius, 32)
+        local animRadius = radius * (isChecked and (1 + (self.animScale - 1) * 0.15) or 1)
+        draw.Circle(centerX, centerY, animRadius, 32)
 
         -- Border
         surface.SetDrawColor(borderCol)
-        draw.Circle(centerX, centerY, radius, 32)
+        draw.Circle(centerX, centerY, animRadius, 32)
 
-        -- Checked dot
+        -- Checked dot (with scale animation)
         if isChecked then
             surface.SetDrawColor(Theme.textBright)
-            draw.Circle(centerX, centerY, radius * 0.5, 32)
+            local dotRadius = (radius * 0.5) * self.animScale
+            if dotRadius > 0.5 then
+                draw.Circle(centerX, centerY, dotRadius, 32)
+            end
         end
     end
-    
+
     checkbox.OnChange = function(self, val)
         if IsValid(LocalPlayer()) and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
             LocalPlayer():EmitSound("nai_passengers/ui_click.wav", 75, val and 100 or 80)
@@ -4098,7 +4119,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.31"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.32"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
