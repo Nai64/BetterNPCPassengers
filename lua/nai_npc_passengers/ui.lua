@@ -1069,7 +1069,9 @@ local function StyleScrollbar(sbar)
     if not sbar.smoothScroll then
         sbar.smoothScroll = 0
         sbar.scrollTarget = 0
-        sbar.smoothScrollSpeed = 0.15
+        -- Get smoothness from convar (0.01-1, lower = smoother but slower)
+        local smoothness = GetConVar("nai_npc_ui_scroll_smoothness")
+        sbar.smoothScrollSpeed = smoothness and math.Clamp(smoothness:GetFloat(), 0.01, 1) or 0.15
     end
     
     sbar.Think = function(self)
@@ -3522,7 +3524,10 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(interfacePanel, "Show Tooltips", "nai_npc_ui_tooltips")
     CreateHelpText(interfacePanel, "Display helpful tooltips when hovering over settings")
-    
+
+    CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
+    CreateHelpText(interfacePanel, "Lower values = smoother but slower scrolling (0.01-1)")
+
     CreateSpacer(interfacePanel, 10)
     CreateSectionHeader(interfacePanel, "Performance & Technical")
     
@@ -3540,6 +3545,7 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_use_default_font", "0")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
+        RunConsoleCommand("nai_npc_ui_scroll_smoothness", "0.15")
 
         if IsValid(widthSlider) then
             widthSlider:SetValue(950)
@@ -4070,7 +4076,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.28"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.29"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")

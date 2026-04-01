@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.5.28"
+NPCPassengers.Version = NPCPassengers.Version or "2.5.29"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-04-01"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -77,6 +77,7 @@ if CLIENT then
     NPCPassengers.cv_ui_use_default_font = CreateClientConVar("nai_npc_ui_use_default_font", "0", true, false, "Use the default GMod UI font instead of Metropolis")
     NPCPassengers.cv_ui_animations = CreateClientConVar("nai_npc_ui_animations", "1", true, false, "Enable UI animations")
     NPCPassengers.cv_ui_tooltips = CreateClientConVar("nai_npc_ui_tooltips", "1", true, false, "Show tooltips in UI")
+    NPCPassengers.cv_ui_scroll_smoothness = CreateClientConVar("nai_npc_ui_scroll_smoothness", "0.15", true, false, "Sidebar scroll smoothness (0.01-1, lower = smoother)")
 end
 NPCPassengers.cv_speech_volume = CreateConVar("nai_npc_speech_volume", "75", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPC speech volume (0-100)")
 NPCPassengers.cv_speech_crash_enabled = CreateConVar("nai_npc_speech_crash", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs react to crashes with pain sounds")
