@@ -659,47 +659,6 @@ local function DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
     draw.RoundedBox(radius, x, y, w, h, fillColor)
 end
 
-local function IsAprilFoolsActive()
-    if NPCPassengers.IsFirstApril then
-        return NPCPassengers.IsFirstApril()
-    end
-
-    return false
-end
-
-local function GetAprilTripColor(offset, saturation, brightness, alpha)
-    local color = HSVToColor((CurTime() * 80 + (offset or 0)) % 360, saturation or 0.85, brightness or 1)
-    color.a = alpha or 255
-    return color
-end
-
-local function DrawAprilTripOverlay(w, h, alpha)
-    local stripeCount = 14
-    local stripeWidth = math.max(math.floor(w / stripeCount), 1)
-
-    for index = 0, stripeCount do
-        local stripeColor = GetAprilTripColor(index * 30, 0.85, 1, alpha or 34)
-        local drift = math.sin(CurTime() * 3.8 + index * 0.9) * 28
-        surface.SetDrawColor(stripeColor)
-        surface.DrawRect(index * stripeWidth + drift, 0, stripeWidth + 24, h)
-    end
-
-    for lineY = 0, h, 16 do
-        local scanColor = GetAprilTripColor(lineY * 2, 0.65, 1, math.max((alpha or 34) - 6, 10))
-        local driftX = math.cos(CurTime() * 4.5 + lineY * 0.05) * 22
-        surface.SetDrawColor(scanColor)
-        surface.DrawRect(driftX, lineY, w + 32, 3)
-    end
-end
-
-local function DrawAprilGlitchText(text, font, x, y, baseColor, alignX, alignY)
-    local jitterX = math.sin(CurTime() * 9 + x * 0.01) * 4
-    local jitterY = math.cos(CurTime() * 7 + y * 0.02) * 3
-    draw.SimpleText(text, font, x - 2 + jitterX, y + jitterY, GetAprilTripColor(0, 0.95, 1, 180), alignX, alignY)
-    draw.SimpleText(text, font, x + 2 - jitterX, y - jitterY, GetAprilTripColor(160, 0.95, 1, 180), alignX, alignY)
-    draw.SimpleText(text, font, x, y, baseColor, alignX, alignY)
-end
-
 local function RotatePoint(x, y, angleRadians)
     local angleCos = math.cos(angleRadians)
     local angleSin = math.sin(angleRadians)
@@ -3521,9 +3480,6 @@ local function OpenSettingsPanel()
 
     local _, defaultFontCheckbox = CreateCheckbox(interfacePanel, "Use Default Font Instead of Metropolis", "nai_npc_ui_use_default_font")
     CreateHelpText(interfacePanel, "Switch the UI to Garry's Mod default fonts if you prefer cleaner fallback rendering.")
-
-    CreateCheckbox(interfacePanel, "Enable April Fools Chaos", "nai_npc_april_fools")
-    CreateHelpText(interfacePanel, "Master switch for the LSD UI, cursed face poser, and passenger explosion gag.")
 
     local defaultFontOnChange = defaultFontCheckbox.OnChange
     defaultFontCheckbox.OnChange = function(self, val)
