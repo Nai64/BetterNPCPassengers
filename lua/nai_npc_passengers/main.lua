@@ -2335,11 +2335,40 @@ local function UpdatePassengerBehavior(npc, pdata, curTime)
     if not state then return end
 
     -- ── Body Sway ─────────────────────────────────────────────────────────────
-    -- DISABLED: Causes conflicts with transform sync in UpdatePassengerAnimationState
-    -- Body sway should be implemented as part of the transform sync, not separately
-    -- local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
-    -- local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
-    -- ... (body sway code removed - causes angle conflicts)
+    -- Realistic: body leans OPPOSITE to turn direction (centrifugal force)
+    local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
+    local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
+
+    if bodySwayEnabled then
+        local vel = vehicle:GetVelocity()
+        local right = vehicle:GetRight()
+        local forward = vehicle:GetForward()
+
+        -- Calculate lateral and longitudinal velocity
+        local lateralVel = vel:Dot(right)
+        local longitudinalVel = vel:Dot(forward)
+
+        -- INVERTED sway: lean opposite to turn/acceleration direction (realistic!)
+        -- Turn left = body leans right, Turn right = body leans left
+        local targetRoll = lateralVel * 0.015 * bodySwayAmount
+        -- Accelerate = lean back, Brake = lean forward
+        local targetPitch = longitudinalVel * 0.01 * bodySwayAmount
+
+        -- Smooth the sway gradually
+        state.targetBodyRoll = state.targetBodyRoll or 0
+        state.targetBodyPitch = state.targetBodyPitch or 0
+        state.targetBodyRoll = Lerp(0.08, state.targetBodyRoll, targetRoll)
+        state.targetBodyPitch = Lerp(0.08, state.targetBodyPitch, targetPitch)
+
+        -- Apply sway as offset from base angles
+        local baseLocalAng = pdata.baseLocalAng or Angle(0, 0, 0)
+        local swayAng = Angle(
+            baseLocalAng.pitch + state.targetBodyPitch,
+            baseLocalAng.yaw,
+            baseLocalAng.roll + state.targetBodyRoll
+        )
+        npc:SetLocalAngles(swayAng)
+    end
 
     -- ── Crash flinch ─────────────────────────────────────────────────────────
     local crashFlinch = NPCPassengers.cv_crash_flinch:GetBool()
