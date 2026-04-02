@@ -2313,8 +2313,110 @@ StartAnimationEnforcement = function(npc)
     npc.NPCPassengerSitSeq = sitSeq
     
     InitializeLookState(npcId)
-    
+
     animationTimers[npcId] = true
+end
+
+-- ── Passenger Behavior Updates (runs for ALL passengers independently) ───────
+local function UpdatePassengerBehavior(npc, pdata, curTime)
+    if not IsValid(npc) or not pdata or not IsValid(pdata.vehicle) then return end
+    if pdata.isHidden then return end
+    
+    local vehicle = pdata.vehicle
+    local state = npcLookState[npc:EntIndex()]
+    if not state then return end
+    
+    -- ── Body Sway ─────────────────────────────────────────────────────────────
+    local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
+    local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
+    
+    if bodySwayEnabled then
+        local vel = vehicle:GetVelocity()
+        local right = vehicle:GetRight()
+        local forward = vehicle:GetForward()
+        
+        -- Calculate lateral and longitudinal acceleration
+        local lateralAccel = vel:Dot(right)
+        local longitudinalAccel = vel:Dot(forward)
+        
+        -- Calculate sway angles based on acceleration
+        local targetRoll = -lateralAccel * 0.02 * bodySwayAmount
+        local targetPitch = -longitudinalAccel * 0.015 * bodySwayAmount
+        
+        -- Smooth the sway
+        state.targetBodyRoll = state.targetBodyRoll or 0
+        state.targetBodyPitch = state.targetBodyPitch or 0
+        state.targetBodyRoll = Lerp(0.1, state.targetBodyRoll, targetRoll)
+        state.targetBodyPitch = Lerp(0.1, state.targetBodyPitch, targetPitch)
+        
+        -- Apply sway to NPC's local angles
+        local currentLocalAng = npc:GetLocalAngles()
+        local swayAng = Angle(state.targetBodyPitch, currentLocalAng.y, state.targetBodyRoll)
+        npc:SetLocalAngles(swayAng)
+    end
+    
+    -- ── Crash flinch ─────────────────────────────────────────────────────────
+    local crashFlinch = NPCPassengers.cv_crash_flinch:GetBool()
+    local crashThreshold = NPCPassengers.cv_crash_threshold:GetFloat()
+    
+    if crashFlinch then
+        local currentVel = vehicle:GetVelocity():Length()
+        local previousVel = state.lastVelocityMagnitude or currentVel
+        local impactSpeed = math.max(currentVel, previousVel)
+        local velChange = math.abs(currentVel - previousVel)
+        state.lastVelocityMagnitude = currentVel
+        
+        if velChange > crashThreshold and curTime > (state.flinchEndTime or 0) then
+            state.flinchEndTime = curTime + math.Rand(1.5, 2.5)
+            local finalDamage = math.Clamp((velChange - crashThreshold) / 50, 0, 30) * math.Rand(0.6, 1.4)
+            if impactSpeed > 500 then finalDamage = finalDamage * math.Rand(1.5, 2.0) end
+
+            if finalDamage > 1 then
+                local dmgInfo = DamageInfo()
+                dmgInfo:SetDamage(finalDamage)
+                dmgInfo:SetDamageType(DMG_CRUSH)
+                dmgInfo:SetAttacker(vehicle)
+                dmgInfo:SetInflictor(vehicle)
+                npc:TakeDamageInfo(dmgInfo)
+            end
+            if currentVel > 500 then
+                npc:AddGesture(ACT_GESTURE_FLINCH_CHEST, true)
+                timer.Simple(0.1, function() if IsValid(npc) then npc:AddGesture(ACT_GESTURE_FLINCH_HEAD, true) end end)
+                timer.Simple(0.2, function()
+                    if IsValid(npc) then
+                        local seq = npc:LookupSequence("g_plead_01")
+                        if seq and seq >= 0 then npc:AddGestureSequence(seq, true) end
+                    end
+                end)
+            else
+                local flinchList = {ACT_GESTURE_FLINCH_HEAD, ACT_GESTURE_FLINCH_CHEST, ACT_GESTURE_FLINCH_STOMACH}
+                npc:AddGesture(flinchList[math.random(#flinchList)], true)
+            end
+        end
+    end
+
+    -- ── Talking gestures ──────────────────────────────────────────────────────
+    local talkingGestures = NPCPassengers.cv_talking_gestures:GetBool()
+    local gestureChance = NPCPassengers.cv_gesture_chance:GetFloat()
+    local gestureInterval = NPCPassengers.cv_gesture_interval:GetFloat()
+    
+    if talkingGestures and curTime > (state.nextGestureCheck or 0) then
+        state.nextGestureCheck = curTime + gestureInterval
+        if math.random(100) <= gestureChance and curTime > (state.flinchEndTime or 0) then
+            local idleList = {"g_point_l", "hg_nod_left", "hg_turnl", "idlenoise"}
+            local talkList = {"bg_accentfwd","bg_down","bg_up_l","g_fist","g_fist_l","g_fist_r","g_fistshake","g_head_back","g_palm_out_high_l","g_palm_out_high_r","g_plead_01"}
+            local gList = math.random(100) <= 60 and talkList or idleList
+            local seq = npc:LookupSequence(gList[math.random(#gList)])
+            if seq and seq >= 0 then
+                local dur = npc:SequenceDuration(seq)
+                npc:AddGestureSequence(seq, true)
+                if dur and dur > 0.1 then MarkGesturePlaying(npc, dur) end
+            end
+        end
+    end
+    if state.isPlayingGesture and curTime > (state.gestureEndTime or 0) then
+        state.isPlayingGesture = false
+    end
 end
 
 local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
@@ -2379,6 +2481,9 @@ local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headL
         UpdatePassengerCombat(npc, pdata)
         pdata.nextCombatThinkAt = curTime + PASSENGER_COMBAT_INTERVAL
     end
+    
+    -- Update passenger behavior (crash flinch, gestures, body sway) for ALL passengers
+    UpdatePassengerBehavior(npc, pdata, curTime)
 
     if headLookEnabled and curTime >= (pdata.nextHeadLookAt or 0) then
         UpdateNPCHeadLook(npc, pdata)
