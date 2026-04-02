@@ -737,55 +737,31 @@ local function CreateSectionHeader(parent, text)
     header:SetTall(38)
     header:Dock(TOP)
     header:DockMargin(0, 15, 0, 8)
-    
-    -- Animation state for hover
-    header.hoverAlpha = 0
-    
-    header.Think = function(self)
-        -- Smooth hover alpha animation
-        local isHovered = self:IsHovered()
-        local targetAlpha = isHovered and 255 or 0
-        if self.hoverAlpha ~= targetAlpha then
-            self.hoverAlpha = Lerp(0.15, self.hoverAlpha, targetAlpha)
-        end
-    end
-    
+
     header.Paint = function(self, w, h)
         local accentColor = Theme.accent
 
-        -- Gradient background (intensifies on hover)
+        -- Gradient background
         local gradientMat = Material("vgui/gradient-d")
-        local bgAlpha = 80 + (self.hoverAlpha * 0.4)
-        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, bgAlpha)
+        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, 80)
         surface.SetMaterial(gradientMat)
         surface.DrawTexturedRect(0, 0, w, h)
 
-        -- Accent line at bottom (brightens on hover)
-        local lineAlpha = 255
-        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, lineAlpha)
+        -- Accent line at bottom
+        surface.SetDrawColor(accentColor)
         surface.DrawRect(0, h - 3, w, 3)
 
-        -- Glow effect (intensifies on hover)
-        local glowAlpha = 30 + (self.hoverAlpha * 0.7)
-        draw.RoundedBox(0, 0, h - 3, w, 3, Color(accentColor.r, accentColor.g, accentColor.b, glowAlpha))
+        -- Glow effect
+        draw.RoundedBox(0, 0, h - 3, w, 3, Color(accentColor.r, accentColor.g, accentColor.b, Theme.glow.a or 30))
 
-        -- Icon (brightens on hover)
-        local iconAlpha = 200 + (self.hoverAlpha * 0.2)
-        surface.SetDrawColor(accentColor.r, accentColor.g, accentColor.b, iconAlpha)
+        -- Icon
+        surface.SetDrawColor(accentColor)
         surface.SetMaterial(Material("icon16/star.png"))
         surface.DrawTexturedRect(12, (h - 16) / 2, 16, 16)
 
-        -- Text (brightens on hover, slight position shift for "pop" effect)
-        local textAlpha = 255
-        local textCol = Color(textAlpha, textAlpha, textAlpha)
-        local baseX = 36
-        local baseY = h / 2
-        
-        -- Subtle position shift on hover (simulates scale without actual scaling)
-        local hoverOffset = (self.hoverAlpha / 255) * 2
-        local offsetX = hoverOffset
-        
-        draw.SimpleText(text, "NaiFont_Medium", baseX + offsetX, baseY - hoverOffset, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        -- Text
+        local textCol = Theme.textBright
+        draw.SimpleText(text, "NaiFont_Medium", 36, h / 2, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
     return header
 end
@@ -871,27 +847,36 @@ local function CreateCheckbox(parent, label, convar)
     checkbox:SetPos(8, 6)
     checkbox:SetSize(20, 20)
     checkbox:SetConVar(convar)
-    
+
     -- Animation state for checkbox tick/untick
     checkbox.animScale = 1
     checkbox.animTarget = 1
-    checkbox.lastChecked = checkbox:GetChecked()
-    
+    checkbox.lastChecked = false
+
+    -- Initialize animation state after convar loads (delayed)
+    timer.Simple(0.1, function()
+        if IsValid(checkbox) then
+            checkbox.lastChecked = checkbox:GetChecked()
+            checkbox.animScale = 1
+            checkbox.animTarget = 1
+        end
+    end)
+
     -- Override background to remove square
     checkbox.Paint = function(self, w, h)
         -- Don't draw default background
     end
-    
+
     -- Custom animated rendering
     checkbox.Think = function(self)
         local isChecked = self:GetChecked()
-        
+
         -- Animate scale on state change
         if isChecked ~= self.lastChecked then
             self.animTarget = isChecked and 1.2 or 1
             self.lastChecked = isChecked
         end
-        
+
         -- Lerp animation
         self.animScale = Lerp(0.25, self.animScale, self.animTarget)
     end
@@ -1416,16 +1401,6 @@ local function OpenSettingsPanel()
         btn.activeAnim = 0
         btn.iconPath = icon
         btn.hasPlayedHoverSound = false
-        btn.hoverAlpha = 0
-        
-        btn.Think = function(self)
-            -- Smooth hover alpha animation
-            local isHovered = self:IsHovered()
-            local targetAlpha = isHovered and 255 or 0
-            if self.hoverAlpha ~= targetAlpha then
-                self.hoverAlpha = Lerp(0.15, self.hoverAlpha, targetAlpha)
-            end
-        end
 
         btn.Paint = function(self, w, h)
             if self.isActive then
@@ -1469,11 +1444,8 @@ local function OpenSettingsPanel()
 
             local textCol = self.isActive and Theme.textBright or (self:IsHovered() and Theme.text or Theme.textDim)
             local baseY = (h / 2) + pushOffset
-            
-            -- Subtle position shift on hover (simulates scale without actual scaling)
-            local hoverOffset = (self.hoverAlpha / 255) * 1.5
-            
-            draw.SimpleText(label, "NaiFont_Normal", 38 + hoverOffset, baseY - hoverOffset, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+            draw.SimpleText(label, "NaiFont_Normal", 38, baseY, textCol, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
 
         table.insert(navButtons, btn)
@@ -4169,7 +4141,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.36"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.39"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
