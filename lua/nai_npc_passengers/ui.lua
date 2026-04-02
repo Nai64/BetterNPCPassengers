@@ -4257,7 +4257,6 @@ properties.Add("nai_blacklist_passenger", {
         local npcClass = ent:GetClass()
         if npcClass then
             RunConsoleCommand("nai_npc_add_turret_blacklist", npcClass)
-            chat.AddText(Color(255, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Added '", Color(100, 200, 100), npcClass, Color(255, 255, 255), "' to vehicle blacklist")
         end
     end
 })
@@ -4277,7 +4276,6 @@ properties.Add("nai_whitelist_passenger", {
         local npcClass = ent:GetClass()
         if npcClass then
             RunConsoleCommand("nai_npc_add_vehicle_whitelist", npcClass)
-            chat.AddText(Color(255, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Added '", Color(100, 200, 100), npcClass, Color(255, 255, 255), "' to vehicle whitelist")
         end
     end
 })
@@ -4299,7 +4297,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.52"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.53"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")

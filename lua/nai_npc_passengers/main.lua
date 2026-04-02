@@ -3634,7 +3634,7 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
 
     if not IsValid(ent) or not IsValid(ply) then return end
     if not ent:IsNPC() then return end
-    if friendlyPassengers[ent] or ent:Health() <= 0 then return end
+    if ent:Health() <= 0 then return end
     
     -- Check if NPC is blacklisted from being a passenger
     local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
@@ -3650,7 +3650,7 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
         end
     end
     
-    -- Check if NPC is whitelisted (bypasses disposition checks)
+    -- Check if NPC is whitelisted (bypasses friendly check)
     local isWhitelisted = false
     local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
     if whitelist ~= "" then
@@ -3664,6 +3664,9 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
             end
         end
     end
+    
+    -- Skip friendly check if whitelisted
+    if not isWhitelisted and friendlyPassengers[ent] then return end
 
     if ply:InVehicle() then
         local vehicle = ply:GetVehicle()
@@ -3990,8 +3993,8 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
         ply:ChatPrint("Invalid NPC!")
         return
     end
-    if friendlyPassengers[npc] or npc:Health() <= 0 then
-        ply:ChatPrint("NPC is already a passenger or dead!")
+    if npc:Health() <= 0 then
+        ply:ChatPrint("NPC is dead!")
         return
     end
     
@@ -4009,7 +4012,7 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
         end
     end
     
-    -- Check if NPC is whitelisted (bypasses disposition checks)
+    -- Check if NPC is whitelisted (bypasses friendly check)
     local isWhitelisted = false
     local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
     if whitelist ~= "" then
@@ -4022,6 +4025,12 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
                 break
             end
         end
+    end
+    
+    -- Skip friendly check if whitelisted
+    if not isWhitelisted and friendlyPassengers[npc] then
+        ply:ChatPrint("NPC is already a passenger!")
+        return
     end
 
     -- Get the root vehicle
