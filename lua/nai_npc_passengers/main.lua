@@ -778,16 +778,29 @@ end
 local function AddPendingPassenger(ply, npc)
     if not IsValid(ply) or not IsValid(npc) then return false end
     
+    -- Check if NPC is blacklisted from being a passenger
+    local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
+    if blacklist ~= "" then
+        local npcClass = npc:GetClass() or ""
+        local blacklistTable = string.Explode(",", blacklist)
+        for _, blacklistedClass in ipairs(blacklistTable) do
+            local trimmed = string.Trim(blacklistedClass)
+            if trimmed ~= "" and npcClass == trimmed then
+                return false  -- Silently reject blacklisted NPCs
+            end
+        end
+    end
+
     if not pendingPassengers[ply] then
         pendingPassengers[ply] = {}
     end
-    
+
     for _, existingNpc in ipairs(pendingPassengers[ply]) do
         if existingNpc == npc then
             return false
         end
     end
-    
+
     table.insert(pendingPassengers[ply], npc)
     return true
 end
@@ -3210,11 +3223,21 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
         local playerPos = ply:GetPos()
         local friendlyNPCs = {}
         
+        -- Get blacklist for auto-join
+        local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
+        local blacklistTable = {}
+        if blacklist ~= "" then
+            blacklistTable = string.Explode(",", blacklist)
+            for i, class in ipairs(blacklistTable) do
+                blacklistTable[i] = string.Trim(class)
+            end
+        end
+
         for _, npc in ipairs(ents.FindByClass("npc_*")) do
             if IsValid(npc) and npc:IsNPC() and npc:Health() > 0 then
                 -- Skip if already a passenger
                 if friendlyPassengers[npc] then continue end
-                
+
                 -- Skip if already pending
                 local isPending = false
                 if pendingPassengers[ply] then
@@ -3227,17 +3250,28 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                 end
                 if isPending then continue end
                 
+                -- Skip if blacklisted
+                local npcClass = npc:GetClass() or ""
+                local isBlacklisted = false
+                for _, blacklistedClass in ipairs(blacklistTable) do
+                    if blacklistedClass ~= "" and npcClass == blacklistedClass then
+                        isBlacklisted = true
+                        break
+                    end
+                end
+                if isBlacklisted then continue end
+
                 -- Check distance
                 local dist = playerPos:Distance(npc:GetPos())
                 if dist > autoJoinRange then continue end
-                
+
                 -- Check if friendly to player
                 if not IsFriendlyNPC(npc, nil) then continue end
-                
+
                 -- Check disposition directly
                 local disposition = npc:Disposition(ply)
                 if disposition ~= D_LI and disposition ~= D_NU then continue end
-                
+
                 -- Squad check if enabled
                 if squadOnly then
                     local npcSquad = npc:GetSquad()
@@ -3245,7 +3279,7 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                         continue
                     end
                 end
-                
+
                 table.insert(friendlyNPCs, {
                     npc = npc,
                     distance = dist
@@ -3485,15 +3519,29 @@ util.AddNetworkString("NPCPassengers_MakePassengerForVehicle")
 net.Receive("NPCPassengers_MakePassenger", function(len, ply)
     if not IsAddonEnabled() then return end
     local ent = net.ReadEntity()
-    
+
     if not IsValid(ent) or not IsValid(ply) then return end
     if not ent:IsNPC() then return end
     if friendlyPassengers[ent] or ent:Health() <= 0 then return end
     
+    -- Check if NPC is blacklisted from being a passenger
+    local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
+    if blacklist ~= "" then
+        local npcClass = ent:GetClass() or ""
+        local blacklistTable = string.Explode(",", blacklist)
+        for _, blacklistedClass in ipairs(blacklistTable) do
+            local trimmed = string.Trim(blacklistedClass)
+            if trimmed ~= "" and npcClass == trimmed then
+                ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
+                return
+            end
+        end
+    end
+
     if ply:InVehicle() then
         local vehicle = ply:GetVehicle()
         if not IsValid(vehicle) then return end
-        
+
         local rootVehicle = GetRootVehicle(vehicle)
         if not IsVehicleAllowedByFilters(rootVehicle) then
             local msg = "vehicle blocked by passenger filter settings"
@@ -3509,18 +3557,18 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
             SendClientCue(ply, false, msg)
             return
         end
-        
+
         if not allowMultiple and VehicleHasNPCAttached(rootVehicle) then
             ply:ChatPrint("Vehicle already has a passenger! Enable multiple passengers in settings.")
             return
         end
-        
+
         local availableSeats = GetAvailableSeatCount(rootVehicle)
         if availableSeats <= 0 then
             ply:ChatPrint("No available seats!")
             return
         end
-        
+
         local success = AttachNPCToVehicle(ent, rootVehicle)
         if success then
             RegisterBoardSuccess(ent)
@@ -3809,17 +3857,31 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
     if not IsAddonEnabled() then return end
     local npc = net.ReadEntity()
     local vehicle = net.ReadEntity()
-    
+
     if not IsValid(npc) or not IsValid(vehicle) or not IsValid(ply) then return end
-    if not npc:IsNPC() then 
+    if not npc:IsNPC() then
         ply:ChatPrint("Invalid NPC!")
-        return 
+        return
     end
-    if friendlyPassengers[npc] or npc:Health() <= 0 then 
+    if friendlyPassengers[npc] or npc:Health() <= 0 then
         ply:ChatPrint("NPC is already a passenger or dead!")
-        return 
+        return
     end
     
+    -- Check if NPC is blacklisted from being a passenger
+    local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
+    if blacklist ~= "" then
+        local npcClass = npc:GetClass() or ""
+        local blacklistTable = string.Explode(",", blacklist)
+        for _, blacklistedClass in ipairs(blacklistTable) do
+            local trimmed = string.Trim(blacklistedClass)
+            if trimmed ~= "" and npcClass == trimmed then
+                ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
+                return
+            end
+        end
+    end
+
     -- Get the root vehicle
     local rootVehicle = GetRootVehicle(vehicle)
     if not IsValid(rootVehicle) then
@@ -3839,20 +3901,20 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
         SendClientCue(ply, false, msg)
         return
     end
-    
+
     local allowMultiple = NPCPassengers.cv_multiple:GetBool()
-    
+
     if not allowMultiple and VehicleHasNPCAttached(rootVehicle) then
         ply:ChatPrint("Vehicle already has a passenger! Enable multiple passengers in settings.")
         return
     end
-    
+
     local availableSeats = GetAvailableSeatCount(rootVehicle)
     if availableSeats <= 0 then
         ply:ChatPrint("No available seats in this vehicle!")
         return
     end
-    
+
     -- Use skipPlayerCheck = true since we're manually assigning
     local success = AttachNPCToVehicle(npc, rootVehicle, true)
     if success then
