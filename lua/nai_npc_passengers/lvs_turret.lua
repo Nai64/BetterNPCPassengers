@@ -15,6 +15,156 @@ NPCPassengers.cv_turret_fire_delay = CreateConVar("nai_npc_turret_fire_delay", "
 NPCPassengers.cv_turret_aim_speed = CreateConVar("nai_npc_turret_aim_speed", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "How fast NPCs aim the turret (degrees per tick)")
 NPCPassengers.cv_turret_friendly_fire = CreateConVar("nai_npc_turret_friendly_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to target friendlies")
 NPCPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs lead moving targets")
+NPCPassengers.cv_turret_blacklist = CreateConVar("nai_npc_turret_blacklist", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Comma-separated list of NPC classnames to blacklist from turret control (e.g., npc_metropolice,npc_combine_s)")
+
+-- Helper function to check if NPC is blacklisted
+local function IsNPCTurretBlacklisted(npc)
+    if not IsValid(npc) then return true end
+    
+    local blacklist = NPCPassengers.cv_turret_blacklist:GetString() or ""
+    if blacklist == "" then return false end
+    
+    local npcClass = npc:GetClass() or ""
+    local blacklistTable = string.Explode(",", blacklist)
+    
+    for _, blacklistedClass in ipairs(blacklistTable) do
+        local trimmed = string.Trim(blacklistedClass)
+        if trimmed ~= "" and npcClass == trimmed then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Console command to view current blacklist
+concommand.Add("nai_npc_get_turret_blacklist", function(ply)
+    local blacklist = NPCPassengers.cv_turret_blacklist:GetString() or ""
+    if blacklist == "" then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Turret blacklist is empty (all NPCs allowed)")
+        else
+            print("[Better NPC Passengers] Turret blacklist is empty (all NPCs allowed)")
+        end
+    else
+        local classes = string.Explode(",", blacklist)
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Blacklisted NPC classes:")
+            for _, class in ipairs(classes) do
+                local trimmed = string.Trim(class)
+                if trimmed ~= "" then
+                    ply:ChatPrint("  - " .. trimmed)
+                end
+            end
+        else
+            print("[Better NPC Passengers] Blacklisted NPC classes:")
+            for _, class in ipairs(classes) do
+                local trimmed = string.Trim(class)
+                if trimmed ~= "" then
+                    print("  - " .. trimmed)
+                end
+            end
+        end
+    end
+end, nil, "View the list of blacklisted NPC classes for turret control")
+
+-- Console command to add an NPC to the blacklist
+concommand.Add("nai_npc_add_turret_blacklist", function(ply, cmd, args)
+    if not args[1] then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Usage: nai_npc_add_turret_blacklist <npc_class>")
+        else
+            print("[Better NPC Passengers] Usage: nai_npc_add_turret_blacklist <npc_class>")
+        end
+        return
+    end
+    
+    local npcClass = args[1]
+    local blacklist = NPCPassengers.cv_turret_blacklist:GetString() or ""
+    local blacklistTable = string.Explode(",", blacklist)
+    
+    -- Check if already blacklisted
+    for _, existing in ipairs(blacklistTable) do
+        if string.Trim(existing) == npcClass then
+            if IsValid(ply) then
+                ply:ChatPrint("[Better NPC Passengers] '" .. npcClass .. "' is already blacklisted")
+            else
+                print("[Better NPC Passengers] '" .. npcClass .. "' is already blacklisted")
+            end
+            return
+        end
+    end
+    
+    -- Add to blacklist
+    if blacklist == "" then
+        blacklist = npcClass
+    else
+        blacklist = blacklist .. "," .. npcClass
+    end
+    
+    RunConsoleCommand("nai_npc_turret_blacklist", blacklist)
+    
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Added '" .. npcClass .. "' to turret blacklist")
+    else
+        print("[Better NPC Passengers] Added '" .. npcClass .. "' to turret blacklist")
+    end
+end, nil, "Add an NPC class to the turret blacklist")
+
+-- Console command to remove an NPC from the blacklist
+concommand.Add("nai_npc_remove_turret_blacklist", function(ply, cmd, args)
+    if not args[1] then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Usage: nai_npc_remove_turret_blacklist <npc_class>")
+        else
+            print("[Better NPC Passengers] Usage: nai_npc_remove_turret_blacklist <npc_class>")
+        end
+        return
+    end
+    
+    local npcClass = args[1]
+    local blacklist = NPCPassengers.cv_turret_blacklist:GetString() or ""
+    local blacklistTable = string.Explode(",", blacklist)
+    local newTable = {}
+    local found = false
+    
+    for _, existing in ipairs(blacklistTable) do
+        local trimmed = string.Trim(existing)
+        if trimmed == npcClass then
+            found = true
+        elseif trimmed ~= "" then
+            table.insert(newTable, trimmed)
+        end
+    end
+    
+    if not found then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] '" .. npcClass .. "' is not in the blacklist")
+        else
+            print("[Better NPC Passengers] '" .. npcClass .. "' is not in the blacklist")
+        end
+        return
+    end
+    
+    local newBlacklist = table.concat(newTable, ",")
+    RunConsoleCommand("nai_npc_turret_blacklist", newBlacklist)
+    
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Removed '" .. npcClass .. "' from turret blacklist")
+    else
+        print("[Better NPC Passengers] Removed '" .. npcClass .. "' from turret blacklist")
+    end
+end, nil, "Remove an NPC class from the turret blacklist")
+
+-- Console command to clear the entire blacklist
+concommand.Add("nai_npc_clear_turret_blacklist", function(ply)
+    RunConsoleCommand("nai_npc_turret_blacklist", "")
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Cleared turret blacklist (all NPCs now allowed)")
+    else
+        print("[Better NPC Passengers] Cleared turret blacklist (all NPCs now allowed)")
+    end
+end, nil, "Clear the entire turret blacklist")
 
 -- Cache for performance
 local turretNPCs = NPCPassengers.TurretNPCs
@@ -798,7 +948,7 @@ end
     Register an NPC as a turret gunner
 ]]
 function NPCPassengers.RegisterTurretNPC(npc, passengerData)
-    if not NPCPassengers.cv_turret_enabled:GetBool() then 
+    if not NPCPassengers.cv_turret_enabled:GetBool() then
         -- QoL: Inform player turret system is disabled
         if IsValid(passengerData.vehicle) and IsValid(passengerData.vehicle:GetDriver()) then
             local driver = passengerData.vehicle:GetDriver()
@@ -806,11 +956,22 @@ function NPCPassengers.RegisterTurretNPC(npc, passengerData)
                 driver:ChatPrint("[Better NPC Passengers] Turret control is disabled (nai_npc_turret_enabled = 0)")
             end
         end
-        return false 
+        return false
     end
     if not IsValid(npc) or not passengerData then return false end
     if activeGunners[npc] then return true end
     if NPCPassengers.DriverNPCs and NPCPassengers.DriverNPCs[npc:EntIndex()] then return false end
+    
+    -- QoL: Check if NPC is blacklisted from turret control
+    if IsNPCTurretBlacklisted(npc) then
+        if IsValid(passengerData.vehicle) and IsValid(passengerData.vehicle:GetDriver()) then
+            local driver = passengerData.vehicle:GetDriver()
+            if IsValid(driver) and driver:IsPlayer() then
+                driver:ChatPrint("[Better NPC Passengers] NPC class '" .. (npc:GetClass() or "unknown") .. "' is blacklisted from turret control")
+            end
+        end
+        return false
+    end
 
     local vehicle = passengerData.vehicle
     if not IsValid(vehicle) then return false end

@@ -2988,9 +2988,45 @@ local function OpenSettingsPanel()
     CreateSlider(tankPanel, "Reaction Time", "nai_npc_turret_reaction_time", 0, 3, 2)
     CreateSlider(tankPanel, "Fire Delay", "nai_npc_turret_fire_delay", 0.05, 1, 2)
     CreateSlider(tankPanel, "Aim Speed", "nai_npc_turret_aim_speed", 1, 20, 1)
-    
+
     CreateCheckbox(tankPanel, "Lead Targets", "nai_npc_turret_lead_targets")
     CreateCheckbox(tankPanel, "Allow Friendly Fire", "nai_npc_turret_friendly_fire")
+
+    -- QoL: Turret NPC Blacklist
+    CreateSpacer(tankPanel, 10)
+    CreateSubHeader(tankPanel, "Turret NPC Blacklist")
+    
+    local blacklistLabel = vgui.Create("DLabel", tankPanel)
+    blacklistLabel:SetText("Blacklisted NPC Classes")
+    blacklistLabel:SetFont("NaiFont_Normal")
+    blacklistLabel:SetTextColor(Theme.text)
+    blacklistLabel:Dock(TOP)
+    blacklistLabel:SetTall(20)
+    
+    local blacklistEntry = vgui.Create("DTextEntry", tankPanel)
+    blacklistEntry:SetFont("NaiFont_Normal")
+    blacklistEntry:SetTextColor(Theme.text)
+    blacklistEntry:SetTall(28)
+    blacklistEntry:Dock(TOP)
+    blacklistEntry:SetPlaceholderText("e.g., npc_metropolice,npc_combine_s")
+    blacklistEntry:SetValue(GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or "")
+    blacklistEntry.Paint = function(self, w, h)
+        draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
+        if self:GetValue() == "" and not self:HasFocus() then
+            draw.SimpleText(self:GetPlaceholderText(), "NaiFont_Normal", 8, h/2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        end
+    end
+    blacklistEntry.OnChange = function(self)
+        RunConsoleCommand("nai_npc_turret_blacklist", self:GetValue())
+    end
+    
+    local blacklistHelp = vgui.Create("DLabel", tankPanel)
+    blacklistHelp:SetText("Comma-separated list of NPC classnames that cannot use turrets. Use 'getnpcblacklist' console command to see current blacklist.")
+    blacklistHelp:SetFont("NaiFont_Small")
+    blacklistHelp:SetTextColor(Theme.textDim)
+    blacklistHelp:SetAutoStretchVertical(true)
+    blacklistHelp:Dock(TOP)
+    blacklistHelp:SetTall(30)
     
     -- HUD Tab
     local hudPanel = CreateContentPanel()
@@ -4223,7 +4259,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.43"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.44"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
