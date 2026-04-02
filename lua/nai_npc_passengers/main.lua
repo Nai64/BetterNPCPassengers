@@ -3635,22 +3635,8 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
     if not IsValid(ent) or not IsValid(ply) then return end
     if not ent:IsNPC() then return end
     if ent:Health() <= 0 then return end
-    
-    -- Check if NPC is blacklisted from being a passenger
-    local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
-    if blacklist ~= "" then
-        local npcClass = ent:GetClass() or ""
-        local blacklistTable = string.Explode(",", blacklist)
-        for _, blacklistedClass in ipairs(blacklistTable) do
-            local trimmed = string.Trim(blacklistedClass)
-            if trimmed ~= "" and npcClass == trimmed then
-                ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
-                return
-            end
-        end
-    end
-    
-    -- Check if NPC is whitelisted (bypasses friendly check)
+
+    -- Check if NPC is whitelisted FIRST (whitelist overrides blacklist!)
     local isWhitelisted = false
     local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
     if whitelist ~= "" then
@@ -3664,7 +3650,23 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
             end
         end
     end
-    
+
+    -- Only check blacklist if NOT whitelisted (whitelist = bypass blacklist)
+    if not isWhitelisted then
+        local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
+        if blacklist ~= "" then
+            local npcClass = ent:GetClass() or ""
+            local blacklistTable = string.Explode(",", blacklist)
+            for _, blacklistedClass in ipairs(blacklistTable) do
+                local trimmed = string.Trim(blacklistedClass)
+                if trimmed ~= "" and npcClass == trimmed then
+                    ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
+                    return
+                end
+            end
+        end
+    end
+
     -- Skip friendly check if whitelisted
     if not isWhitelisted and friendlyPassengers[ent] then return end
 
@@ -3997,22 +3999,8 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
         ply:ChatPrint("NPC is dead!")
         return
     end
-    
-    -- Check if NPC is blacklisted from being a passenger
-    local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
-    if blacklist ~= "" then
-        local npcClass = npc:GetClass() or ""
-        local blacklistTable = string.Explode(",", blacklist)
-        for _, blacklistedClass in ipairs(blacklistTable) do
-            local trimmed = string.Trim(blacklistedClass)
-            if trimmed ~= "" and npcClass == trimmed then
-                ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
-                return
-            end
-        end
-    end
-    
-    -- Check if NPC is whitelisted (bypasses friendly check)
+
+    -- Check if NPC is whitelisted FIRST (whitelist overrides blacklist!)
     local isWhitelisted = false
     local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
     if whitelist ~= "" then
@@ -4026,7 +4014,23 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
             end
         end
     end
-    
+
+    -- Only check blacklist if NOT whitelisted (whitelist = bypass blacklist)
+    if not isWhitelisted then
+        local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
+        if blacklist ~= "" then
+            local npcClass = npc:GetClass() or ""
+            local blacklistTable = string.Explode(",", blacklist)
+            for _, blacklistedClass in ipairs(blacklistTable) do
+                local trimmed = string.Trim(blacklistedClass)
+                if trimmed ~= "" and npcClass == trimmed then
+                    ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
+                    return
+                end
+            end
+        end
+    end
+
     -- Skip friendly check if whitelisted
     if not isWhitelisted and friendlyPassengers[npc] then
         ply:ChatPrint("NPC is already a passenger!")
