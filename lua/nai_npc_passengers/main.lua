@@ -881,9 +881,36 @@ end
 -- Check if a vehicle is enclosed (tank, APC, etc.) where NPCs should be hidden
 local function IsEnclosedVehicle(vehicle)
     if not IsValid(vehicle) then return false end
-    
+
     local class = vehicle:GetClass() or ""
-    
+    local lowerClass = string.lower(class)
+
+    -- Star Wars LVS ships are OPEN vehicles - NPCs should always be visible
+    local starWarsShipPatterns = {
+        "star_destroyer", "star_defender", "republic_cruiser", "separatist_cruiser",
+        "victory_class", "imperial_class", "resurgent_class", "executor_class",
+        "venator", "acclamator", "providence", "recusant", "munificent",
+        "lucrehulk", "corellian", "corvette", "frigate", "cruiser", "dreadnought",
+        "xwing", "ywing", "awing", "bwing", "tfighter", "tie_bomber", "tie_interceptor",
+        "falcon", "starfighter", "bomber", "shuttle", "lambda_shuttle",
+        "naboo", "gunship", "republic_gunship", "laati",
+        "sw_", "starwars_", "swep_", "lvs_sw_", "lvs_star_",
+    }
+    for _, pattern in ipairs(starWarsShipPatterns) do
+        if string.find(lowerClass, pattern) then
+            return false  -- Star Wars ships are NEVER enclosed
+        end
+    end
+
+    -- Check model for Star Wars patterns
+    local model = vehicle:GetModel() or ""
+    local lowerModel = string.lower(model)
+    for _, pattern in ipairs(starWarsShipPatterns) do
+        if string.find(lowerModel, pattern) then
+            return false  -- Star Wars ships are NEVER enclosed
+        end
+    end
+
     -- Check for common tank/enclosed vehicle patterns
     local enclosedPatterns = {
         -- Real-world tanks
@@ -892,15 +919,13 @@ local function IsEnclosedVehicle(vehicle)
         "sherman", "churchill", "cromwell", "matilda", "kv1", "kv2", "is2", "is3",
         "pz38", "stug", "jagdpanzer", "hetzer", "marder", "sdkfz", "halftrack",
         "bradley", "warrior", "puma", "boxer", "stryker", "lav", "mrap",
-        -- Star Wars vehicles
-        "aat", "atst", "atrt", "juggernaut", "haat", "mtt", "spha",
+        -- Star Wars GROUND vehicles (these ARE enclosed)
+        "aat", "atst", "atrt", "juggernaut", "haat", "mtt", "spha", "atat",
         -- Generic enclosed markers
         "_enclosed", "_tank", "_armored", "_apc", "_ifv",
-        -- LVS specific
+        -- LVS specific ground vehicles
         "lvs_wheeldrive_dc_tank", "lvs_tank", "lvs_tracked",
     }
-    
-    local lowerClass = string.lower(class)
     for _, pattern in ipairs(enclosedPatterns) do
         if string.find(lowerClass, pattern) then
             return true
