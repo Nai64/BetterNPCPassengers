@@ -4098,10 +4098,6 @@ hook.Add("PopulateMenuBar", "NPCPassengersMenuBar", function(menubar)
     m:AddOption("Open Settings", function()
         OpenSettingsPanel()
     end):SetIcon("icon16/cog.png")
-    
-    m:AddOption("Open Settings (Derma)", function()
-        OpenSettingsPanel()
-    end):SetIcon("derma/config.png")
 
     m:AddSpacer()
 
@@ -4246,6 +4242,26 @@ properties.Add("nai_remove_passenger", {
     end
 })
 
+properties.Add("nai_blacklist_passenger", {
+    MenuLabel = "Blacklist Passenger",
+    Order = 1505,
+    MenuIcon = "icon16/user_go.png",
+
+    Filter = function(self, ent, ply)
+        if not IsValid(ent) then return false end
+        if not ent:IsNPC() then return false end
+        return true
+    end,
+
+    Action = function(self, ent)
+        local npcClass = ent:GetClass()
+        if npcClass then
+            RunConsoleCommand("nai_npc_add_turret_blacklist", npcClass)
+            chat.AddText(Color(255, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Added '", Color(100, 200, 100), npcClass, Color(255, 255, 255), "' to turret blacklist")
+        end
+    end
+})
+
 -- F7 hotkey
 hook.Add("PlayerButtonDown", "NPCPassengersQuickMenu", function(ply, button)
     if button == KEY_F7 and IsFirstTimePredicted() then
@@ -4263,7 +4279,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.45"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.46"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
