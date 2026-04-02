@@ -990,26 +990,6 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
         draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
         self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
     end
-    
-    -- QoL: Show current value label next to slider
-    local valueLabel = vgui.Create("DLabel", sliderContainer)
-    valueLabel:SetPos(sliderContainer:GetWide() - 50, 6)
-    valueLabel:SetSize(45, 20)
-    valueLabel:SetFont("NaiFont_Bold")
-    valueLabel:SetTextColor(Theme.accent)
-    valueLabel:SetContentAlignment(5)
-    
-    -- Update value label when slider changes
-    slider.OnValueChanged = function(s, val)
-        valueLabel:SetText(string.format("%." .. (decimals or 0) .. "f", val))
-    end
-    
-    -- Initial value
-    timer.Simple(0.1, function()
-        if IsValid(slider) and IsValid(valueLabel) then
-            valueLabel:SetText(string.format("%." .. (decimals or 0) .. "f", slider:GetValue()))
-        end
-    end)
 
     return container, slider
 end
@@ -1659,7 +1639,8 @@ local function OpenSettingsPanel()
         end
 
         searchSuggestions:SetVisible(false)
-        searchSuggestions:SetTall(0)
+        searchSuggestions.targetHeight = 0
+        searchSuggestions.animHeight = 0
     end
 
     local function OpenSearchMatch(entry)
@@ -1758,7 +1739,7 @@ local function OpenSettingsPanel()
             end
 
             searchSuggestions:SetVisible(true)
-            searchSuggestions:SetTall(34)
+            searchSuggestions.targetHeight = 34
             UpdateSearchSuggestionsLayout()
             return
         end
@@ -1770,7 +1751,7 @@ local function OpenSettingsPanel()
         end
 
         searchSuggestions:SetVisible(true)
-        searchSuggestions:SetTall(totalHeight)
+        searchSuggestions.targetHeight = totalHeight
         UpdateSearchSuggestionsLayout()
     end
 
@@ -1843,6 +1824,21 @@ local function OpenSettingsPanel()
     searchSuggestions.Paint = function(self, w, h)
         DrawRoundedSurface(0, 0, w, h, 10, Theme.bgLight, Theme.border)
     end
+    
+    -- QoL: Smooth enter/exit animation for search dropdown
+    searchSuggestions.animHeight = 0
+    searchSuggestions.targetHeight = 0
+    searchSuggestions.Think = function(self)
+        if self.animHeight ~= self.targetHeight then
+            self.animHeight = Lerp(0.25, self.animHeight, self.targetHeight)
+            self:SetTall(self.animHeight)
+            if math.abs(self.animHeight - self.targetHeight) < 0.5 then
+                self.animHeight = self.targetHeight
+                self:SetTall(self.targetHeight)
+            end
+        end
+    end
+    
     UpdateSearchSuggestionsLayout()
 
     searchEntry.OnChange = function(self)
@@ -4227,7 +4223,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.41"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.42"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
