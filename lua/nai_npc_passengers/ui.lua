@@ -4094,13 +4094,17 @@ end)
 -- Q menu bar dropdown
 hook.Add("PopulateMenuBar", "NPCPassengersMenuBar", function(menubar)
     local m = menubar:AddOrGetMenu(ADDON_DISPLAY_NAME)
-    
+
     m:AddOption("Open Settings", function()
         OpenSettingsPanel()
     end):SetIcon("icon16/cog.png")
     
+    m:AddOption("Open Settings (Derma)", function()
+        OpenSettingsPanel()
+    end):SetIcon("derma/config.png")
+
     m:AddSpacer()
-    
+
     m:AddOption("Reset All Settings", function()
         RunConsoleCommand("nai_npc_reset")
     end):SetIcon("icon16/arrow_refresh.png")
@@ -4259,7 +4263,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.44"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.45"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
