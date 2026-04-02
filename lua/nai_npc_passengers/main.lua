@@ -2321,37 +2321,41 @@ end
 local function UpdatePassengerBehavior(npc, pdata, curTime)
     if not IsValid(npc) or not pdata or not IsValid(pdata.vehicle) then return end
     if pdata.isHidden then return end
-    
+
     local vehicle = pdata.vehicle
     local state = npcLookState[npc:EntIndex()]
     if not state then return end
-    
+
     -- ── Body Sway ─────────────────────────────────────────────────────────────
     local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
     local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
-    
+
     if bodySwayEnabled then
         local vel = vehicle:GetVelocity()
         local right = vehicle:GetRight()
         local forward = vehicle:GetForward()
-        
-        -- Calculate lateral and longitudinal acceleration
+
+        -- Calculate lateral and longitudinal acceleration (not velocity!)
         local lateralAccel = vel:Dot(right)
         local longitudinalAccel = vel:Dot(forward)
-        
-        -- Calculate sway angles based on acceleration
-        local targetRoll = -lateralAccel * 0.02 * bodySwayAmount
-        local targetPitch = -longitudinalAccel * 0.015 * bodySwayAmount
-        
-        -- Smooth the sway
+
+        -- Calculate sway angles based on acceleration (reduced sensitivity)
+        local targetRoll = -lateralAccel * 0.008 * bodySwayAmount
+        local targetPitch = -longitudinalAccel * 0.006 * bodySwayAmount
+
+        -- Smooth the sway more gradually
         state.targetBodyRoll = state.targetBodyRoll or 0
         state.targetBodyPitch = state.targetBodyPitch or 0
-        state.targetBodyRoll = Lerp(0.1, state.targetBodyRoll, targetRoll)
-        state.targetBodyPitch = Lerp(0.1, state.targetBodyPitch, targetPitch)
-        
-        -- Apply sway to NPC's local angles
-        local currentLocalAng = npc:GetLocalAngles()
-        local swayAng = Angle(state.targetBodyPitch, currentLocalAng.y, state.targetBodyRoll)
+        state.targetBodyRoll = Lerp(0.05, state.targetBodyRoll, targetRoll)
+        state.targetBodyPitch = Lerp(0.05, state.targetBodyPitch, targetPitch)
+
+        -- Apply sway as offset from base angles (not cumulative!)
+        local baseLocalAng = pdata.baseLocalAng or Angle(0, 0, 0)
+        local swayAng = Angle(
+            baseLocalAng.pitch + state.targetBodyPitch,
+            baseLocalAng.yaw,
+            baseLocalAng.roll + state.targetBodyRoll
+        )
         npc:SetLocalAngles(swayAng)
     end
     
