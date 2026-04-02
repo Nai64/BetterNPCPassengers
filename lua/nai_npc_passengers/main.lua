@@ -3232,6 +3232,16 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                 blacklistTable[i] = string.Trim(class)
             end
         end
+        
+        -- Get whitelist for auto-join
+        local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
+        local whitelistTable = {}
+        if whitelist ~= "" then
+            whitelistTable = string.Explode(",", whitelist)
+            for i, class in ipairs(whitelistTable) do
+                whitelistTable[i] = string.Trim(class)
+            end
+        end
 
         for _, npc in ipairs(ents.FindByClass("npc_*")) do
             if IsValid(npc) and npc:IsNPC() and npc:Health() > 0 then
@@ -3249,7 +3259,7 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                     end
                 end
                 if isPending then continue end
-                
+
                 -- Skip if blacklisted
                 local npcClass = npc:GetClass() or ""
                 local isBlacklisted = false
@@ -3261,6 +3271,15 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                 end
                 if isBlacklisted then continue end
 
+                -- Check if whitelisted (bypasses disposition checks)
+                local isWhitelisted = false
+                for _, whitelistedClass in ipairs(whitelistTable) do
+                    if whitelistedClass ~= "" and npcClass == whitelistedClass then
+                        isWhitelisted = true
+                        break
+                    end
+                end
+
                 -- Check distance
                 local dist = playerPos:Distance(npc:GetPos())
                 if dist > autoJoinRange then continue end
@@ -3268,9 +3287,11 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                 -- Check if friendly to player
                 if not IsFriendlyNPC(npc, nil) then continue end
 
-                -- Check disposition directly
-                local disposition = npc:Disposition(ply)
-                if disposition ~= D_LI and disposition ~= D_NU then continue end
+                -- Check disposition directly (skip for whitelisted NPCs)
+                if not isWhitelisted then
+                    local disposition = npc:Disposition(ply)
+                    if disposition ~= D_LI and disposition ~= D_NU then continue end
+                end
 
                 -- Squad check if enabled
                 if squadOnly then
@@ -3534,6 +3555,21 @@ net.Receive("NPCPassengers_MakePassenger", function(len, ply)
             if trimmed ~= "" and npcClass == trimmed then
                 ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
                 return
+            end
+        end
+    end
+    
+    -- Check if NPC is whitelisted (bypasses disposition checks)
+    local isWhitelisted = false
+    local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
+    if whitelist ~= "" then
+        local npcClass = ent:GetClass() or ""
+        local whitelistTable = string.Explode(",", whitelist)
+        for _, whitelistedClass in ipairs(whitelistTable) do
+            local trimmed = string.Trim(whitelistedClass)
+            if trimmed ~= "" and npcClass == trimmed then
+                isWhitelisted = true
+                break
             end
         end
     end
@@ -3878,6 +3914,21 @@ net.Receive("NPCPassengers_MakePassengerForVehicle", function(len, ply)
             if trimmed ~= "" and npcClass == trimmed then
                 ply:ChatPrint("[Better NPC Passengers] NPC class '" .. npcClass .. "' is blacklisted from boarding vehicles")
                 return
+            end
+        end
+    end
+    
+    -- Check if NPC is whitelisted (bypasses disposition checks)
+    local isWhitelisted = false
+    local whitelist = GetConVar("nai_npc_vehicle_whitelist") and GetConVar("nai_npc_vehicle_whitelist"):GetString() or ""
+    if whitelist ~= "" then
+        local npcClass = npc:GetClass() or ""
+        local whitelistTable = string.Explode(",", whitelist)
+        for _, whitelistedClass in ipairs(whitelistTable) do
+            local trimmed = string.Trim(whitelistedClass)
+            if trimmed ~= "" and npcClass == trimmed then
+                isWhitelisted = true
+                break
             end
         end
     end

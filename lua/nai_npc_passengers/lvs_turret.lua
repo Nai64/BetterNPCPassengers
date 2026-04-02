@@ -78,11 +78,11 @@ concommand.Add("nai_npc_add_turret_blacklist", function(ply, cmd, args)
         end
         return
     end
-    
+
     local npcClass = args[1]
     local blacklist = NPCPassengers.cv_turret_blacklist:GetString() or ""
     local blacklistTable = string.Explode(",", blacklist)
-    
+
     -- Check if already blacklisted
     for _, existing in ipairs(blacklistTable) do
         if string.Trim(existing) == npcClass then
@@ -94,22 +94,25 @@ concommand.Add("nai_npc_add_turret_blacklist", function(ply, cmd, args)
             return
         end
     end
-    
+
     -- Add to blacklist
     if blacklist == "" then
         blacklist = npcClass
     else
         blacklist = blacklist .. "," .. npcClass
     end
-    
-    RunConsoleCommand("nai_npc_turret_blacklist", blacklist)
-    
-    if IsValid(ply) then
-        ply:ChatPrint("[Better NPC Passengers] Added '" .. npcClass .. "' to turret blacklist")
-    else
-        print("[Better NPC Passengers] Added '" .. npcClass .. "' to turret blacklist")
+
+    -- Directly set the convar to avoid duplicate messages
+    if NPCPassengers.cv_turret_blacklist then
+        NPCPassengers.cv_turret_blacklist:SetString(blacklist)
     end
-end, nil, "Add an NPC class to the turret blacklist")
+
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Added '" .. npcClass .. "' to vehicle blacklist")
+    else
+        print("[Better NPC Passengers] Added '" .. npcClass .. "' to vehicle blacklist")
+    end
+end, nil, "Add an NPC class to the vehicle blacklist")
 
 -- Console command to remove an NPC from the blacklist
 concommand.Add("nai_npc_remove_turret_blacklist", function(ply, cmd, args)
@@ -121,13 +124,13 @@ concommand.Add("nai_npc_remove_turret_blacklist", function(ply, cmd, args)
         end
         return
     end
-    
+
     local npcClass = args[1]
     local blacklist = NPCPassengers.cv_turret_blacklist:GetString() or ""
     local blacklistTable = string.Explode(",", blacklist)
     local newTable = {}
     local found = false
-    
+
     for _, existing in ipairs(blacklistTable) do
         local trimmed = string.Trim(existing)
         if trimmed == npcClass then
@@ -136,7 +139,7 @@ concommand.Add("nai_npc_remove_turret_blacklist", function(ply, cmd, args)
             table.insert(newTable, trimmed)
         end
     end
-    
+
     if not found then
         if IsValid(ply) then
             ply:ChatPrint("[Better NPC Passengers] '" .. npcClass .. "' is not in the blacklist")
@@ -145,26 +148,197 @@ concommand.Add("nai_npc_remove_turret_blacklist", function(ply, cmd, args)
         end
         return
     end
-    
+
     local newBlacklist = table.concat(newTable, ",")
-    RunConsoleCommand("nai_npc_turret_blacklist", newBlacklist)
     
-    if IsValid(ply) then
-        ply:ChatPrint("[Better NPC Passengers] Removed '" .. npcClass .. "' from turret blacklist")
-    else
-        print("[Better NPC Passengers] Removed '" .. npcClass .. "' from turret blacklist")
+    -- Directly set the convar to avoid duplicate messages
+    if NPCPassengers.cv_turret_blacklist then
+        NPCPassengers.cv_turret_blacklist:SetString(newBlacklist)
     end
-end, nil, "Remove an NPC class from the turret blacklist")
+
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Removed '" .. npcClass .. "' from vehicle blacklist")
+    else
+        print("[Better NPC Passengers] Removed '" .. npcClass .. "' from vehicle blacklist")
+    end
+end, nil, "Remove an NPC class from the vehicle blacklist")
 
 -- Console command to clear the entire blacklist
 concommand.Add("nai_npc_clear_turret_blacklist", function(ply)
-    RunConsoleCommand("nai_npc_turret_blacklist", "")
-    if IsValid(ply) then
-        ply:ChatPrint("[Better NPC Passengers] Cleared turret blacklist (all NPCs now allowed)")
-    else
-        print("[Better NPC Passengers] Cleared turret blacklist (all NPCs now allowed)")
+    -- Directly set the convar to avoid duplicate messages
+    if NPCPassengers.cv_turret_blacklist then
+        NPCPassengers.cv_turret_blacklist:SetString("")
     end
-end, nil, "Clear the entire turret blacklist")
+    
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Cleared vehicle blacklist (all NPCs now allowed)")
+    else
+        print("[Better NPC Passengers] Cleared vehicle blacklist (all NPCs now allowed)")
+    end
+end, nil, "Clear the entire vehicle blacklist")
+
+-- Create whitelist convar
+NPCPassengers.cv_vehicle_whitelist = CreateConVar("nai_npc_vehicle_whitelist", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Comma-separated list of NPC classnames to whitelist for vehicle boarding (e.g., npc_barney,npc_eli)")
+
+-- Helper function to check if NPC is whitelisted
+local function IsNPCVehicleWhitelisted(npc)
+    if not IsValid(npc) then return false end
+    
+    local whitelist = NPCPassengers.cv_vehicle_whitelist:GetString() or ""
+    if whitelist == "" then return false end
+    
+    local npcClass = npc:GetClass() or ""
+    local whitelistTable = string.Explode(",", whitelist)
+    
+    for _, whitelistedClass in ipairs(whitelistTable) do
+        local trimmed = string.Trim(whitelistedClass)
+        if trimmed ~= "" and npcClass == trimmed then
+            return true
+        end
+    end
+    
+    return false
+end
+
+-- Console command to view current whitelist
+concommand.Add("nai_npc_get_vehicle_whitelist", function(ply)
+    local whitelist = NPCPassengers.cv_vehicle_whitelist:GetString() or ""
+    if whitelist == "" then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Vehicle whitelist is empty (no NPCs forced)")
+        else
+            print("[Better NPC Passengers] Vehicle whitelist is empty (no NPCs forced)")
+        end
+    else
+        local classes = string.Explode(",", whitelist)
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Whitelisted NPC classes:")
+            for _, class in ipairs(classes) do
+                local trimmed = string.Trim(class)
+                if trimmed ~= "" then
+                    ply:ChatPrint("  - " .. trimmed)
+                end
+            end
+        else
+            print("[Better NPC Passengers] Whitelisted NPC classes:")
+            for _, class in ipairs(classes) do
+                local trimmed = string.Trim(class)
+                if trimmed ~= "" then
+                    print("  - " .. trimmed)
+                end
+            end
+        end
+    end
+end, nil, "View the list of whitelisted NPC classes for vehicle boarding")
+
+-- Console command to add an NPC to the whitelist
+concommand.Add("nai_npc_add_vehicle_whitelist", function(ply, cmd, args)
+    if not args[1] then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Usage: nai_npc_add_vehicle_whitelist <npc_class>")
+        else
+            print("[Better NPC Passengers] Usage: nai_npc_add_vehicle_whitelist <npc_class>")
+        end
+        return
+    end
+
+    local npcClass = args[1]
+    local whitelist = NPCPassengers.cv_vehicle_whitelist:GetString() or ""
+    local whitelistTable = string.Explode(",", whitelist)
+
+    -- Check if already whitelisted
+    for _, existing in ipairs(whitelistTable) do
+        if string.Trim(existing) == npcClass then
+            if IsValid(ply) then
+                ply:ChatPrint("[Better NPC Passengers] '" .. npcClass .. "' is already whitelisted")
+            else
+                print("[Better NPC Passengers] '" .. npcClass .. "' is already whitelisted")
+            end
+            return
+        end
+    end
+
+    -- Add to whitelist
+    if whitelist == "" then
+        whitelist = npcClass
+    else
+        whitelist = whitelist .. "," .. npcClass
+    end
+
+    -- Directly set the convar to avoid duplicate messages
+    if NPCPassengers.cv_vehicle_whitelist then
+        NPCPassengers.cv_vehicle_whitelist:SetString(whitelist)
+    end
+
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Added '" .. npcClass .. "' to vehicle whitelist")
+    else
+        print("[Better NPC Passengers] Added '" .. npcClass .. "' to vehicle whitelist")
+    end
+end, nil, "Add an NPC class to the vehicle whitelist")
+
+-- Console command to remove an NPC from the whitelist
+concommand.Add("nai_npc_remove_vehicle_whitelist", function(ply, cmd, args)
+    if not args[1] then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] Usage: nai_npc_remove_vehicle_whitelist <npc_class>")
+        else
+            print("[Better NPC Passengers] Usage: nai_npc_remove_vehicle_whitelist <npc_class>")
+        end
+        return
+    end
+
+    local npcClass = args[1]
+    local whitelist = NPCPassengers.cv_vehicle_whitelist:GetString() or ""
+    local whitelistTable = string.Explode(",", whitelist)
+    local newTable = {}
+    local found = false
+
+    for _, existing in ipairs(whitelistTable) do
+        local trimmed = string.Trim(existing)
+        if trimmed == npcClass then
+            found = true
+        elseif trimmed ~= "" then
+            table.insert(newTable, trimmed)
+        end
+    end
+
+    if not found then
+        if IsValid(ply) then
+            ply:ChatPrint("[Better NPC Passengers] '" .. npcClass .. "' is not in the whitelist")
+        else
+            print("[Better NPC Passengers] '" .. npcClass .. "' is not in the whitelist")
+        end
+        return
+    end
+
+    local newWhitelist = table.concat(newTable, ",")
+    
+    -- Directly set the convar to avoid duplicate messages
+    if NPCPassengers.cv_vehicle_whitelist then
+        NPCPassengers.cv_vehicle_whitelist:SetString(newWhitelist)
+    end
+
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Removed '" .. npcClass .. "' from vehicle whitelist")
+    else
+        print("[Better NPC Passengers] Removed '" .. npcClass .. "' from vehicle whitelist")
+    end
+end, nil, "Remove an NPC class from the vehicle whitelist")
+
+-- Console command to clear the entire whitelist
+concommand.Add("nai_npc_clear_vehicle_whitelist", function(ply)
+    -- Directly set the convar to avoid duplicate messages
+    if NPCPassengers.cv_vehicle_whitelist then
+        NPCPassengers.cv_vehicle_whitelist:SetString("")
+    end
+    
+    if IsValid(ply) then
+        ply:ChatPrint("[Better NPC Passengers] Cleared vehicle whitelist")
+    else
+        print("[Better NPC Passengers] Cleared vehicle whitelist")
+    end
+end, nil, "Clear the entire vehicle whitelist")
 
 -- Cache for performance
 local turretNPCs = NPCPassengers.TurretNPCs
