@@ -2240,18 +2240,26 @@ local function UpdateNPCHeadLook(npc, pdata)
 
     -- ── Drowsy eye close / wake open (smooth transition) ─────────────────────
     if state.isDrowsy then
-        state.drowsyEye = math.min(1, (state.drowsyEye or 0) + dt * 0.7)
+        -- Gradually close eyes when drowsy (1 = fully closed)
+        state.drowsyEye = math.min(1, (state.drowsyEye or 0) + dt * 0.5)
     else
+        -- Gradually open eyes when awake
         state.drowsyEye = math.max(0, (state.drowsyEye or 0) - dt * 0.8)
     end
-    if (state.drowsyEye or 0) > 0.02 then
+    
+    -- Apply drowsy eye closure (takes priority over blinking)
+    if state.isDrowsy and (state.drowsyEye or 0) > 0.1 then
+        -- Fully close eyes when drowsy - use high blink value
         local e = state.drowsyEye
-        npc:SetPoseParameter("blink",          e)
-        npc:SetPoseParameter("eyes_rightleft", 0)
+        npc:SetPoseParameter("blink", math.Clamp(e, 0.9, 1.0))  -- Force eyes closed
+        npc:SetPoseParameter("eyes_updown", 0)  -- Reset eye vertical offset
+        npc:SetPoseParameter("eyes_rightleft", 0)  -- Reset eye horizontal offset
     elseif state.isBlinking then
+        -- Normal blinking when awake
         local t = state.blinkProgress
         npc:SetPoseParameter("blink", t < 0.3 and (t / 0.3) or (1 - (t - 0.3) / 0.7))
     else
+        -- Eyes open when awake and not blinking
         npc:SetPoseParameter("blink", 0)
     end
 
