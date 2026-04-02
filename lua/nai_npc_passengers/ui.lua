@@ -938,17 +938,17 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     container:Dock(TOP)
     container:DockMargin(5, 3, 5, 3)
     container.Paint = function() end
-    
+
     local lbl = CreateLabel(container, label, "NaiFont_Normal", Theme.text)
     lbl:Dock(TOP)
     lbl:SetTall(20)
-    
+
     local sliderContainer = vgui.Create("DPanel", container)
     sliderContainer:Dock(TOP)
     sliderContainer:SetTall(28)
     sliderContainer:DockMargin(0, 2, 0, 0)
     sliderContainer.Paint = function() end
-    
+
     local slider = vgui.Create("DNumSlider", sliderContainer)
     slider:Dock(FILL)
     slider:SetMin(min)
@@ -956,7 +956,7 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     slider:SetDecimals(decimals or 0)
     slider:SetConVar(convar)
     slider.Label:SetVisible(false)
-    
+
     -- Force sync with ConVar value on creation (delayed to ensure ConVar is ready)
     timer.Simple(0, function()
         if IsValid(slider) then
@@ -966,16 +966,16 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
             end
         end
     end)
-    
+
     slider.Slider.Paint = function(self, w, h)
         local trackY = h / 2
         draw.RoundedBox(3, 0, trackY - 3, w, 6, Theme.bgLighter)
-        
+
         local frac = math.Clamp((slider:GetValue() - min) / (max - min), 0, 1)
         local filledW = w * frac
         draw.RoundedBox(3, 0, trackY - 3, filledW, 6, Theme.accent)
     end
-    
+
     slider.Slider.Knob:SetSize(14, 14)
     slider.Slider.Knob.Paint = function(self, w, h)
         draw.RoundedBox(7, 0, 0, w, h, Theme.accent)
@@ -983,7 +983,7 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
             draw.RoundedBox(7, 0, 0, w, h, Theme.accentHover)
         end
     end
-    
+
     slider.TextArea:SetWide(60)
     slider.TextArea:SetTextColor(Theme.text)
     slider.TextArea.Paint = function(self, w, h)
@@ -991,6 +991,26 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
         self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
     end
     
+    -- QoL: Show current value label next to slider
+    local valueLabel = vgui.Create("DLabel", sliderContainer)
+    valueLabel:SetPos(sliderContainer:GetWide() - 50, 6)
+    valueLabel:SetSize(45, 20)
+    valueLabel:SetFont("NaiFont_Bold")
+    valueLabel:SetTextColor(Theme.accent)
+    valueLabel:SetContentAlignment(5)
+    
+    -- Update value label when slider changes
+    slider.OnValueChanged = function(s, val)
+        valueLabel:SetText(string.format("%." .. (decimals or 0) .. "f", val))
+    end
+    
+    -- Initial value
+    timer.Simple(0.1, function()
+        if IsValid(slider) and IsValid(valueLabel) then
+            valueLabel:SetText(string.format("%." .. (decimals or 0) .. "f", slider:GetValue()))
+        end
+    end)
+
     return container, slider
 end
 
@@ -1451,13 +1471,13 @@ local function OpenSettingsPanel()
         if not suppressSound and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
             surface.PlaySound("nai_passengers/ui_click.wav")
         end
-        
+
         if IsValid(currentPanel) then
             currentPanel:SetVisible(false)
         end
         currentPanel = panel
         panel:SetVisible(true)
-        
+
         for _, btn in ipairs(navButtons) do
             btn.isActive = false
         end
@@ -1465,6 +1485,13 @@ local function OpenSettingsPanel()
         if IsValid(activeBtn) then
             activeBtn.isActive = true
         end
+        
+        -- QoL: Auto-focus search bar when switching panels
+        timer.Simple(0.05, function()
+            if IsValid(searchEntry) then
+                searchEntry:RequestFocus()
+            end
+        end)
     end
     
     -- Helper to create content panel
@@ -2722,7 +2749,72 @@ local function OpenSettingsPanel()
     
     CreateSlider(speechPanel, "Pitch Variation (+/-)", "nai_npc_speech_pitch_var", 0, 20, 0)
     CreateHelpText(speechPanel, "Random pitch variation for more natural voices. 0 = monotone, higher = more variety.")
+
+    -- QoL: Quick Enable All / Disable All buttons for speech settings
+    local speechBtnContainer = vgui.Create("DPanel", speechPanel)
+    speechBtnContainer:SetTall(32)
+    speechBtnContainer:Dock(TOP)
+    speechBtnContainer:DockMargin(0, 5, 0, 10)
+    speechBtnContainer.Paint = function() end
     
+    local enableAllBtn = vgui.Create("DButton", speechBtnContainer)
+    enableAllBtn:SetPos(0, 0)
+    enableAllBtn:SetSize(140, 28)
+    enableAllBtn:SetText("Enable All Speech")
+    enableAllBtn:SetFont("NaiFont_Normal")
+    enableAllBtn:SetTextColor(Theme.textBright)
+    enableAllBtn.Paint = function(self, w, h)
+        local col = self:IsHovered() and Theme.accentHover or Theme.accent
+        draw.RoundedBox(4, 0, 0, w, h, col)
+    end
+    enableAllBtn.DoClick = function()
+        RunConsoleCommand("nai_npc_speech_enabled", "1")
+        RunConsoleCommand("nai_npc_speech_crash", "1")
+        RunConsoleCommand("nai_npc_speech_idle", "1")
+        RunConsoleCommand("nai_npc_speech_board", "1")
+        RunConsoleCommand("nai_npc_ambient_sounds", "1")
+        RunConsoleCommand("nai_npc_talking_gestures", "1")
+        RunConsoleCommand("nai_npc_crash_flinch", "1")
+        RunConsoleCommand("nai_npc_body_sway", "1")
+        RunConsoleCommand("nai_npc_threat_awareness", "1")
+        RunConsoleCommand("nai_npc_combat_alert", "1")
+        RunConsoleCommand("nai_npc_passenger_interaction", "1")
+        RunConsoleCommand("nai_npc_fear_reactions", "1")
+        RunConsoleCommand("nai_npc_drowsiness", "1")
+        RunConsoleCommand("nai_npc_head_look", "1")
+        RunConsoleCommand("nai_npc_blink", "1")
+        RunConsoleCommand("nai_npc_breathing", "1")
+    end
+    
+    local disableAllBtn = vgui.Create("DButton", speechBtnContainer)
+    disableAllBtn:SetPos(150, 0)
+    disableAllBtn:SetSize(140, 28)
+    disableAllBtn:SetText("Disable All Speech")
+    disableAllBtn:SetFont("NaiFont_Normal")
+    disableAllBtn:SetTextColor(Theme.textBright)
+    disableAllBtn.Paint = function(self, w, h)
+        local col = self:IsHovered() and Color(180, 50, 50) or Color(150, 40, 40)
+        draw.RoundedBox(4, 0, 0, w, h, col)
+    end
+    disableAllBtn.DoClick = function()
+        RunConsoleCommand("nai_npc_speech_enabled", "0")
+        RunConsoleCommand("nai_npc_speech_crash", "0")
+        RunConsoleCommand("nai_npc_speech_idle", "0")
+        RunConsoleCommand("nai_npc_speech_board", "0")
+        RunConsoleCommand("nai_npc_ambient_sounds", "0")
+        RunConsoleCommand("nai_npc_talking_gestures", "0")
+        RunConsoleCommand("nai_npc_crash_flinch", "0")
+        RunConsoleCommand("nai_npc_body_sway", "0")
+        RunConsoleCommand("nai_npc_threat_awareness", "0")
+        RunConsoleCommand("nai_npc_combat_alert", "0")
+        RunConsoleCommand("nai_npc_passenger_interaction", "0")
+        RunConsoleCommand("nai_npc_fear_reactions", "0")
+        RunConsoleCommand("nai_npc_drowsiness", "0")
+        RunConsoleCommand("nai_npc_head_look", "0")
+        RunConsoleCommand("nai_npc_blink", "0")
+        RunConsoleCommand("nai_npc_breathing", "0")
+    end
+
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Crash Reactions")
     
@@ -4135,7 +4227,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.40"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.41"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
