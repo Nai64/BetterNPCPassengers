@@ -848,19 +848,9 @@ local function CreateCheckbox(parent, label, convar)
     checkbox:SetSize(20, 20)
     checkbox:SetConVar(convar)
 
-    -- Animation state for checkbox tick/untick
+    -- Animation state for checkbox tick pop effect
     checkbox.animScale = 1
-    checkbox.animTarget = 1
-    checkbox.lastChecked = false
-
-    -- Initialize animation state after convar loads (delayed)
-    timer.Simple(0.1, function()
-        if IsValid(checkbox) then
-            checkbox.lastChecked = checkbox:GetChecked()
-            checkbox.animScale = 1
-            checkbox.animTarget = 1
-        end
-    end)
+    checkbox.popTimer = 0
 
     -- Override background to remove square
     checkbox.Paint = function(self, w, h)
@@ -869,55 +859,59 @@ local function CreateCheckbox(parent, label, convar)
 
     -- Custom animated rendering
     checkbox.Think = function(self)
-        local isChecked = self:GetChecked()
-
-        -- Animate scale on state change
-        if isChecked ~= self.lastChecked then
-            self.animTarget = isChecked and 1.2 or 1
-            self.lastChecked = isChecked
+        -- Pop animation: quickly scale up, then slowly return to normal
+        if self.popTimer > 0 then
+            self.popTimer = self.popTimer - FrameTime()
+            -- Quick pop up, then slow return
+            if self.popTimer > 0.08 then
+                self.animScale = Lerp(FrameTime() * 8, self.animScale, 1.2)
+            else
+                self.animScale = Lerp(FrameTime() * 5, self.animScale, 1)
+            end
+        else
+            self.animScale = Lerp(FrameTime() * 5, self.animScale, 1)
         end
+    end
 
-        -- Lerp animation
-        self.animScale = Lerp(0.25, self.animScale, self.animTarget)
+    -- Trigger pop animation on state change
+    checkbox.OnChange = function(self, val)
+        self.popTimer = 0.15  -- 150ms pop animation
+        
+        if IsValid(LocalPlayer()) and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
+            LocalPlayer():EmitSound("nai_passengers/ui_click.wav", 75, val and 100 or 80)
+        end
     end
 
     checkbox.PaintOver = function(self, w, h)
-        local isChecked = self:GetChecked()
+        -- Get checked state directly from convar for reliability
+        local cv = GetConVar(convar)
+        local isChecked = cv and cv:GetBool() or false
+        
         local centerX, centerY = w / 2, h / 2
         local radius = math.min(w, h) / 2 - 1
         local borderCol = isChecked and Theme.accentHover or Theme.border
         local fillCol = isChecked and Theme.accent or Theme.bgLighter
 
-        -- Outer glow for checked state (with animation)
+        -- Outer glow for checked state
         if isChecked then
             draw.NoTexture()
-            surface.SetDrawColor(Theme.glow.r, Theme.glow.g, Theme.glow.b, Theme.glow.a * self.animScale)
-            draw.Circle(centerX, centerY, (radius + 3) * self.animScale, 32)
+            surface.SetDrawColor(Theme.glow.r, Theme.glow.g, Theme.glow.b, Theme.glow.a)
+            draw.Circle(centerX, centerY, radius + 3, 32)
         end
 
-        -- Main circle (with pop animation)
+        -- Main circle
         draw.NoTexture()
         surface.SetDrawColor(fillCol)
-        local animRadius = radius * self.animScale
-        draw.Circle(centerX, centerY, animRadius, 32)
+        draw.Circle(centerX, centerY, radius, 32)
 
         -- Border
         surface.SetDrawColor(borderCol)
-        draw.Circle(centerX, centerY, animRadius, 32)
+        draw.Circle(centerX, centerY, radius, 32)
 
-        -- Checked dot (with scale animation)
+        -- Checked dot
         if isChecked then
             surface.SetDrawColor(Theme.textBright)
-            local dotRadius = (radius * 0.5) * self.animScale
-            if dotRadius > 0.5 then
-                draw.Circle(centerX, centerY, dotRadius, 32)
-            end
-        end
-    end
-
-    checkbox.OnChange = function(self, val)
-        if IsValid(LocalPlayer()) and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
-            LocalPlayer():EmitSound("nai_passengers/ui_click.wav", 75, val and 100 or 80)
+            draw.Circle(centerX, centerY, radius * 0.5, 32)
         end
     end
     
@@ -4141,7 +4135,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.39"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.40"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
