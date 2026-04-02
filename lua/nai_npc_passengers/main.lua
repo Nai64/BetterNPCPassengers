@@ -2327,38 +2327,12 @@ local function UpdatePassengerBehavior(npc, pdata, curTime)
     if not state then return end
 
     -- ── Body Sway ─────────────────────────────────────────────────────────────
-    local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
-    local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
+    -- DISABLED: Causes conflicts with transform sync in UpdatePassengerAnimationState
+    -- Body sway should be implemented as part of the transform sync, not separately
+    -- local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
+    -- local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
+    -- ... (body sway code removed - causes angle conflicts)
 
-    if bodySwayEnabled then
-        local vel = vehicle:GetVelocity()
-        local right = vehicle:GetRight()
-        local forward = vehicle:GetForward()
-
-        -- Calculate lateral and longitudinal acceleration (not velocity!)
-        local lateralAccel = vel:Dot(right)
-        local longitudinalAccel = vel:Dot(forward)
-
-        -- Calculate sway angles based on acceleration (reduced sensitivity)
-        local targetRoll = -lateralAccel * 0.008 * bodySwayAmount
-        local targetPitch = -longitudinalAccel * 0.006 * bodySwayAmount
-
-        -- Smooth the sway more gradually
-        state.targetBodyRoll = state.targetBodyRoll or 0
-        state.targetBodyPitch = state.targetBodyPitch or 0
-        state.targetBodyRoll = Lerp(0.05, state.targetBodyRoll, targetRoll)
-        state.targetBodyPitch = Lerp(0.05, state.targetBodyPitch, targetPitch)
-
-        -- Apply sway as offset from base angles (not cumulative!)
-        local baseLocalAng = pdata.baseLocalAng or Angle(0, 0, 0)
-        local swayAng = Angle(
-            baseLocalAng.pitch + state.targetBodyPitch,
-            baseLocalAng.yaw,
-            baseLocalAng.roll + state.targetBodyRoll
-        )
-        npc:SetLocalAngles(swayAng)
-    end
-    
     -- ── Crash flinch ─────────────────────────────────────────────────────────
     local crashFlinch = NPCPassengers.cv_crash_flinch:GetBool()
     local crashThreshold = NPCPassengers.cv_crash_threshold:GetFloat()
