@@ -2353,8 +2353,8 @@ local function UpdatePassengerBehavior(npc, pdata, curTime)
         -- INVERTED sway: lean opposite to turn/acceleration direction (realistic!)
         -- Turn left = body leans right, Turn right = body leans left
         local targetRoll = lateralVel * 0.015 * bodySwayAmount
-        -- Accelerate = lean back, Brake = lean forward
-        local targetPitch = longitudinalVel * 0.01 * bodySwayAmount
+        -- Accelerate = lean forward, Brake = lean back (inverted)
+        local targetPitch = -longitudinalVel * 0.01 * bodySwayAmount
 
         -- Smooth the sway gradually
         state.targetBodyRoll = state.targetBodyRoll or 0
