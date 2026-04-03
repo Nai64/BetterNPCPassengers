@@ -1103,7 +1103,7 @@ end
 
 local function DisableNPCAI(npc)
     if not IsValid(npc) then return {} end
-    
+
     local relationships = {}
     for _, ply in pairs(player.GetAll()) do
         if IsValid(ply) then
@@ -1111,19 +1111,25 @@ local function DisableNPCAI(npc)
             npc:AddEntityRelationship(ply, D_LI, 99)
         end
     end
-    
+
     npc:SetEnemy(nil)
     npc:ClearEnemyMemory()
-    
+
     npc:SetSchedule(SCHED_NPC_FREEZE)
     npc:StopMoving()
     npc:SetNPCState(NPC_STATE_IDLE)
-    
+
     npc:SetSaveValue("m_bNPCFreeze", true)
-    
+
     npc:Fire("SetReadinessLow")
     npc:Fire("DisableWeaponPickup")
-    
+
+    -- VJ Base NPC fix: Stop VJ-specific schedules and animations
+    if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
+    if npc.StopAnimation then npc:StopAnimation() end
+    if npc.vjstopschedule then npc.vjstopschedule = true end
+    if npc.vjstopanim then npc.vjstopanim = true end
+
     return relationships
 end
 
@@ -1147,22 +1153,22 @@ end
 
 local function ForceSitAnimation(npc)
     if not IsValid(npc) then return end
-    
+
     npc:SetEnemy(nil)
     npc:ClearEnemyMemory()
     npc:StopMoving()
     npc:SetSchedule(SCHED_NPC_FREEZE)
     npc:SetNPCState(NPC_STATE_IDLE)
     npc:SetSaveValue("m_bNPCFreeze", true)
-    
+
     for _, ply in pairs(player.GetAll()) do
         if IsValid(ply) then
             npc:AddEntityRelationship(ply, D_LI, 99)
         end
     end
-    
+
     local sitSeq = npc:LookupSequence("silo_sit")
-    
+
     if sitSeq and sitSeq >= 0 then
         npc:ResetSequence(sitSeq)
     else
@@ -1170,13 +1176,19 @@ local function ForceSitAnimation(npc)
         npc:SetSequence(npc:LookupSequence("silo_sit"))
         npc:ResetSequence(npc:LookupSequence("silo_sit"))
     end
-    
+
     npc:SetPlaybackRate(0.0)
     npc:SetCycle(0.5)
-    
+
     npc:SetSaveValue("m_flPlaybackRate", 0)
     npc:SetSaveValue("m_flCycle", 0.5)
-    
+
+    -- VJ Base NPC fix: Clear custom schedules and disable VJ-specific systems
+    if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
+    if npc.StopAnimation then npc:StopAnimation() end
+    if npc.vjstopschedule then npc.vjstopschedule = true end
+    if npc.vjstopanim then npc.vjstopanim = true end
+
     return sitSeq
 end
 
@@ -2295,9 +2307,9 @@ end
 StartAnimationEnforcement = function(npc)
     local npcId = npc:EntIndex()
     CleanupNPCTimers(npc)
-    
+
     ForceSitAnimation(npc)
-    
+
     local sitSeq = npc:LookupSequence("silo_sit")
     if not sitSeq or sitSeq < 0 then
         local fallbacks = {"sit_ground", "sit_chair", "sit", "sitground_idle", "idle_sit", "crouch_idle_pistol"}
@@ -2307,19 +2319,25 @@ StartAnimationEnforcement = function(npc)
         end
     end
     if not sitSeq or sitSeq < 0 then sitSeq = 0 end
-    
+
     if npc.SetAutomaticFrameAdvance then
         npc:SetAutomaticFrameAdvance(false)
     end
     if npc.RemoveAllGestures then
         npc:RemoveAllGestures()
     end
-    
+
     npc:ResetSequence(sitSeq)
     npc:SetCycle(0.5)
     npc:SetPlaybackRate(0)
     npc.NPCPassengerSitSeq = sitSeq
-    
+
+    -- VJ Base NPC fix: Ensure VJ NPCs stay frozen in sit position
+    if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
+    if npc.StopAnimation then npc:StopAnimation() end
+    if npc.vjstopschedule then npc.vjstopschedule = true end
+    if npc.vjstopanim then npc.vjstopanim = true end
+
     InitializeLookState(npcId)
 
     animationTimers[npcId] = true
@@ -2440,6 +2458,12 @@ local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headL
         if npc.SetAutomaticFrameAdvance then
             npc:SetAutomaticFrameAdvance(false)
         end
+
+        -- VJ Base NPC maintenance: Keep VJ NPCs frozen
+        if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
+        if npc.StopAnimation then npc:StopAnimation() end
+        if npc.vjstopschedule then npc.vjstopschedule = true end
+        if npc.vjstopanim then npc.vjstopanim = true end
 
         if curTime >= (pdata.nextRelationshipRefreshAt or 0) then
             for _, ply in ipairs(players) do
