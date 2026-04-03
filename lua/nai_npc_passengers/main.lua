@@ -2336,6 +2336,8 @@ local function UpdatePassengerBehavior(npc, pdata, curTime)
 
     -- ── Body Sway ─────────────────────────────────────────────────────────────
     -- Realistic: body leans OPPOSITE to turn direction (centrifugal force)
+    -- NOTE: We only CALCULATE the sway here, apply it in UpdatePassengerAnimationState
+    -- to avoid conflicts with transform sync
     local bodySwayEnabled = NPCPassengers.cv_body_sway:GetBool()
     local bodySwayAmount = NPCPassengers.cv_body_sway_amount:GetFloat()
 
@@ -2359,15 +2361,6 @@ local function UpdatePassengerBehavior(npc, pdata, curTime)
         state.targetBodyPitch = state.targetBodyPitch or 0
         state.targetBodyRoll = Lerp(0.08, state.targetBodyRoll, targetRoll)
         state.targetBodyPitch = Lerp(0.08, state.targetBodyPitch, targetPitch)
-
-        -- Apply sway as offset from base angles
-        local baseLocalAng = pdata.baseLocalAng or Angle(0, 0, 0)
-        local swayAng = Angle(
-            baseLocalAng.pitch + state.targetBodyPitch,
-            baseLocalAng.yaw,
-            baseLocalAng.roll + state.targetBodyRoll
-        )
-        npc:SetLocalAngles(swayAng)
     end
 
     -- ── Crash flinch ─────────────────────────────────────────────────────────
@@ -2523,15 +2516,20 @@ local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headL
             baseAng = pdata.baseLocalAng or Angle(0, 0, 0)
         end
 
+        -- Apply body sway as offset to base angles (integrated with transform sync!)
+        local state = npcLookState[npc:EntIndex()]
+        local bodySwayRoll = state and (state.targetBodyRoll or 0) or 0
+        local bodySwayPitch = state and (state.targetBodyPitch or 0) or 0
+
         npc:SetLocalPos(basePos + Vector(
             vehOffsets.forward + transformOffsets.forward,
             vehOffsets.right + transformOffsets.right,
             vehOffsets.height + transformOffsets.height
         ))
         npc:SetLocalAngles(baseAng + Angle(
-            vehOffsets.pitch + transformOffsets.pitch,
+            vehOffsets.pitch + transformOffsets.pitch + bodySwayPitch,
             vehOffsets.baseYaw + vehOffsets.yaw + transformOffsets.yaw,
-            vehOffsets.roll + transformOffsets.roll
+            vehOffsets.roll + transformOffsets.roll + bodySwayRoll
         ))
 
         pdata.nextTransformSyncAt = curTime + PASSENGER_TRANSFORM_SYNC_INTERVAL
