@@ -174,18 +174,6 @@ All settings are saved per-client or per-server as appropriate. A debug mode is 
 
 ---
 
-## 🔧 Common Issues
-
-| Problem | Solution |
-|---|---|
-| NPC floating above seat | Use the Position Offset controls in the settings panel (`F7`) to correct alignment for that vehicle model |
-| NPC keeps dying in crashes | Increase the crash damage threshold in settings, or reduce crash damage scaling |
-| Dead body cannot be removed | Move closer to the vehicle and hold `R` for the full duration |
-| Auto-Join not triggering | Verify search range and max passenger count in the Auto-Join tab; ensure NPCs are friendly to the player |
-| Passengers not boarding a specific vehicle | Check whether the vehicle class or model matches an entry in `nai_npc_deny_classes` or `nai_npc_deny_models` |
-
----
-
 <div align="center">
 
 *Enjoy the ride! Please report any bugs or compatibility issues in the comments.*
