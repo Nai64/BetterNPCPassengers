@@ -108,6 +108,19 @@ hook.Add("Think", "NPCPassengers_Keybinds", function()
         RunConsoleCommand("nai_npc_hud_target_debug", currentVal and "0" or "1")
         chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Target Debug: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
     end
+
+    -- Hold fire / Open fire keybinds
+    local keyHoldFire = GetConVarIntSafe("nai_npc_key_hold_fire", 0)
+    if WasKeyJustPressed(keyHoldFire) then
+        RunConsoleCommand("nai_npc_turret_hold_fire", "1")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Turret gunners: ", Color(255, 100, 100), "HOLDING FIRE")
+    end
+
+    local keyOpenFire = GetConVarIntSafe("nai_npc_key_open_fire", 0)
+    if WasKeyJustPressed(keyOpenFire) then
+        RunConsoleCommand("nai_npc_turret_hold_fire", "0")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Turret gunners: ", Color(100, 255, 100), "OPEN FIRE")
+    end
     
     -- Debug keybinds (only if debug mode is enabled)
     if GetConVarBoolSafe("nai_npc_debug_mode", false) then
@@ -2991,6 +3004,7 @@ local function OpenSettingsPanel()
 
     CreateCheckbox(tankPanel, "Lead Targets", "nai_npc_turret_lead_targets")
     CreateCheckbox(tankPanel, "Allow Friendly Fire", "nai_npc_turret_friendly_fire")
+    CreateCheckbox(tankPanel, "Hold Fire (Disable Firing)", "nai_npc_turret_hold_fire")
 
     -- QoL: Turret NPC Blacklist
     CreateSpacer(tankPanel, 10)
@@ -4297,7 +4311,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.59"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.60"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")

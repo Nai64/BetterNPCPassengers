@@ -834,12 +834,13 @@ local function CleanupNPCTimers(npc)
     else
         return
     end
-    
+
     if animationTimers[npcId] then
         animationTimers[npcId] = nil
     end
 
-    if IsValid(npc) then
+    -- Only set NPCPassengerSitSeq to nil if npc is a valid entity (not a number)
+    if not isnumber(npc) and IsValid(npc) then
         npc.NPCPassengerSitSeq = nil
     end
 end

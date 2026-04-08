@@ -15,6 +15,7 @@ NPCPassengers.cv_turret_fire_delay = CreateConVar("nai_npc_turret_fire_delay", "
 NPCPassengers.cv_turret_aim_speed = CreateConVar("nai_npc_turret_aim_speed", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "How fast NPCs aim the turret (degrees per tick)")
 NPCPassengers.cv_turret_friendly_fire = CreateConVar("nai_npc_turret_friendly_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to target friendlies")
 NPCPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs lead moving targets")
+NPCPassengers.cv_turret_hold_fire = CreateConVar("nai_npc_turret_hold_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "When 1, turret gunners will not fire. When 0, they will fire normally.")
 NPCPassengers.cv_turret_blacklist = CreateConVar("nai_npc_turret_blacklist", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Comma-separated list of NPC classnames to blacklist from turret control (e.g., npc_metropolice,npc_combine_s)")
 
 -- Helper function to check if NPC is blacklisted
@@ -558,6 +559,34 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
                     if targetClass == hostileClass then
                         isEnemy = true
                         break
+                    end
+                end
+            end
+
+            -- VJ Base NPC friendly detection: Check if target and passenger are on same team
+            if not isEnemy and target:IsNPC() then
+                -- Check VJ NPC faction/team (if VJ Base is installed)
+                if target.VJ_NPC_Faction and npc.VJ_NPC_Faction then
+                    if target.VJ_NPC_Faction == npc.VJ_NPC_Faction then
+                        isEnemy = false  -- Same faction = friendly
+                    end
+                end
+
+                -- Check if both are on same squad (HL2 squads)
+                if not isEnemy then
+                    local targetSquad = target:GetSquad and target:GetSquad() or nil
+                    local npcSquad = npc:GetSquad and npc:GetSquad() or nil
+                    if targetSquad and npcSquad and targetSquad ~= "" and npcSquad ~= "" and targetSquad == npcSquad then
+                        isEnemy = false  -- Same squad = friendly
+                    end
+                end
+
+                -- Check if target is attacking the player (definitely an enemy)
+                if not isEnemy and IsValid(target:GetEnemy()) then
+                    local targetEnemy = target:GetEnemy()
+                    if targetEnemy:IsPlayer() or (targetEnemy:IsNPC() and targetEnemy:GetEnemy() ~= targetEnemy) then
+                        -- Target is fighting player or their own allies, likely hostile
+                        isEnemy = true
                     end
                 end
             end
@@ -1106,9 +1135,9 @@ local function TurretNPCThink(controller, dt)
     
     -- Update turret aim
     UpdateTurretAim(controller, dt)
-    
-    -- Fire if target acquired and reaction time passed
-    if controller.currentTarget then
+
+    -- Fire if target acquired and reaction time passed (and not holding fire)
+    if controller.currentTarget and not NPCPassengers.cv_turret_hold_fire:GetBool() then
         local reactionTime = NPCPassengers.cv_turret_reaction_time:GetFloat()
         if curTime - controller.targetAcquiredTime >= reactionTime then
             TryFireTurret(controller)
