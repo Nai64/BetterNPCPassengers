@@ -2,8 +2,8 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.5.60"
-NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-04-03"
+NPCPassengers.Version = NPCPassengers.Version or "2.5.61"
+NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-04-08"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
     local cv = GetConVar(name)
@@ -36,6 +36,7 @@ NPCPassengers.cv_cooldown = CreateConVar("nai_npc_cooldown", "1", {FCVAR_ARCHIVE
 NPCPassengers.cv_multiple = CreateConVar("nai_npc_allow_multiple", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow multiple passengers")
 NPCPassengers.cv_exit_mode = CreateConVar("nai_npc_exit_mode", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exit behavior: 0=leave when player exits, 1=leave when attacked, 2=never leave")
 NPCPassengers.cv_hide_in_tanks = CreateConVar("nai_npc_hide_in_tanks", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Hide NPCs inside enclosed vehicles like tanks")
+NPCPassengers.cv_eject_stuck_check = CreateConVar("nai_npc_eject_stuck_check", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Automatically push NPCs out of vehicles when they get stuck during ejection")
 
 -- Addon safety and seat behavior controls
 NPCPassengers.cv_enabled = CreateConVar("nai_npc_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable/disable NPC passenger addon features")

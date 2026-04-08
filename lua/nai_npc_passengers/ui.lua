@@ -2971,7 +2971,10 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(tankPanel, "Hide NPCs in Enclosed Vehicles", "nai_npc_hide_in_tanks")
     CreateHelpText(tankPanel, "Make NPC passengers invisible when inside tanks and APCs.")
-    
+
+    CreateCheckbox(tankPanel, "Auto-Eject Stuck NPCs", "nai_npc_eject_stuck_check")
+    CreateHelpText(tankPanel, "Automatically push NPCs out of vehicles when they get stuck during ejection. Prevents NPCs from clipping into vehicles when exiting.")
+
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "NPC Auto-Driver")
     
@@ -4311,7 +4314,7 @@ list.Set("DesktopWindows", "NPCPassengersDesktop", {
     end
 })
 -- Startup welcome panel
-local WELCOME_VERSION = NPCPassengers.Version or "2.5.60"
+local WELCOME_VERSION = NPCPassengers.Version or "2.5.61"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")

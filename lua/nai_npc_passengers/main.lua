@@ -2931,7 +2931,7 @@ DetachNPC = function(npc)
         npc:CapabilitiesClear()
         npc:CapabilitiesAdd(data.capabilities)
     end
-    
+
     if IsValid(data.vehicle) then
         local vehicle = data.vehicle
         local center = vehicle:LocalToWorld(vehicle:OBBCenter())
@@ -2939,14 +2939,14 @@ DetachNPC = function(npc)
         local forward = vehicle:GetForward()
         local width = vehicle:OBBMaxs().y - vehicle:OBBMins().y
         local length = vehicle:OBBMaxs().x - vehicle:OBBMins().x
-        
+
         local dist = (width / 2) + 45
         local candidates = {
             center + right * dist,
             center - right * dist,
             center - forward * ((length / 2) + 45)
         }
-        
+
         local foundPos = nil
         for _, pos in ipairs(candidates) do
             local tr = util.TraceHull({
@@ -2961,12 +2961,73 @@ DetachNPC = function(npc)
                 break
             end
         end
-        
+
         if foundPos then
             npc:SetPos(foundPos)
         end
     end
-    
+
+    -- Stuck NPC fix: Check if NPC is still inside the vehicle and push them out if needed
+    if IsValid(data.vehicle) then
+        local vehicle = data.vehicle
+        
+        -- Temporarily disable collision with vehicle
+        if NPCPassengers.cv_eject_stuck_check:GetBool() then
+            npc:Fire("DisableMotion")
+            timer.Simple(0.05, function()
+                if IsValid(npc) then
+                    -- Check if NPC is overlapping with vehicle
+                    local vehicleMins, vehicleMaxs = vehicle:WorldSpaceAABB()
+                    local npcPos = npc:GetPos()
+                    
+                    if npcPos.x >= vehicleMins.x and npcPos.x <= vehicleMaxs.x and
+                       npcPos.y >= vehicleMins.y and npcPos.y <= vehicleMaxs.y and
+                       npcPos.z >= vehicleMins.z and npcPos.z <= vehicleMaxs.z then
+                        -- NPC is stuck! Push them out
+                        local vehicleRight = vehicle:GetRight()
+                        local vehicleForward = vehicle:GetForward()
+                        local pushDist = 80
+                        
+                        -- Try pushing to the right side first
+                        local pushPos = npcPos + vehicleRight * pushDist
+                        local tr = util.TraceEntity({
+                            start = npcPos,
+                            endpos = pushPos,
+                            filter = {vehicle, npc}
+                        })
+                        
+                        if not tr.Hit then
+                            npc:SetPos(tr.HitPos)
+                        else
+                            -- Try pushing to the back
+                            pushPos = npcPos - vehicleForward * pushDist
+                            tr = util.TraceEntity({
+                                start = npcPos,
+                                endpos = pushPos,
+                                filter = {vehicle, npc}
+                            })
+                            if not tr.Hit then
+                                npc:SetPos(tr.HitPos)
+                            else
+                                -- Last resort: teleport above vehicle
+                                npc:SetPos(vehicle:GetPos() + Vector(0, 0, 100))
+                            end
+                        end
+                        
+                        -- Give a small push to get them moving
+                        local phys = npc:GetPhysicsObject()
+                        if IsValid(phys) then
+                            phys:Wake()
+                            phys:SetVelocity(Vector(0, 0, 100))
+                        end
+                    end
+                    
+                    npc:Fire("EnableMotion")
+                end
+            end)
+        end
+    end
+
     -- Clear passenger flag for client-side cleanup
     npc:SetNWBool("IsNPCPassenger", false)
     
