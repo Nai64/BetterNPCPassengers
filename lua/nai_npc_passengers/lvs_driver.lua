@@ -243,14 +243,38 @@ local function ApplySimfphysControls(vehicle, throttle, steer, handbrake)
 end
 
 local function ApplyGenericControls(vehicle, throttle, steer, handbrake)
-    if vehicle.SetVehicleParams then
-        local params = vehicle:GetVehicleParams()
-        if params and params.steering then params.steering.degrees = steer * 45 end
-    end
+    -- Try high-level API first (Glide, etc.)
     if vehicle.SetSteering then vehicle:SetSteering(steer, 0) end
     if vehicle.SetThrottle then vehicle:SetThrottle(throttle) end
     vehicle._AIThrottle = throttle
     vehicle._AISteering = steer
+
+    -- For standard GMod vehicles (prop_vehicle_jeep, prop_vehicle_airboat),
+    -- the SetThrottle/SetSteering API usually doesn't work.
+    -- Apply physics forces directly to move them.
+    local phys = vehicle:GetPhysicsObject()
+    if IsValid(phys) then
+        if phys:IsAsleep() then phys:Wake() end
+        if not phys:IsMotionEnabled() then phys:EnableMotion(true) end
+
+        local forward = vehicle:GetForward()
+        local up = vehicle:GetUp()
+        local speed = phys:GetVelocity():Length()
+
+        if math.abs(throttle) > 0.05 then
+            local forceMag = throttle * 120000 * FrameTime()
+            phys:ApplyForceCenter(forward * forceMag)
+        end
+
+        if handbrake or (math.abs(throttle) < 0.05 and speed > 20) then
+            phys:ApplyForceCenter(-phys:GetVelocity() * 0.3)
+        end
+
+        if math.abs(steer) > 0.05 and speed > 30 then
+            local torqueMag = steer * 60000 * FrameTime()
+            phys:ApplyTorqueCenter(up * torqueMag)
+        end
+    end
 end
 
 local function StopLVSVehicle(vehicle)
@@ -968,16 +992,9 @@ end
 function NPCPassengers.RegisterDriverNPC(npc, vehicle, seat, behaviorId)
     if not IsValid(npc) or not IsValid(vehicle) then return end
 
-    local isDriverSeat = false
-    if IsValid(seat) then
-        if seat == vehicle then isDriverSeat = true
-        elseif vehicle.GetDriverSeat and vehicle:GetDriverSeat() == seat then isDriverSeat = true
-        elseif seat.GetVehicle and seat:GetVehicle() == vehicle then isDriverSeat = true
-        elseif seat.lvsGetPodIndex and seat:lvsGetPodIndex() == 1 then isDriverSeat = true
-        end
-    end
-    if seat == vehicle then isDriverSeat = true end
-    if not isDriverSeat then return end
+    -- Trust the caller — MakeNPCDriver already found the driver seat via GetDriverSeat()
+    -- Only reject if seat is completely invalid
+    if not IsValid(seat) and seat ~= vehicle then return end
 
     local npcId = npc:EntIndex()
     if driverNPCs[npcId] then return end
@@ -1080,8 +1097,7 @@ end)
 -- ║  Net: Per-NPC Behavior Assignment                                         ║
 -- ╚══════════════════════════════════════════════════════════════════════════╝
 
-util.AddNetworkString("NPCPassengers_SetDriverBehavior")
-
+-- NPCPassengers_SetDriverBehavior is registered in main.lua
 net.Receive("NPCPassengers_SetDriverBehavior", function(len, ply)
     if not IsValid(ply) then return end
     local npc = net.ReadEntity()

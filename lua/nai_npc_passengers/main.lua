@@ -453,6 +453,7 @@ util.AddNetworkString("NPCPassengers_EjectDead")
 util.AddNetworkString("NPCPassengers_MakeDriver")
 util.AddNetworkString("NPCPassengers_MakeDriverWithBehavior")
 util.AddNetworkString("NPCPassengers_SetDriverBehavior")
+util.AddNetworkString("NPCPassengers_RemoveDriver")
 util.AddNetworkString("NPCPassengers_ClientCue")
 util.AddNetworkString("NPCPassengers_AssignSeat")
 
@@ -4054,6 +4055,28 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
     ply:ChatPrint("NPC assigned to seat " .. seatIndex .. "!")
 end)
 
+local function IsAnyVehicle(ent)
+    if not IsValid(ent) then return false end
+    if ent:IsVehicle() then return true end
+    if ent.LVS or ent.IsLVS then return true end
+    if ent.IsSimfphyscar or ent.IsSimfphys then return true end
+    if ent.IsGlideVehicle then return true end
+    local class = ent:GetClass() or ""
+    if string.find(class, "lvs_") or string.find(class, "gmod_sent_vehicle_fphysics") or string.find(class, "glide_") then return true end
+    return false
+end
+
+local function FindNearestVehicle(pos, radius)
+    local best, bestDist = nil, radius
+    for _, ent in ipairs(ents.FindInSphere(pos, radius)) do
+        if IsAnyVehicle(ent) then
+            local dist = pos:Distance(ent:GetPos())
+            if dist < bestDist then best = ent; bestDist = dist end
+        end
+    end
+    return best
+end
+
 -- Make NPC driver via context menu (legacy — defaults to combat behavior)
 net.Receive("NPCPassengers_MakeDriver", function(len, ply)
     local npc = net.ReadEntity()
@@ -4067,14 +4090,7 @@ net.Receive("NPCPassengers_MakeDriver", function(len, ply)
         return
     end
 
-    local vehicle = nil
-    local minDist = 500
-    for _, veh in ipairs(ents.FindInSphere(npc:GetPos(), 500)) do
-        if veh:IsVehicle() then
-            local dist = npc:GetPos():Distance(veh:GetPos())
-            if dist < minDist then vehicle = veh; minDist = dist end
-        end
-    end
+    local vehicle = FindNearestVehicle(npc:GetPos(), 500)
     if not IsValid(vehicle) then
         ply:ChatPrint("[NPC Driver] No vehicle nearby (within 500 units)!")
         return
@@ -4089,6 +4105,7 @@ net.Receive("NPCPassengers_MakeDriver", function(len, ply)
 end)
 
 -- Make NPC driver with behavior selection (new system)
+-- Also handles behavior changes for already-assigned drivers
 net.Receive("NPCPassengers_MakeDriverWithBehavior", function(len, ply)
     local npc = net.ReadEntity()
     local behaviorId = net.ReadString()
@@ -4102,14 +4119,14 @@ net.Receive("NPCPassengers_MakeDriverWithBehavior", function(len, ply)
         return
     end
 
-    local vehicle = nil
-    local minDist = 500
-    for _, veh in ipairs(ents.FindInSphere(npc:GetPos(), 500)) do
-        if veh:IsVehicle() then
-            local dist = npc:GetPos():Distance(veh:GetPos())
-            if dist < minDist then vehicle = veh; minDist = dist end
-        end
+    -- If this NPC is already a driver, just change behavior
+    if npcDrivers[npc] and NPCPassengers.SetDriverBehavior then
+        NPCPassengers.SetDriverBehavior(npc, behaviorId)
+        ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " behavior changed to: " .. behaviorId)
+        return
     end
+
+    local vehicle = FindNearestVehicle(npc:GetPos(), 500)
     if not IsValid(vehicle) then
         ply:ChatPrint("[NPC Driver] No vehicle nearby (within 500 units)!")
         return
@@ -4120,6 +4137,20 @@ net.Receive("NPCPassengers_MakeDriverWithBehavior", function(len, ply)
         ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " is now a driver! Behavior: " .. behaviorId)
     else
         ply:ChatPrint("[NPC Driver] Failed: " .. (msg or "Unknown error"))
+    end
+end)
+
+-- Remove NPC from driver seat
+net.Receive("NPCPassengers_RemoveDriver", function(len, ply)
+    local npc = net.ReadEntity()
+    if not IsValid(npc) or not IsValid(ply) then return end
+    if not npc:IsNPC() then return end
+
+    if npcDrivers[npc] then
+        NPCPassengers.StopNPCDriver(npc, true)
+        ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " has been removed from driver seat.")
+    else
+        ply:ChatPrint("[NPC Driver] That NPC is not a driver.")
     end
 end)
 
@@ -4837,27 +4868,36 @@ function NPCPassengers.MakeNPCDriver(npc, vehicle, behaviorId)
     -- Position and parent NPC to the driver seat
     local seatPos = driverSeat:GetPos()
     local seatAng = driverSeat:GetAngles()
-    
+
     local originalCollision = npc:GetCollisionGroup()
     if originalCollision == COLLISION_GROUP_IN_VEHICLE then
         originalCollision = COLLISION_GROUP_NPC
     end
-    
+
     npc:SetParent(driverSeat)
-    
+
     local baseLocalPos = driverSeat:WorldToLocal(seatPos)
     local baseLocalAng = driverSeat:WorldToLocalAngles(seatAng)
-    
-    -- Get vehicle-specific offsets
-    local vehOffsets = GetVehicleOffsets(vehicleType)
-    
+
+    -- Driver-specific offsets (different from passenger offsets)
+    -- Driver seats usually have their own attachment point so we only need
+    -- a small height offset to sit in the seat properly.
+    local driverOffsets = {
+        [VEHICLE_TYPE_LVS]      = { forward = 0, right = 0, height = -12, pitch = 0, yaw = 0, roll = 0, baseYaw = 0 },
+        [VEHICLE_TYPE_SIMFPHYS] = { forward = -4, right = 0, height = -6, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+        [VEHICLE_TYPE_GLIDE]    = { forward = 0, right = 0, height = -4, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+        [VEHICLE_TYPE_SLIGWOLF] = { forward = 0, right = 0, height = -10, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+        [VEHICLE_TYPE_GENERIC]  = { forward = 0, right = 0, height = 4, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+    }
+    local vehOffsets = driverOffsets[vehicleType] or driverOffsets[VEHICLE_TYPE_GENERIC]
+
     local offsetPos = Vector(
         vehOffsets.forward + NPCPassengers.cv_forward_offset:GetFloat(),
         vehOffsets.right + NPCPassengers.cv_right_offset:GetFloat(),
         vehOffsets.height + NPCPassengers.cv_height_offset:GetFloat()
     )
     npc:SetLocalPos(baseLocalPos + offsetPos)
-    
+
     local offsetAng = Angle(
         vehOffsets.pitch + NPCPassengers.cv_pitch_offset:GetFloat(),
         vehOffsets.baseYaw + vehOffsets.yaw + NPCPassengers.cv_yaw_offset:GetFloat(),
@@ -4964,15 +5004,7 @@ concommand.Add("nai_npc_driver_force", function(ply)
         return
     end
 
-    local vehicle = nil
-    local minDist = 500
-    for _, veh in ipairs(ents.FindInSphere(npc:GetPos(), 500)) do
-        if veh:IsVehicle() then
-            local dist = npc:GetPos():Distance(veh:GetPos())
-            if dist < minDist then vehicle = veh; minDist = dist end
-        end
-    end
-
+    local vehicle = FindNearestVehicle(npc:GetPos(), 500)
     if not IsValid(vehicle) then
         ply:ChatPrint("[NPC Driver] No vehicle nearby!")
         return

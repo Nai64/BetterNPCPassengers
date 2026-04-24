@@ -4212,16 +4212,18 @@ local function OpenBehaviorSelector(npc)
         { id = "roadkill", name = "Road Kill",     icon = "icon16/lightning.png",  desc = "Swerve to run over enemies on the ground" },
     }
 
+    local titleText = "Choose Driving Behavior for " .. (npc:GetClass() or "NPC")
     local frame = vgui.Create("DFrame")
-    frame:SetSize(400, 58 + #behaviors * 44)
+    frame:SetSize(420, 58 + #behaviors * 44)
     frame:Center()
-    frame:SetTitle("Choose Driving Behavior for " .. (npc:GetClass() or "NPC"))
+    frame:SetTitle("")
+    frame:ShowCloseButton(true)
     frame:MakePopup()
     frame:SetDeleteOnClose(true)
     frame.Paint = function(self, w, h)
         draw.RoundedBox(8, 0, 0, w, h, Color(30, 30, 30, 245))
         draw.RoundedBox(8, 0, 0, w, 28, Color(40, 120, 200, 255))
-        draw.SimpleText(self:GetTitle(), "NaiFont_Normal", w / 2, 6, Color(255, 255, 255), TEXT_ALIGN_CENTER)
+        draw.SimpleText(titleText, "NaiFont_Normal", w / 2, 6, Color(255, 255, 255), TEXT_ALIGN_CENTER)
     end
     NPCPassengers._behaviorFrame = frame
 
@@ -4267,7 +4269,7 @@ end
 properties.Add("nai_make_driver", {
     MenuLabel = "Make NPC Driver...",
     Order = 1501,
-    MenuIcon = "icon16/car_go.png",
+    MenuIcon = "icon16/car.png",
 
     Filter = function(self, ent, ply)
         if not GetConVar("nai_npc_driver_context_menu"):GetBool() then return false end
@@ -4282,9 +4284,49 @@ properties.Add("nai_make_driver", {
     end
 })
 
+-- Change behavior for an NPC that is already driving
+properties.Add("nai_change_driver_behavior", {
+    MenuLabel = "Change Driver Behavior...",
+    Order = 1502,
+    MenuIcon = "icon16/arrow_switch.png",
+
+    Filter = function(self, ent, ply)
+        if not IsValid(ent) then return false end
+        if not ent:IsNPC() then return false end
+        if not ent:GetNWBool("IsNPCPassenger", false) then return false end
+        -- Only show for NPCs that are flagged as drivers
+        return true
+    end,
+
+    Action = function(self, ent)
+        OpenBehaviorSelector(ent)
+    end
+})
+
+-- Remove NPC from driver seat
+properties.Add("nai_remove_driver", {
+    MenuLabel = "Remove NPC Driver",
+    Order = 1503,
+    MenuIcon = "icon16/car_delete.png",
+
+    Filter = function(self, ent, ply)
+        if not IsValid(ent) then return false end
+        if not ent:IsNPC() then return false end
+        if not ent:GetNWBool("IsNPCPassenger", false) then return false end
+        return true
+    end,
+
+    Action = function(self, ent)
+        net.Start("NPCPassengers_RemoveDriver")
+            net.WriteEntity(ent)
+        net.SendToServer()
+        chat.AddText(Color(255, 150, 100), "[NPC Driver] ", Color(255, 255, 255), "Removing " .. ent:GetClass() .. " from driver seat.")
+    end
+})
+
 properties.Add("nai_select_for_vehicle", {
     MenuLabel = "Make Passenger For Vehicle...",
-    Order = 1502,
+    Order = 1510,
     MenuIcon = "icon16/car_add.png",
 
     Filter = function(self, ent, ply)
