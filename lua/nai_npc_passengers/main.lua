@@ -2542,9 +2542,17 @@ local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headL
         end
 
         -- Apply body sway as offset to base angles (integrated with transform sync!)
+        -- Sway is calculated in the vehicle frame but must be rotated into the NPC's
+        -- local frame when baseYaw != 0 (Simfphys, Glide, SligWolf, Generic use 90°)
         local state = npcLookState[npc:EntIndex()]
-        local bodySwayRoll = state and (state.targetBodyRoll or 0) or 0
-        local bodySwayPitch = state and (state.targetBodyPitch or 0) or 0
+        local vehicleSwayPitch = state and (state.targetBodyPitch or 0) or 0
+        local vehicleSwayRoll = state and (state.targetBodyRoll or 0) or 0
+
+        local baseYawRad = math.rad(vehOffsets.baseYaw or 0)
+        local cosYaw = math.cos(baseYawRad)
+        local sinYaw = math.sin(baseYawRad)
+        local bodySwayPitch = vehicleSwayPitch * cosYaw - vehicleSwayRoll * sinYaw
+        local bodySwayRoll  = vehicleSwayPitch * sinYaw + vehicleSwayRoll * cosYaw
 
         npc:SetLocalPos(basePos + Vector(
             vehOffsets.forward + transformOffsets.forward,
@@ -2990,7 +2998,7 @@ DetachNPC = function(npc)
                         
                         -- Try pushing to the right side first
                         local pushPos = npcPos + vehicleRight * pushDist
-                        local tr = util.TraceEntity({
+                        local tr = util.TraceLine({
                             start = npcPos,
                             endpos = pushPos,
                             filter = {vehicle, npc}
@@ -3001,7 +3009,7 @@ DetachNPC = function(npc)
                         else
                             -- Try pushing to the back
                             pushPos = npcPos - vehicleForward * pushDist
-                            tr = util.TraceEntity({
+                            tr = util.TraceLine({
                                 start = npcPos,
                                 endpos = pushPos,
                                 filter = {vehicle, npc}
