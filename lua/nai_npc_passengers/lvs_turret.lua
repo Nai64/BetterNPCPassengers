@@ -6,17 +6,8 @@ NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.lvs_turret = true
 NPCPassengers.TurretNPCs = NPCPassengers.TurretNPCs or {}
 
--- Configuration convars for turret control
-NPCPassengers.cv_turret_enabled = CreateConVar("nai_npc_turret_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC turret control on LVS vehicles")
-NPCPassengers.cv_turret_range = CreateConVar("nai_npc_turret_range", "3000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Maximum targeting range for NPC turret gunners")
-NPCPassengers.cv_turret_accuracy = CreateConVar("nai_npc_turret_accuracy", "0.85", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPC turret accuracy (0-1, higher = more accurate)")
-NPCPassengers.cv_turret_reaction_time = CreateConVar("nai_npc_turret_reaction_time", "0.5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Time before NPC starts tracking new targets")
-NPCPassengers.cv_turret_fire_delay = CreateConVar("nai_npc_turret_fire_delay", "0.15", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Delay between NPC trigger pulls")
-NPCPassengers.cv_turret_aim_speed = CreateConVar("nai_npc_turret_aim_speed", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "How fast NPCs aim the turret (degrees per tick)")
-NPCPassengers.cv_turret_friendly_fire = CreateConVar("nai_npc_turret_friendly_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to target friendlies")
-NPCPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs lead moving targets")
-NPCPassengers.cv_turret_hold_fire = CreateConVar("nai_npc_turret_hold_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "When 1, turret gunners will not fire. When 0, they will fire normally.")
-NPCPassengers.cv_turret_blacklist = CreateConVar("nai_npc_turret_blacklist", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Comma-separated list of NPC classnames to blacklist from turret control (e.g., npc_metropolice,npc_combine_s)")
+-- Turret ConVars are now created in settings.lua (shared) so the client
+-- can read/write them without "Unknown command" errors.
 
 -- Helper function to check if NPC is blacklisted
 local function IsNPCTurretBlacklisted(npc)
@@ -743,9 +734,12 @@ local function UpdateTurretAim(controller, dt)
             10000
         )
         
-        -- Calculate angles to target in vehicle local space
+        -- Calculate angles from the muzzle to the target in vehicle local space
+        -- Using the muzzle (not the vehicle origin) prevents downward bias on
+        -- vehicles whose turret sits well above the chassis centre (e.g. tanks)
         local localTargetPos = vehicle:WorldToLocal(targetPos)
-        local targetAng = (localTargetPos):Angle()
+        local localMuzzlePos = vehicle:WorldToLocal(muzzlePos)
+        local targetAng = (localTargetPos - localMuzzlePos):Angle()
         
         controller.targetYaw = math.NormalizeAngle(targetAng.y)
         controller.targetPitch = math.Clamp(-targetAng.p, -45, 45)
