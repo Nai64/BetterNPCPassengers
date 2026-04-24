@@ -1,0 +1,101 @@
+name: Hourly release
+
+on:
+  schedule:
+    - cron: '0 * * * *' # top of every hour
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hourly-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git for pushing
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Ensure the origin can be pushed using the GITHUB_TOKEN
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      - name: Determine new version
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --tags
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=$latest_tag"
+          ver=${latest_tag#v}
+          IFS='.' read -r major minor patch <<< "${ver}"
+          major=${major:-0}
+          minor=${minor:-0}
+          patch=${patch:-0}
+          patch=$((patch+1))
+          new_tag="v${major}.${minor}.${patch}"
+          echo "new_tag=${new_tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${new_tag#v}" >> "$GITHUB_OUTPUT"
+          # Write a VERSION file (optional)
+          echo "${new_tag#v}" > VERSION
+
+      - name: Commit version file (if changed)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "$(git status --porcelain)" ]; then
+            git add VERSION
+            git commit -m "chore: bump version to ${{ steps.ver.outputs.new_tag }} (hourly release)"
+            git push origin HEAD:${{ github.ref_name }}
+          else
+            echo "No changes to commit"
+          fi
+
+      - name: Create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag "${{ steps.ver.outputs.new_tag }}"
+          git push origin "${{ steps.ver.outputs.new_tag }}"
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ steps.ver.outputs.new_tag }}
+          release_name: "Hourly release ${{ steps.ver.outputs.new_tag }}"
+          body: "Automated hourly release ${{ steps.ver.outputs.new_tag }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create zip asset
+        id: zip
+        shell: bash
+        run: |
+          set -euo pipefail
+          zipname="BetterNPCPassengers-${{ steps.ver.outputs.new_tag }}.zip"
+          # Exclude git metadata and workflow files
+          zip -r "$zipname" . -x ".git/*" ".github/*" "node_modules/*" "*.zip"
+          echo "zipfile=$zipname" >> "$GITHUB_OUTPUT"
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.zip.outputs.zipfile }}
+          asset_name: ${{ steps.zip.outputs.zipfile }}
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup workspace
+        if: always()
+        run: |
+          rm -f BetterNPCPassengers-*.zip
