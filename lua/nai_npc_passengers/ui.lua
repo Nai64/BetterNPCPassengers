@@ -2976,24 +2976,6 @@ local function OpenSettingsPanel()
     CreateHelpText(tankPanel, "Automatically push NPCs out of vehicles when they get stuck during ejection. Prevents NPCs from clipping into vehicles when exiting.")
 
     CreateSpacer(tankPanel, 10)
-    CreateSubHeader(tankPanel, "NPC Auto-Driver")
-    
-    CreateCheckbox(tankPanel, "Enable Auto-Drive", "nai_npc_driver_enabled")
-    CreateHelpText(tankPanel, "Allow NPCs in driver seat to automatically drive toward enemies.")
-    
-    CreateSlider(tankPanel, "Detection Range", "nai_npc_driver_range", 500, 10000, 0)
-    CreateHelpText(tankPanel, "Maximum range for driver to detect enemies.")
-    
-    CreateSlider(tankPanel, "Engage Distance", "nai_npc_driver_engage_distance", 200, 2000, 0)
-    CreateHelpText(tankPanel, "Distance to maintain from enemies.")
-    
-    CreateSlider(tankPanel, "Drive Speed", "nai_npc_driver_speed", 0.1, 1, 2)
-    CreateHelpText(tankPanel, "Throttle amount (0.1 = slow, 1 = full speed).")
-    
-    CreateSlider(tankPanel, "Reverse Distance", "nai_npc_driver_reverse_distance", 100, 800, 0)
-    CreateHelpText(tankPanel, "Distance at which to reverse away from enemies.")
-    
-    CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "Turret Control (Experimental)")
     
     CreateCheckbox(tankPanel, "Enable Turret Control", "nai_npc_turret_enabled")
@@ -3550,27 +3532,100 @@ local function OpenSettingsPanel()
     local driverBtn = CreateNavButton("NPC Driver", "icon16/car.png")
     driverPanel.SearchNavButton = driverBtn
     driverBtn.DoClick = function() SwitchToPanel(driverPanel, driverBtn) end
-    
+
     CreateSectionHeader(driverPanel, "NPC Driver System")
-    
-    -- Work In Progress Panel
-    local wipPanel = vgui.Create("DPanel", driverPanel)
-    wipPanel:SetTall(200)
-    wipPanel:Dock(TOP)
-    wipPanel:DockMargin(10, 10, 10, 10)
-    wipPanel.Paint = function(self, w, h)
-        draw.RoundedBox(8, 0, 0, w, h, Theme.bgDark)
-        
-        -- Rotating Icon
-        local angle = (CurTime() * 60) % 360
-        surface.SetDrawColor(Theme.accent)
-        surface.SetMaterial(Material("icon16/hourglass.png"))
-        surface.DrawTexturedRectRotated(w / 2, 62, 64, 64, angle)
-        
-        draw.SimpleText("Work In Progress", "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
-        draw.SimpleText("This feature is currently under development", "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
-        draw.SimpleText("Check back in a future update!", "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
+    CreateHelpText(driverPanel, "Assign NPCs as drivers with unique behavior modes. Right-click an NPC and choose 'Make NPC Driver' to assign them, then pick a driving behavior.")
+
+    CreateSpacer(driverPanel, 5)
+    CreateCheckbox(driverPanel, "Enable NPC Driver System", "nai_npc_driver_enabled")
+    CreateHelpText(driverPanel, "Master switch for the entire NPC driver system.")
+
+    CreateCheckbox(driverPanel, "Allow All NPC Types to Drive", "nai_npc_driver_allow_all_npcs")
+    CreateHelpText(driverPanel, "When disabled, only friendly NPCs (citizens, Alyx, Barney, etc.) can drive.")
+
+    CreateCheckbox(driverPanel, "Show 'Make NPC Driver' in Context Menu", "nai_npc_driver_context_menu")
+    CreateHelpText(driverPanel, "Adds a right-click option on NPCs to assign them as drivers.")
+
+    -- ── Behavior Showcase ──
+    CreateSpacer(driverPanel, 10)
+    CreateSubHeader(driverPanel, "Available Behaviors")
+    CreateHelpText(driverPanel, "When you assign an NPC as a driver, you choose one of these behaviors for that NPC. Each NPC can have a different behavior.")
+
+    local behaviorNames = {
+        { name = "Combat",        desc = "Drive toward enemies and engage at optimal distance. Will maintain range and reverse if too close." },
+        { name = "Ram Enemies",   desc = "Full speed into enemies — the NPC will crash right into them. Honks before impact!" },
+        { name = "Patrol",        desc = "Drive in a loop around the area where the NPC was assigned. Good for guard duty." },
+        { name = "Wander",        desc = "Aimlessly explore the map, picking random destinations. Relaxed cruise mode." },
+        { name = "Escort Player", desc = "Follow the nearest player and protect them. Will position between player and threats." },
+        { name = "Flee",          desc = "Run away from all threats as fast as possible. Great for civilian NPCs." },
+        { name = "Road Kill",     desc = "Swerve to run over ground enemies. Predicts target movement for interception." },
+    }
+
+    for _, beh in ipairs(behaviorNames) do
+        local behPanel = vgui.Create("DPanel", driverPanel)
+        behPanel:Dock(TOP)
+        behPanel:SetTall(36)
+        behPanel:DockMargin(15, 2, 15, 2)
+        behPanel.Paint = function(self, w, h)
+            draw.RoundedBox(4, 0, 0, w, h, Theme.bgDark)
+            draw.SimpleText(beh.name, "NaiFont_Normal", 10, 8, Theme.accent)
+            draw.SimpleText(beh.desc, "NaiFont_Small", 130, 10, Theme.textDim)
+        end
     end
+
+    -- ── Driver Parameters ──
+    CreateSpacer(driverPanel, 10)
+    CreateSubHeader(driverPanel, "Driver Parameters")
+    CreateHelpText(driverPanel, "Global settings that affect all NPC drivers.")
+
+    CreateSlider(driverPanel, "Drive Speed", "nai_npc_driver_speed", 0.1, 1, 2)
+    CreateHelpText(driverPanel, "Global throttle multiplier (0.1 = crawl, 1 = full speed).")
+
+    CreateSlider(driverPanel, "Driver Skill", "nai_npc_driver_skill", 0, 100, 0)
+    CreateHelpText(driverPanel, "Steering precision. Low = sloppy and jittery. High = smooth and precise.")
+
+    CreateSlider(driverPanel, "Aggression", "nai_npc_driver_aggression", 0, 100, 0)
+    CreateHelpText(driverPanel, "How aggressively the NPC drives in turns and approaches. High = takes turns fast.")
+
+    CreateSlider(driverPanel, "Detection Range", "nai_npc_driver_range", 500, 10000, 0)
+    CreateHelpText(driverPanel, "Maximum range for drivers to detect enemies.")
+
+    CreateSlider(driverPanel, "Engage Distance", "nai_npc_driver_engage_distance", 200, 2000, 0)
+    CreateHelpText(driverPanel, "Combat mode: distance to maintain from enemies.")
+
+    CreateSlider(driverPanel, "Reverse Distance", "nai_npc_driver_reverse_distance", 100, 800, 0)
+    CreateHelpText(driverPanel, "Combat mode: distance at which to reverse away.")
+
+    CreateSlider(driverPanel, "Wander Distance", "nai_npc_driver_wander_dist", 500, 5000, 0)
+    CreateHelpText(driverPanel, "Wander/Cruise mode: how far NPCs will roam from their starting point.")
+
+    -- ── Immersion Features ──
+    CreateSpacer(driverPanel, 10)
+    CreateSubHeader(driverPanel, "Immersion Features")
+
+    CreateCheckbox(driverPanel, "Horn Honking", "nai_npc_driver_honk")
+    CreateHelpText(driverPanel, "NPCs honk the horn when stuck, blocked, or about to ram.")
+
+    CreateCheckbox(driverPanel, "Driver Callouts", "nai_npc_driver_callouts")
+    CreateHelpText(driverPanel, "NPCs make voice callouts: 'Enemy spotted!', 'Let's go!', 'Run for your life!', etc.")
+
+    CreateCheckbox(driverPanel, "Automatic Headlights", "nai_npc_driver_headlights")
+    CreateHelpText(driverPanel, "NPCs toggle headlights when driving.")
+
+    -- ── Active Drivers List ──
+    CreateSpacer(driverPanel, 10)
+    CreateSubHeader(driverPanel, "Commands")
+
+    CreateButton(driverPanel, "Stop All NPC Drivers", function()
+        RunConsoleCommand("nai_npc_driver_stop_all")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, " Stopping all NPC drivers.")
+    end)
+    CreateHelpText(driverPanel, "Remove all NPCs from driver seats and stop all vehicles.")
+
+    CreateButton(driverPanel, "Force NPC to Drive (look at NPC)", function()
+        RunConsoleCommand("nai_npc_driver_force")
+    end)
+    CreateHelpText(driverPanel, "Look at an NPC and click to force it into the nearest vehicle as a driver.")
     
     -- Interface Tab
     local interfacePanel = CreateContentPanel()
@@ -4143,26 +4198,89 @@ properties.Add("nai_make_passenger", {
     end
 })
 
---[[ NPC DRIVER CONTEXT MENU (DISABLED)
+-- Behavior selection popup for NPC drivers
+local function OpenBehaviorSelector(npc)
+    if IsValid(NPCPassengers._behaviorFrame) then NPCPassengers._behaviorFrame:Remove() end
+
+    local behaviors = {
+        { id = "combat",   name = "Combat",        icon = "icon16/shield.png",     desc = "Drive toward enemies, engage at optimal range" },
+        { id = "ram",      name = "Ram Enemies",   icon = "icon16/bomb.png",       desc = "Full speed into enemies — crash into them!" },
+        { id = "patrol",   name = "Patrol",        icon = "icon16/arrow_rotate_clockwise.png", desc = "Drive in a loop around this area" },
+        { id = "wander",   name = "Wander",        icon = "icon16/world.png",      desc = "Aimlessly explore the map" },
+        { id = "escort",   name = "Escort Player", icon = "icon16/group.png",      desc = "Follow and protect the nearest player" },
+        { id = "flee",     name = "Flee",          icon = "icon16/arrow_out.png",  desc = "Run away from all threats" },
+        { id = "roadkill", name = "Road Kill",     icon = "icon16/lightning.png",  desc = "Swerve to run over enemies on the ground" },
+    }
+
+    local frame = vgui.Create("DFrame")
+    frame:SetSize(400, 58 + #behaviors * 44)
+    frame:Center()
+    frame:SetTitle("Choose Driving Behavior for " .. (npc:GetClass() or "NPC"))
+    frame:MakePopup()
+    frame:SetDeleteOnClose(true)
+    frame.Paint = function(self, w, h)
+        draw.RoundedBox(8, 0, 0, w, h, Color(30, 30, 30, 245))
+        draw.RoundedBox(8, 0, 0, w, 28, Color(40, 120, 200, 255))
+        draw.SimpleText(self:GetTitle(), "NaiFont_Normal", w / 2, 6, Color(255, 255, 255), TEXT_ALIGN_CENTER)
+    end
+    NPCPassengers._behaviorFrame = frame
+
+    local scroll = vgui.Create("DScrollPanel", frame)
+    scroll:Dock(FILL)
+    scroll:DockMargin(5, 5, 5, 5)
+
+    for _, beh in ipairs(behaviors) do
+        local btn = vgui.Create("DButton", scroll)
+        btn:Dock(TOP)
+        btn:SetTall(40)
+        btn:DockMargin(2, 2, 2, 2)
+        btn:SetText("")
+        btn._hovered = false
+
+        btn.Paint = function(self, w, h)
+            local bgCol = self._hovered and Color(50, 130, 220, 180) or Color(50, 50, 55, 200)
+            draw.RoundedBox(6, 0, 0, w, h, bgCol)
+
+            local iconMat = Material(beh.icon)
+            surface.SetMaterial(iconMat)
+            surface.SetDrawColor(255, 255, 255, 255)
+            surface.DrawTexturedRect(8, 12, 16, 16)
+
+            draw.SimpleText(beh.name, "NaiFont_Normal", 32, 4, Color(255, 255, 255))
+            draw.SimpleText(beh.desc, "NaiFont_Small", 32, 22, Color(180, 180, 180))
+        end
+
+        btn.OnCursorEntered = function(self) self._hovered = true end
+        btn.OnCursorExited = function(self) self._hovered = false end
+
+        btn.DoClick = function()
+            net.Start("NPCPassengers_MakeDriverWithBehavior")
+                net.WriteEntity(npc)
+                net.WriteString(beh.id)
+            net.SendToServer()
+            chat.AddText(Color(100, 200, 100), "[NPC Driver] ", Color(255, 255, 255), "Assigning " .. npc:GetClass() .. " as driver with behavior: " .. beh.name)
+            frame:Close()
+        end
+    end
+end
+
 properties.Add("nai_make_driver", {
-    MenuLabel = "Make NPC Driver for This Vehicle",
+    MenuLabel = "Make NPC Driver...",
     Order = 1501,
     MenuIcon = "icon16/car_go.png",
 
     Filter = function(self, ent, ply)
+        if not GetConVar("nai_npc_driver_context_menu"):GetBool() then return false end
+        if not GetConVar("nai_npc_driver_enabled"):GetBool() then return false end
         if not IsValid(ent) then return false end
         if not ent:IsNPC() then return false end
-        if not GetConVar("nai_npc_driver_enabled"):GetBool() then return false end
         return true
     end,
 
     Action = function(self, ent)
-        net.Start("NPCPassengers_MakeDriver")
-            net.WriteEntity(ent)
-        net.SendToServer()
+        OpenBehaviorSelector(ent)
     end
 })
---]]
 
 properties.Add("nai_select_for_vehicle", {
     MenuLabel = "Make Passenger For Vehicle...",

@@ -565,8 +565,8 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
 
                 -- Check if both are on same squad (HL2 squads)
                 if not isEnemy then
-                    local targetSquad = target:GetSquad and target:GetSquad() or nil
-                    local npcSquad = npc:GetSquad and npc:GetSquad() or nil
+                    local targetSquad = target.GetSquad and target:GetSquad() or nil
+                    local npcSquad = npc.GetSquad and npc:GetSquad() or nil
                     if targetSquad and npcSquad and targetSquad ~= "" and npcSquad ~= "" and targetSquad == npcSquad then
                         isEnemy = false  -- Same squad = friendly
                     end
