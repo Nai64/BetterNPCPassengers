@@ -451,6 +451,8 @@ util.AddNetworkString("NPCPassengers_SetStatus")
 util.AddNetworkString("NPCPassengers_EjectPrompt")
 util.AddNetworkString("NPCPassengers_EjectDead")
 util.AddNetworkString("NPCPassengers_MakeDriver")
+util.AddNetworkString("NPCPassengers_MakeDriverWithBehavior")
+util.AddNetworkString("NPCPassengers_SetDriverBehavior")
 util.AddNetworkString("NPCPassengers_ClientCue")
 util.AddNetworkString("NPCPassengers_AssignSeat")
 
@@ -4052,54 +4054,70 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
     ply:ChatPrint("NPC assigned to seat " .. seatIndex .. "!")
 end)
 
--- Make NPC driver via context menu
+-- Make NPC driver via context menu (legacy — defaults to combat behavior)
 net.Receive("NPCPassengers_MakeDriver", function(len, ply)
     local npc = net.ReadEntity()
-    
     if not IsValid(npc) or not IsValid(ply) then return end
-    if not npc:IsNPC() then 
+    if not npc:IsNPC() then
         ply:ChatPrint("[NPC Driver] Invalid NPC!")
-        return 
+        return
     end
-    
     if not NPCPassengers.cv_driver_enabled:GetBool() then
         ply:ChatPrint("[NPC Driver] Driver system is disabled in settings!")
         return
     end
-    
-    -- Find nearest vehicle
+
     local vehicle = nil
     local minDist = 500
     for _, veh in ipairs(ents.FindInSphere(npc:GetPos(), 500)) do
         if veh:IsVehicle() then
             local dist = npc:GetPos():Distance(veh:GetPos())
-            if dist < minDist then
-                vehicle = veh
-                minDist = dist
-            end
+            if dist < minDist then vehicle = veh; minDist = dist end
         end
     end
-    
     if not IsValid(vehicle) then
         ply:ChatPrint("[NPC Driver] No vehicle nearby (within 500 units)!")
         return
     end
-    
-    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle)
+
+    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle, "combat")
     if success then
-        local behaviorNames = {
-            [0] = "Random Cruise",
-            [1] = "Follow Player",
-            [2] = "Patrol Route",
-            [3] = "Flee Danger",
-            [4] = "Stay Parked"
-        }
-        local behavior = NPCPassengers.cv_driver_behavior:GetInt()
-        ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " is now a driver!")
-        ply:ChatPrint("[NPC Driver] Behavior: " .. behaviorNames[behavior])
-        if behavior == 4 then
-            ply:ChatPrint("[NPC Driver] Note: Vehicle is set to 'Stay Parked' - change behavior in settings to make it drive!")
+        ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " is now a driver! Behavior: Combat")
+    else
+        ply:ChatPrint("[NPC Driver] Failed: " .. (msg or "Unknown error"))
+    end
+end)
+
+-- Make NPC driver with behavior selection (new system)
+net.Receive("NPCPassengers_MakeDriverWithBehavior", function(len, ply)
+    local npc = net.ReadEntity()
+    local behaviorId = net.ReadString()
+    if not IsValid(npc) or not IsValid(ply) then return end
+    if not npc:IsNPC() then
+        ply:ChatPrint("[NPC Driver] Invalid NPC!")
+        return
+    end
+    if not NPCPassengers.cv_driver_enabled:GetBool() then
+        ply:ChatPrint("[NPC Driver] Driver system is disabled in settings!")
+        return
+    end
+
+    local vehicle = nil
+    local minDist = 500
+    for _, veh in ipairs(ents.FindInSphere(npc:GetPos(), 500)) do
+        if veh:IsVehicle() then
+            local dist = npc:GetPos():Distance(veh:GetPos())
+            if dist < minDist then vehicle = veh; minDist = dist end
         end
+    end
+    if not IsValid(vehicle) then
+        ply:ChatPrint("[NPC Driver] No vehicle nearby (within 500 units)!")
+        return
+    end
+
+    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle, behaviorId)
+    if success then
+        ply:ChatPrint("[NPC Driver] " .. npc:GetClass() .. " is now a driver! Behavior: " .. behaviorId)
     else
         ply:ChatPrint("[NPC Driver] Failed: " .. (msg or "Unknown error"))
     end
@@ -4427,12 +4445,20 @@ concommand.Add("nai_npc_server_reset", function(ply)
     RunConsoleCommand("nai_npc_allow_models", "")
     RunConsoleCommand("nai_npc_deny_models", "")
     RunConsoleCommand("nai_npc_debug_verbose", "0")
-    -- Tank/LVS
+    -- NPC Driver
     RunConsoleCommand("nai_npc_driver_enabled", "1")
+    RunConsoleCommand("nai_npc_driver_speed", "0.7")
+    RunConsoleCommand("nai_npc_driver_skill", "50")
+    RunConsoleCommand("nai_npc_driver_aggression", "50")
     RunConsoleCommand("nai_npc_driver_range", "4000")
     RunConsoleCommand("nai_npc_driver_engage_distance", "800")
-    RunConsoleCommand("nai_npc_driver_speed", "0.7")
     RunConsoleCommand("nai_npc_driver_reverse_distance", "300")
+    RunConsoleCommand("nai_npc_driver_wander_dist", "2000")
+    RunConsoleCommand("nai_npc_driver_honk", "1")
+    RunConsoleCommand("nai_npc_driver_callouts", "1")
+    RunConsoleCommand("nai_npc_driver_headlights", "1")
+    RunConsoleCommand("nai_npc_driver_allow_all_npcs", "0")
+    RunConsoleCommand("nai_npc_driver_context_menu", "1")
     RunConsoleCommand("nai_npc_turret_enabled", "1")
     RunConsoleCommand("nai_npc_turret_range", "3000")
     RunConsoleCommand("nai_npc_turret_accuracy", "0.85")
@@ -4769,8 +4795,8 @@ local function GetDriverSeat(vehicle)
     return nil, vehicleType
 end
 
--- Make NPC enter vehicle as driver (no manual destination needed - behavior is automatic)
-function NPCPassengers.MakeNPCDriver(npc, vehicle)
+-- Make NPC enter vehicle as driver (behaviorId is per-NPC behavior string)
+function NPCPassengers.MakeNPCDriver(npc, vehicle, behaviorId)
     if not IsValid(npc) or not IsValid(vehicle) then return false end
     if not NPCPassengers.cv_driver_enabled:GetBool() then 
         return false, "NPC Driver system is disabled"
@@ -4882,402 +4908,79 @@ function NPCPassengers.MakeNPCDriver(npc, vehicle)
         isDriver = true  -- Mark as driver
     })
     
-    -- Get behavior mode from settings
-    local behavior = NPCPassengers.cv_driver_behavior:GetInt()
-    
-    -- Initialize driver data
+    -- Register with the lvs_driver behavior system (per-NPC behavior)
+    local bid = behaviorId or "combat"
+    if NPCPassengers.RegisterDriverNPC then
+        NPCPassengers.RegisterDriverNPC(npc, vehicle, driverSeat, bid)
+    end
+
+    -- Legacy driver table (kept for backward compat with console commands)
     npcDrivers[npc] = {
         vehicle = vehicle,
-        destination = nil, -- Will be set by behavior AI
-        behavior = behavior, -- 0=Random, 1=Follow, 2=Patrol, 3=Flee, 4=Parked
+        behavior = bid,
         state = "driving",
-        lastPos = vehicle:GetPos(),
-        lastUpdate = CurTime(),
-        nextDestTime = 0, -- When to pick new destination
-        honkCooldown = 0,
-        targetSpeed = 0,
-        steering = 0,
-        braking = false,
-        stuckTime = 0,
-        patrolCenter = vehicle:GetPos(), -- For patrol mode
-        patrolAngle = 0 -- For patrol mode
     }
-    
-    -- Pick initial destination based on behavior
-    NPCPassengers.PickNewDestination(npc)
-    
+
     -- Wake up vehicle physics so it can move
     local vehPhys = vehicle:GetPhysicsObject()
     if IsValid(vehPhys) then
         vehPhys:Wake()
         vehPhys:EnableMotion(true)
     end
-    
+
     return true
-end
-
--- Pick new destination based on behavior mode
-function NPCPassengers.PickNewDestination(npc)
-    local data = npcDrivers[npc]
-    if not data or not IsValid(data.vehicle) then return end
-    
-    local vehicle = data.vehicle
-    local vehPos = vehicle:GetPos()
-    local behavior = data.behavior
-    
-    if behavior == 0 then
-        -- Random Cruise: Pick random point within wander distance
-        local wanderDist = NPCPassengers.cv_driver_wander_dist:GetFloat()
-        local randomAngle = math.random() * math.pi * 2
-        local randomDist = math.random(wanderDist * 0.5, wanderDist)
-        data.destination = vehPos + Vector(math.cos(randomAngle) * randomDist, math.sin(randomAngle) * randomDist, 0)
-        data.nextDestTime = CurTime() + math.random(10, 30) -- Pick new dest in 10-30 seconds
-        
-    elseif behavior == 1 then
-        -- Follow Player: Find nearest player vehicle and follow
-        local closestPly = nil
-        local closestDist = math.huge
-        for _, ply in ipairs(player.GetAll()) do
-            if IsValid(ply) and IsValid(ply:GetVehicle()) then
-                local dist = vehPos:Distance(ply:GetPos())
-                if dist < closestDist then
-                    closestDist = dist
-                    closestPly = ply
-                end
-            end
-        end
-        if closestPly then
-            data.destination = closestPly:GetPos()
-        else
-            -- No player in vehicle, cruise randomly
-            local wanderDist = 500
-            local randomAngle = math.random() * math.pi * 2
-            data.destination = vehPos + Vector(math.cos(randomAngle) * wanderDist, math.sin(randomAngle) * wanderDist, 0)
-        end
-        data.nextDestTime = CurTime() + 3 -- Update frequently for following
-        
-    elseif behavior == 2 then
-        -- Patrol: Drive in circle around patrol center
-        data.patrolAngle = data.patrolAngle + 0.5
-        local radius = 1000
-        data.destination = data.patrolCenter + Vector(math.cos(data.patrolAngle) * radius, math.sin(data.patrolAngle) * radius, 0)
-        data.nextDestTime = CurTime() + 5
-        
-    elseif behavior == 3 then
-        -- Flee: Drive away from nearest threat
-        local threats = ents.FindInSphere(vehPos, 2000)
-        local closestThreat = nil
-        local closestDist = math.huge
-        for _, ent in ipairs(threats) do
-            if IsValid(ent) and (ent:IsNPC() or ent:IsNextBot()) and ent ~= npc then
-                if ent:GetClass() == "npc_zombie" or ent:GetClass() == "npc_combine_s" or 
-                   ent:GetClass() == "npc_hunter" or ent:GetClass() == "npc_antlion" then
-                    local dist = vehPos:Distance(ent:GetPos())
-                    if dist < closestDist then
-                        closestDist = dist
-                        closestThreat = ent
-                    end
-                end
-            end
-        end
-        if closestThreat then
-            -- Drive away from threat
-            local fleeDir = (vehPos - closestThreat:GetPos()):GetNormalized()
-            data.destination = vehPos + fleeDir * 2000
-        else
-            -- No threats, cruise randomly
-            local randomAngle = math.random() * math.pi * 2
-            data.destination = vehPos + Vector(math.cos(randomAngle) * 1000, math.sin(randomAngle) * 1000, 0)
-        end
-        data.nextDestTime = CurTime() + 5
-        
-    elseif behavior == 4 then
-        -- Stay Parked: Don't move
-        data.destination = vehPos
-        data.targetSpeed = 0
-        data.state = "parked"
-    end
-end
-
--- Main driver think loop - controls vehicle physics
-hook.Add("Think", "NPCPassengers_NPCDriver", function()
-    if not NPCPassengers.cv_driver_enabled:GetBool() then return end
-    
-    local curTime = CurTime()
-    
-    for npc, data in pairs(npcDrivers) do
-        if not IsValid(npc) or not IsValid(data.vehicle) then
-            npcDrivers[npc] = nil
-            continue
-        end
-        
-        local vehicle = data.vehicle
-        local phys = vehicle:GetPhysicsObject()
-        if not IsValid(phys) then continue end
-        
-        -- Update every frame
-        if data.state == "driving" then
-            NPCPassengers.UpdateNPCDriver(npc, data, phys, curTime)
-        elseif data.state == "arriving" then
-            NPCPassengers.HandleArrival(npc, data, vehicle)
-        end
-    end
-end)
-
--- Update driver AI and vehicle control
-function NPCPassengers.UpdateNPCDriver(npc, data, phys, curTime)
-    local vehicle = data.vehicle
-    local vehPos = vehicle:GetPos()
-    local vehAng = vehicle:GetAngles()
-    local vehVel = phys:GetVelocity()
-    local currentSpeed = vehVel:Length()
-    
-    if not IsValid(vehicle) then
-        data.targetSpeed = 0
-        return
-    end
-    
-    -- If no destination, pick one now
-    if not data.destination then
-        NPCPassengers.PickNewDestination(npc)
-        if not data.destination then
-            data.targetSpeed = 0
-            return
-        end
-    end
-    
-    -- Wake up physics if asleep
-    if phys:IsAsleep() then
-        phys:Wake()
-    end
-    if not phys:IsMotionEnabled() then
-        phys:EnableMotion(true)
-    end
-    
-    -- Check if time to pick new destination
-    if curTime > data.nextDestTime then
-        NPCPassengers.PickNewDestination(npc)
-    end
-    
-    -- If parked, don't drive
-    if data.behavior == 4 or not data.destination then
-        data.targetSpeed = 0
-        return
-    end
-    
-    -- Calculate direction to destination
-    local targetDir = (data.destination - vehPos):GetNormalized()
-    local distToDest = vehPos:Distance(data.destination)
-    
-    -- Check if arrived at current waypoint
-    local stopDist = NPCPassengers.cv_driver_stop_distance:GetFloat()
-    if distToDest < stopDist then
-        -- Pick new destination immediately
-        NPCPassengers.PickNewDestination(npc)
-        if not data.destination then return end
-        targetDir = (data.destination - vehPos):GetNormalized()
-        distToDest = vehPos:Distance(data.destination)
-    end
-    
-    -- Calculate steering
-    local forward = vehAng:Forward()
-    local targetAngle = math.atan2(targetDir.y, targetDir.x)
-    local currentAngle = math.atan2(forward.y, forward.x)
-    local angleDiff = math.NormalizeAngle(targetAngle - currentAngle)
-    
-    -- Steering value (-1 to 1)
-    local targetSteering = math.Clamp(angleDiff * 2, -1, 1)
-    
-    -- Smooth steering
-    if NPCPassengers.cv_driver_smooth_steering:GetBool() then
-        data.steering = math.Approach(data.steering, targetSteering, FrameTime() * 3)
-    else
-        data.steering = targetSteering
-    end
-    
-    -- Calculate target speed
-    local speedMult = NPCPassengers.cv_driver_speed:GetFloat()
-    local skill = NPCPassengers.cv_driver_skill:GetInt() / 100
-    local aggression = NPCPassengers.cv_driver_aggression:GetInt() / 100
-    
-    local baseSpeed = 500 * speedMult
-    local turnSharpness = math.abs(angleDiff)
-    
-    -- Slow down for turns
-    if turnSharpness > 0.5 then
-        baseSpeed = baseSpeed * 0.3
-    elseif turnSharpness > 0.3 then
-        baseSpeed = baseSpeed * 0.6
-    end
-    
-    -- Adjust for aggression
-    baseSpeed = baseSpeed * (0.7 + aggression * 0.6)
-    
-    -- Brake distance check
-    local brakeDistance = NPCPassengers.cv_driver_brake_distance:GetFloat()
-    if distToDest < brakeDistance then
-        baseSpeed = baseSpeed * (distToDest / brakeDistance)
-    end
-    
-    data.targetSpeed = baseSpeed
-    data.braking = false
-    
-    -- Collision avoidance
-    if NPCPassengers.cv_driver_avoid_collisions:GetBool() then
-        local trace = util.TraceLine({
-            start = vehPos + Vector(0, 0, 50),
-            endpos = vehPos + forward * 400,
-            filter = {vehicle, npc},
-            mask = MASK_SOLID
-        })
-        
-        if trace.Hit then
-            data.targetSpeed = data.targetSpeed * 0.3
-            data.braking = true
-            
-            -- Honking
-            if NPCPassengers.cv_driver_honk:GetBool() and curTime > data.honkCooldown then
-                vehicle:EmitSound("vehicles/v8/vehicle_horn_1.wav", 75, 100)
-                data.honkCooldown = curTime + 2
-            end
-        end
-    end
-    
-    -- Apply vehicle controls via physics
-    local throttle = 0
-    if currentSpeed < data.targetSpeed then
-        throttle = math.Clamp((data.targetSpeed - currentSpeed) / 200, 0, 1)
-    end
-    
-    -- Check if this is a default GMod vehicle (uses different control method)
-    local isDefaultVehicle = vehicle:GetClass() == "prop_vehicle_jeep" or 
-                             vehicle:GetClass() == "prop_vehicle_airboat" or
-                             string.find(vehicle:GetClass() or "", "prop_vehicle")
-    
-    if isDefaultVehicle then
-        -- Use entity angles for default vehicles (they don't respond well to physics forces)
-        local targetAng = (data.destination - vehPos):Angle()
-        local newAng = LerpAngle(FrameTime() * 2, vehAng, targetAng)
-        vehicle:SetAngles(Angle(0, newAng.y, 0)) -- Only yaw, keep pitch/roll at 0
-        
-        -- Apply velocity directly for default vehicles
-        local forward = vehicle:GetForward()
-        phys:SetVelocity(forward * data.targetSpeed * throttle)
-    else
-        -- Apply forward force for physics-based vehicles (Simfphys, LVS, etc.)
-        local forwardForce = forward * throttle * 80000 * FrameTime()
-        phys:ApplyForceCenter(forwardForce)
-        
-        -- Apply steering torque
-        local steeringTorque = Vector(0, 0, data.steering * 50000 * FrameTime())
-        phys:ApplyTorqueCenter(steeringTorque)
-    end
-    
-    -- Apply braking (works for all vehicle types)
-    if data.braking or currentSpeed > data.targetSpeed then
-        local brakeForce = -vehVel * 0.5
-        phys:ApplyForceCenter(brakeForce)
-    end
-    
-    -- Stuck detection
-    local posChange = vehPos:Distance(data.lastPos)
-    if posChange < 10 and throttle > 0.3 then
-        data.stuckTime = data.stuckTime + (curTime - data.lastUpdate)
-    else
-        data.stuckTime = 0
-    end
-    
-    data.lastPos = vehPos
-    data.lastUpdate = curTime
-end
-
--- Handle arrival at destination
-function NPCPassengers.HandleArrival(npc, data, vehicle)
-    local phys = vehicle:GetPhysicsObject()
-    if IsValid(phys) then
-        -- Stop vehicle
-        phys:SetVelocity(phys:GetVelocity() * 0.5)
-        
-        local currentSpeed = phys:GetVelocity():Length()
-        if currentSpeed < 50 then
-            phys:SetVelocity(Vector(0, 0, 0))
-            data.state = "parked"
-            
-            -- Exit if configured
-            if NPCPassengers.cv_driver_exit_on_arrival:GetBool() then
-                timer.Simple(1, function()
-                    if IsValid(npc) and npcDrivers[npc] then
-                        NPCPassengers.StopNPCDriver(npc, true)
-                    end
-                end)
-            end
-        end
-    end
 end
 
 -- Stop NPC from driving
 function NPCPassengers.StopNPCDriver(npc, exitVehicle)
     if not npcDrivers[npc] then return end
-    
+
+    -- Unregister from behavior system
+    if NPCPassengers.UnregisterDriverNPC then
+        NPCPassengers.UnregisterDriverNPC(npc)
+    end
+
     -- Remove driver flag from passenger data
     if friendlyPassengers[npc] then
         friendlyPassengers[npc].isDriver = false
     end
-    
-    -- Use existing DetachNPC function to properly exit vehicle (only if exitVehicle is true)
+
     if IsValid(npc) and exitVehicle then
         DetachNPC(npc)
     end
-    
-    npcDrivers[npc] = nil
-end
 
--- Calculate path (simplified - just stores destination)
-function NPCPassengers.CalculateDriverPath(npc)
-    -- Path calculation is simplified - NPCs just drive straight to destination
-    -- This could be expanded with waypoint system in the future
+    npcDrivers[npc] = nil
 end
 
 -- Console commands
 concommand.Add("nai_npc_driver_force", function(ply)
     if not IsValid(ply) then return end
-    
+
     local trace = ply:GetEyeTrace()
     local npc = trace.Entity
-    
+
     if not IsValid(npc) or not npc:IsNPC() then
         ply:ChatPrint("[NPC Driver] Look at an NPC!")
         return
     end
-    
-    -- Find nearest vehicle
+
     local vehicle = nil
     local minDist = 500
     for _, veh in ipairs(ents.FindInSphere(npc:GetPos(), 500)) do
         if veh:IsVehicle() then
             local dist = npc:GetPos():Distance(veh:GetPos())
-            if dist < minDist then
-                vehicle = veh
-                minDist = dist
-            end
+            if dist < minDist then vehicle = veh; minDist = dist end
         end
     end
-    
+
     if not IsValid(vehicle) then
         ply:ChatPrint("[NPC Driver] No vehicle nearby!")
         return
     end
-    
-    -- Get destination (where player is looking)
-    local destTrace = util.TraceLine({
-        start = ply:EyePos(),
-        endpos = ply:EyePos() + ply:EyeAngles():Forward() * 10000,
-        filter = ply
-    })
-    
-    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle, destTrace.HitPos)
+
+    local success, msg = NPCPassengers.MakeNPCDriver(npc, vehicle, "combat")
     if success then
-        ply:ChatPrint("[NPC Driver] NPC will drive to destination!")
+        ply:ChatPrint("[NPC Driver] NPC is now driving! Behavior: Combat")
     else
         ply:ChatPrint("[NPC Driver] Failed: " .. (msg or "Unknown error"))
     end
@@ -5285,12 +4988,12 @@ end)
 
 concommand.Add("nai_npc_driver_stop_all", function(ply)
     if not IsValid(ply) then return end
-    
+
     local count = 0
-    for npc, data in pairs(npcDrivers) do
+    for npc, _ in pairs(npcDrivers) do
         NPCPassengers.StopNPCDriver(npc, true)
         count = count + 1
     end
-    
+
     ply:ChatPrint("[NPC Driver] Stopped " .. count .. " driver(s)")
 end)
