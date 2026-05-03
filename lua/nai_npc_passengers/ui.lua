@@ -1314,7 +1314,10 @@ local function OpenSettingsPanel()
         draw.SimpleText("v" .. NPCPassengers.Version, "NaiFont_Small", w/2, h/2 + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     versionBtn.DoClick = function()
-        ShowWelcomePanel(true)
+        if IsValid(settingsFrame) then
+            settingsFrame:Close()
+        end
+        timer.Simple(0.1, function() ShowWelcomePanel(true) end)
     end
     versionBtn:SetTooltip("Show welcome screen")
 
