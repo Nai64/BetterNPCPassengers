@@ -1112,12 +1112,10 @@ local function TurretNPCThink(controller, dt)
                 controller.currentTarget = newTarget
                 controller.targetAcquiredTime = curTime
                 -- QoL: Notify when turret acquires new target
-                if IsValid(vehicle:GetDriver()) then
-                    local driver = vehicle:GetDriver()
-                    if IsValid(driver) and driver:IsPlayer() then
-                        local targetName = newTarget.entity:GetClass() or "enemy"
-                        driver:ChatPrint("[Better NPC Passengers] Turret acquired target: " .. targetName)
-                    end
+                local driver = vehicle:GetDriver()
+                if IsValid(driver) and driver:IsPlayer() then
+                    local targetName = newTarget.entity:GetClass() or "enemy"
+                    driver:ChatPrint("[Better NPC Passengers] Turret acquired target: " .. targetName)
                 end
             else
                 -- Update existing target info
