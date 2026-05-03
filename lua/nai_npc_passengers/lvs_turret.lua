@@ -6,6 +6,13 @@ NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.lvs_turret = true
 NPCPassengers.TurretNPCs = NPCPassengers.TurretNPCs or {}
 
+local IsValid = IsValid
+local math = math
+local string = string
+local table = table
+local ipairs = ipairs
+local pairs = pairs
+
 -- Configuration convars for turret control
 NPCPassengers.cv_turret_enabled = CreateConVar("nai_npc_turret_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC turret control on LVS vehicles")
 NPCPassengers.cv_turret_range = CreateConVar("nai_npc_turret_range", "3000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Maximum targeting range for NPC turret gunners")
