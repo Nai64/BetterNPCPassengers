@@ -556,9 +556,12 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
                 local targetDisp = target:Disposition(vehiclePlayer)
                 isEnemy = (targetDisp == D_HT or targetDisp == D_FR)
 
-                if not isEnemy and target:IsNPC() and IsValid(target:GetEnemy()) then
-                    if target:GetEnemy() == vehiclePlayer or target:GetEnemy():IsPlayer() then
-                        isEnemy = true
+                if not isEnemy and target:IsNPC() then
+                    local targetEnemy = target:GetEnemy()
+                    if IsValid(targetEnemy) then
+                        if targetEnemy == vehiclePlayer or targetEnemy:IsPlayer() then
+                            isEnemy = true
+                        end
                     end
                 end
             end
