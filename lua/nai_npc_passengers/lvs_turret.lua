@@ -521,7 +521,7 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
     for _, ply in ipairs(allPlayers) do
         if IsValid(ply) and ply:InVehicle() then
             local plyVeh = ply:GetVehicle()
-            if plyVeh == vehicle or plyVeh:GetParent() == vehicle then
+            if IsValid(plyVeh) and (plyVeh == vehicle or plyVeh:GetParent() == vehicle) then
                 vehiclePlayer = ply
                 break
             end
