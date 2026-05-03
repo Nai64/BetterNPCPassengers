@@ -484,6 +484,17 @@ local function RefreshTurretTargetRegistry(forceRefresh)
     end
 end
 
+-- Hostile NPC classes for enemy detection
+local hostileClasses = {
+    "npc_zombie", "npc_fastzombie", "npc_poisonzombie", "npc_zombine",
+    "npc_headcrab", "npc_headcrab_fast", "npc_headcrab_black", "npc_headcrab_poison",
+    "npc_antlion", "npc_antlionguard", "npc_antlion_worker",
+    "npc_combine_s", "npc_metropolice", "npc_hunter", "npc_strider",
+    "npc_manhack", "npc_stalker", "npc_turret_floor", "npc_turret_ceiling",
+    "npc_clawscanner", "npc_cscanner", "npc_combinedropship", "npc_combinegunship",
+    "npc_helicopter", "npc_rollermine"
+}
+
 --[[
     Gets enemies visible to the NPC within range
 ]]
@@ -499,7 +510,8 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
     
     -- Get the player in the vehicle to check their enemies
     local vehiclePlayer = nil
-    for _, ply in ipairs(player.GetAll()) do
+    local allPlayers = player.GetAll()
+    for _, ply in ipairs(allPlayers) do
         if IsValid(ply) and ply:InVehicle() then
             local plyVeh = ply:GetVehicle()
             if plyVeh == vehicle or plyVeh:GetParent() == vehicle then
@@ -546,15 +558,6 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
 
             if not isEnemy then
                 local targetClass = target:GetClass()
-                local hostileClasses = {
-                    "npc_zombie", "npc_fastzombie", "npc_poisonzombie", "npc_zombine",
-                    "npc_headcrab", "npc_headcrab_fast", "npc_headcrab_black", "npc_headcrab_poison",
-                    "npc_antlion", "npc_antlionguard", "npc_antlion_worker",
-                    "npc_combine_s", "npc_metropolice", "npc_hunter", "npc_strider",
-                    "npc_manhack", "npc_stalker", "npc_turret_floor", "npc_turret_ceiling",
-                    "npc_clawscanner", "npc_cscanner", "npc_combinedropship", "npc_combinegunship",
-                    "npc_helicopter", "npc_rollermine"
-                }
                 for _, hostileClass in ipairs(hostileClasses) do
                     if targetClass == hostileClass then
                         isEnemy = true
