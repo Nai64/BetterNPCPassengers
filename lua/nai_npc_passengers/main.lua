@@ -1160,7 +1160,8 @@ local function ForceSitAnimation(npc)
     npc:SetNPCState(NPC_STATE_IDLE)
     npc:SetSaveValue("m_bNPCFreeze", true)
 
-    for _, ply in pairs(player.GetAll()) do
+    local allPlayers = player.GetAll()
+    for _, ply in ipairs(allPlayers) do
         if IsValid(ply) then
             npc:AddEntityRelationship(ply, D_LI, 99)
         end
