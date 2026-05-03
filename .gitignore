@@ -5,4 +5,5 @@
 *.txt
 *.ps1
 *.json
+!addon.json
 *.rar

@@ -1,0 +1,28 @@
+name: Deploy to Steam Workshop
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Upload to Steam Workshop
+    runs-on: ubuntu-latest
+    # Only run for releases created on the main repo (never on forks/PRs)
+    if: github.repository == 'Nai64/BetterNPCPassengers-gmod'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload to Steam Workshop
+        uses: vurv78/gmod-upload@v0.2.1
+        with:
+          id: 3633546098
+          changelog: ${{ github.event.release.body }}
+        env:
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}

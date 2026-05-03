@@ -1,0 +1,23 @@
+{
+    "title": "Better NPC Passengers",
+    "type": "tool",
+    "tags": ["fun", "roleplay"],
+    "ignore": [
+        ".git/*",
+        ".github/*",
+        ".qwen/*",
+        ".env",
+        ".gitignore",
+        "*.md",
+        "*.zip",
+        "*.rar",
+        "*.txt",
+        "*.ps1",
+        "*.file",
+        "addon.json",
+        "releasenotetemplate.file",
+        "release_data.json",
+        "versions/*",
+        "BetterNPCPassengers-*.zip"
+    ]
+}
