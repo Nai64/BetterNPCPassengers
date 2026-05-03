@@ -1098,8 +1098,8 @@ end
 
 local function SetNoTalkFlag(npc, enable)
     if not IsValid(npc) then return end
-    npc:SetNWBool("NPCPassengerNoTalk", false)
-    npc.NPCPassengerNoTalk = false
+    npc:SetNWBool("NPCPassengerNoTalk", enable)
+    npc.NPCPassengerNoTalk = enable
 end
 
 local function DisableNPCAI(npc)
