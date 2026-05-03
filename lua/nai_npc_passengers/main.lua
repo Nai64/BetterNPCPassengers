@@ -779,10 +779,10 @@ end
 
 local function AddPendingPassenger(ply, npc)
     if not IsValid(ply) or not IsValid(npc) then return false end
-    
+
     -- Check if NPC is blacklisted from being a passenger
     local blacklist = GetConVar("nai_npc_turret_blacklist") and GetConVar("nai_npc_turret_blacklist"):GetString() or ""
-    if blacklist ~= "" then
+    if blacklist and blacklist ~= "" then
         local npcClass = npc:GetClass() or ""
         local blacklistTable = string.Explode(",", blacklist)
         for _, blacklistedClass in ipairs(blacklistTable) do
