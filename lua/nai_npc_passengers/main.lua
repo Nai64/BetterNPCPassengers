@@ -1437,7 +1437,6 @@ local function FindNearestThreat(npc, vehicle, range)
     
     for _, ent in ipairs(ents.FindInSphere(npcPos, range)) do
         if IsValid(ent) and ent ~= npc and ent ~= vehicle then
-            local dominated = false
             -- Check if it's an enemy NPC
             if ent:IsNPC() and ent:Health() > 0 then
                 local disp = npc:Disposition(ent)
