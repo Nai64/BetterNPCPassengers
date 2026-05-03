@@ -607,6 +607,8 @@ local function ClearVehicleSeatCache(vehicle)
 end
 
 local function CollectLVSSeats(vehicle, seats)
+    if not IsValid(vehicle) then return end
+
     local resolver = GetLVSCompatResolver(vehicle)
     if resolver then
         local ok, customSeats = pcall(resolver, vehicle)
