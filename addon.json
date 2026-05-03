@@ -1,0 +1,14 @@
+{
+  "title": "Better NPC Passengers (Simfphys, LVS, Glide Supported)",
+  "type": "npc",
+  "tags": [
+    "fun",
+    "realism"
+  ],
+  "ignore": [
+    ".bak",
+    "*.bak",
+    "*.txt",
+    "*.otf"
+  ]
+}
