@@ -970,8 +970,6 @@ local function IsEnclosedVehicle(vehicle)
     end
     
     -- Check model name for tank patterns
-    local model = vehicle:GetModel() or ""
-    local lowerModel = string.lower(model)
     for _, pattern in ipairs(enclosedPatterns) do
         if string.find(lowerModel, pattern) then
             return true
