@@ -95,17 +95,15 @@ end
 ]]
 local function FindEnemiesInRange(pos, range, npc)
     local enemies = {}
-    
+
     for _, ent in ipairs(ents.FindInSphere(pos, range)) do
         if IsEnemy(ent, npc) then
-            local dist = pos:Distance(ent:GetPos())
-            if dist <= range then
-                table.insert(enemies, {
-                    entity = ent,
-                    distance = dist,
-                    position = ent:GetPos()
-                })
-            end
+            local entPos = ent:GetPos()
+            table.insert(enemies, {
+                entity = ent,
+                distance = pos:Distance(entPos),
+                position = entPos
+            })
         end
     end
     
