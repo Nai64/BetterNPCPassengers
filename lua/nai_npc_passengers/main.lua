@@ -1550,7 +1550,8 @@ local function GetRandomLookTarget(npc, vehicle, isGlance)
     if lookType <= 15 then
         local nearestPly = nil
         local nearestDist = math.huge
-        for _, ply in pairs(player.GetAll()) do
+        local allPlayers = player.GetAll()
+        for _, ply in ipairs(allPlayers) do
             if IsValid(ply) and ply:InVehicle() then
                 local dist = ply:GetPos():DistToSqr(npc:GetPos())
                 if dist < nearestDist then
