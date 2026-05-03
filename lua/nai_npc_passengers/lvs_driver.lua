@@ -68,9 +68,10 @@ local function IsEnemy(ent, npc)
             return true
         end
     end
-    
+
     -- Check if hostile to players
-    for _, ply in ipairs(player.GetAll()) do
+    local allPlayers = player.GetAll()
+    for _, ply in ipairs(allPlayers) do
         if IsValid(ply) and ent:IsNPC() then
             local disp = ent:Disposition(ply)
             if disp == D_HT then
