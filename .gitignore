@@ -1,8 +1,12 @@
 .env
+.env.*
 *.file
 *.zip
 .qwen/
 *.txt
 *.ps1
 *.json
+!addon.json
 *.rar
+publish_workshop.py
+release_data.json
