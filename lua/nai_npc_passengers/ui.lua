@@ -1256,17 +1256,6 @@ local function OpenSettingsPanel()
         -- Title text with shadow
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
-
-        -- Version badge (positioned after title)
-        local titleText = ADDON_DISPLAY_NAME .. " Settings"
-        surface.SetFont("NaiFont_Title")
-        local titleWidth = surface.GetTextSize(titleText)
-        local versionW = 55
-        local versionH = 20
-        local versionX = 20 + titleWidth + 10
-        local versionY = 15
-        draw.RoundedBox(10, versionX, versionY, versionW, versionH, Theme.accentDark)
-        draw.SimpleText("v" .. NPCPassengers.Version, "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
     
     settingsFrame.btnClose:SetVisible(false)
@@ -1300,6 +1289,34 @@ local function OpenSettingsPanel()
             settingsFrame:Close()
         end
     end
+
+    -- Version badge button
+    local versionBtn = vgui.Create("DButton", settingsFrame)
+    local titleText = ADDON_DISPLAY_NAME .. " Settings"
+    surface.SetFont("NaiFont_Title")
+    local titleWidth = surface.GetTextSize(titleText)
+    local versionW = 55
+    local versionH = 20
+    local versionX = 20 + titleWidth + 10
+    local versionY = 15
+    versionBtn:SetPos(versionX, versionY)
+    versionBtn:SetSize(versionW, versionH)
+    versionBtn:SetText("")
+    versionBtn.hoverAnim = 0
+    versionBtn.Paint = function(self, w, h)
+        AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+        local pushOffset = GetButtonPushOffset(self, 1)
+        local baseColor = Theme.accentDark
+        local hoverColor = Theme.accent
+        local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
+        draw.RoundedBox(10, 0, pushOffset, w, h, col)
+        draw.SimpleText("v" .. NPCPassengers.Version, "NaiFont_Small", w/2, h/2 + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+    versionBtn.DoClick = function()
+        ShowWelcomePanel(true)
+    end
+    versionBtn:SetTooltip("Show welcome screen")
 
     local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches, searchStatus, searchClearBtn
     local ClearSearchSuggestions
