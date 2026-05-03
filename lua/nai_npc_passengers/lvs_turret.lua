@@ -1126,14 +1126,12 @@ local function TurretNPCThink(controller, dt)
         else
             if controller.currentTarget then
                 StopFiring(controller)
-                -- QoL: Notify when turret loses target
-                if controller.lastTargetNotifyTime and (curTime - controller.lastTargetNotifyTime) > 5 then
-                    if IsValid(vehicle:GetDriver()) then
-                        local driver = vehicle:GetDriver()
-                        if IsValid(driver) and driver:IsPlayer() then
-                            driver:ChatPrint("[Better NPC Passengers] Turret lost target")
-                            controller.lastTargetNotifyTime = curTime
-                        end
+                -- QoL: Notify when turret loses target (rate limited to once per 5s)
+                if not controller.lastTargetNotifyTime or (curTime - controller.lastTargetNotifyTime) > 5 then
+                    local driver = vehicle:GetDriver()
+                    if IsValid(driver) and driver:IsPlayer() then
+                        driver:ChatPrint("[Better NPC Passengers] Turret lost target")
+                        controller.lastTargetNotifyTime = curTime
                     end
                 end
             end
