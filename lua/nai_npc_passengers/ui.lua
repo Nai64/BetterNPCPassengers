@@ -4,6 +4,13 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.ui = true
 
+local IsValid = IsValid
+local math = math
+local string = string
+local table = table
+local ipairs = ipairs
+local pairs = pairs
+
 local ADDON_DISPLAY_NAME = "Better NPC Passengers"
 local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
 local DEFAULT_FONT_NAME = "Tahoma"
