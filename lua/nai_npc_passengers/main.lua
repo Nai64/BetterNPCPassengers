@@ -839,7 +839,7 @@ local function CleanupNPCTimers(npc)
     local npcId
     if isnumber(npc) then
         npcId = npc
-    elseif IsValid(npc) then
+    elseif istable(npc) and IsValid(npc) then
         npcId = npc:EntIndex()
     else
         return
