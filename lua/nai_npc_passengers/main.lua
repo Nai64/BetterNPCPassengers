@@ -893,7 +893,8 @@ local function IsFriendlyNPC(npc, vehicle)
     local allPlayers = player.GetAll()
     for _, ply in ipairs(allPlayers) do
         if IsValid(ply) and (not vehicle or (ply:InVehicle() and ply:GetVehicle() == vehicle)) then
-            if npc:Disposition(ply) == D_HT or npc:Disposition(ply) == D_FR then
+            local disp = npc:Disposition(ply)
+            if disp == D_HT or disp == D_FR then
                 return false
             end
             if npc:GetEnemy() == ply then
