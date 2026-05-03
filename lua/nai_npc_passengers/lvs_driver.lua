@@ -10,6 +10,13 @@ NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.lvs_driver = true
 NPCPassengers.DriverNPCs = NPCPassengers.DriverNPCs or {}
 
+local IsValid = IsValid
+local math = math
+local string = string
+local table = table
+local ipairs = ipairs
+local pairs = pairs
+
 -- Configuration convars
 NPCPassengers.cv_driver_enabled = CreateConVar("nai_npc_driver_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC auto-driving")
 NPCPassengers.cv_driver_range = CreateConVar("nai_npc_driver_range", "4000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Range to detect enemies for driving")
