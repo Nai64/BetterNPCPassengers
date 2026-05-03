@@ -4579,7 +4579,7 @@ concommand.Add("nai_passengers_eject_dead", function(ply)
     local ejected = 0
     local toEject = {}
     for npc, data in pairs(friendlyPassengers) do
-        if data.vehicle == rootVehicle and IsValid(npc) and npc:Health() <= 0 then
+        if data.vehicle == rootVehicle and IsValid(npc) and (npc:Health() <= 0 or npc:IsRagdoll()) then
             table.insert(toEject, npc)
         end
     end
@@ -4625,7 +4625,7 @@ hook.Add("Think", "NPCPassengers_DeadEjectionPrompt", function()
             -- Count dead passengers
             local deadCount = 0
             for npc, data in pairs(friendlyPassengers) do
-                if data.vehicle == rootVehicle and IsValid(npc) and npc:Health() <= 0 then
+                if data.vehicle == rootVehicle and IsValid(npc) and (npc:Health() <= 0 or npc:IsRagdoll()) then
                     deadCount = deadCount + 1
                 end
             end
@@ -4659,7 +4659,7 @@ net.Receive("NPCPassengers_EjectDead", function(len, ply)
     -- Count dead passengers
     local deadPassengers = {}
     for npc, data in pairs(friendlyPassengers) do
-        if data.vehicle == rootVehicle and IsValid(npc) and npc:Health() <= 0 then
+        if data.vehicle == rootVehicle and IsValid(npc) and (npc:Health() <= 0 or npc:IsRagdoll()) then
             table.insert(deadPassengers, npc)
         end
     end

@@ -25,6 +25,14 @@ NPCPassengers.cv_turret_lead_targets = CreateConVar("nai_npc_turret_lead_targets
 NPCPassengers.cv_turret_hold_fire = CreateConVar("nai_npc_turret_hold_fire", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "When 1, turret gunners will not fire. When 0, they will fire normally.")
 NPCPassengers.cv_turret_blacklist = CreateConVar("nai_npc_turret_blacklist", "", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Comma-separated list of NPC classnames to blacklist from turret control (e.g., npc_metropolice,npc_combine_s)")
 
+-- Console commands for hold fire control
+concommand.Add("nai_npc_turret_hold_fire", function(ply, cmd, args)
+    local value = args[1] or "1"
+    if NPCPassengers.cv_turret_hold_fire then
+        NPCPassengers.cv_turret_hold_fire:SetInt(tonumber(value) or 1)
+    end
+end)
+
 -- Helper function to check if NPC is blacklisted
 local function IsNPCTurretBlacklisted(npc)
     if not IsValid(npc) then return true end
@@ -502,6 +510,25 @@ local hostileClasses = {
     "npc_helicopter", "npc_rollermine"
 }
 
+-- Faction groups for class-based friendly fire prevention
+local factionGroups = {
+    combine = {"npc_combine_s", "npc_hunter", "npc_strider", "npc_manhack", "npc_stalker", "npc_clawscanner", "npc_cscanner", "npc_combinedropship", "npc_combinegunship", "npc_helicopter", "npc_rollermine", "npc_metropolice"},
+    resistance = {"npc_citizen", "npc_barney", "npc_alyx", "npc_kleiner", "npc_eli", "npc_mossman", "npc_gman", "npc_monk", "npc_dog", "npc_vortigaunt"},
+    zombie = {"npc_zombie", "npc_fastzombie", "npc_poisonzombie", "npc_zombine", "npc_headcrab", "npc_headcrab_fast", "npc_headcrab_black", "npc_headcrab_poison"},
+    antlion = {"npc_antlion", "npc_antlionguard", "npc_antlion_worker"}
+}
+
+local function GetNPCFaction(npcClass)
+    for faction, classes in pairs(factionGroups) do
+        for _, class in ipairs(classes) do
+            if npcClass == class then
+                return faction
+            end
+        end
+    end
+    return nil
+end
+
 --[[
     Gets enemies visible to the NPC within range
 ]]
@@ -542,6 +569,15 @@ local function FindEnemiesInRange(npc, vehicle, maxRange, originalRelationships)
             -- Since passenger NPC has all relationships set to friendly,
             -- we need to use original relationships or check if target is hostile to player
             local isEnemy = false
+
+            -- Class-based faction check: prevent same-faction NPCs from targeting each other
+            if not allowFriendlyFire and npc:IsNPC() and target:IsNPC() then
+                local npcFaction = GetNPCFaction(npc:GetClass())
+                local targetFaction = GetNPCFaction(target:GetClass())
+                if npcFaction and targetFaction and npcFaction == targetFaction then
+                    isEnemy = false
+                end
+            end
 
             if originalRelationships then
                 for ent, disp in pairs(originalRelationships) do
