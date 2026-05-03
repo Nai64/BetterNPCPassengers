@@ -1464,65 +1464,65 @@ local function FindNearestThreat(npc, vehicle, range)
     return nearestThreat
 end
 
-    local function IsCombatTargetHostile(npc, ent)
-        if not IsValid(npc) or not IsValid(ent) or ent == npc then return false end
-        if NPCPassengers.IsPassenger(ent) then return false end
+local function IsCombatTargetHostile(npc, ent)
+    if not IsValid(npc) or not IsValid(ent) or ent == npc then return false end
+    if NPCPassengers.IsPassenger(ent) then return false end
 
-        if ent:IsNPC() then
-            if ent:Health() <= 0 then return false end
-            local disp = npc:Disposition(ent)
-            if disp == D_HT or disp == D_FR then
-                return true
-            end
-        elseif ent:IsNextBot() then
-            if ent.Health and ent:Health() <= 0 then return false end
-        else
-            return false
+    if ent:IsNPC() then
+        if ent:Health() <= 0 then return false end
+        local disp = npc:Disposition(ent)
+        if disp == D_HT or disp == D_FR then
+            return true
         end
-
-        return hostileThreatClasses[string.lower(ent:GetClass() or "")] == true
+    elseif ent:IsNextBot() then
+        if ent.Health and ent:Health() <= 0 then return false end
+    else
+        return false
     end
 
-    local function HasPassengerLineOfSight(npc, vehicle, target, startPos, endPos)
-        local filter = {npc, vehicle}
+    return hostileThreatClasses[string.lower(ent:GetClass() or "")] == true
+end
 
-        if IsValid(vehicle) then
-            for _, child in ipairs(vehicle:GetChildren()) do
-                filter[#filter + 1] = child
-            end
+local function HasPassengerLineOfSight(npc, vehicle, target, startPos, endPos)
+    local filter = {npc, vehicle}
+
+    if IsValid(vehicle) then
+        for _, child in ipairs(vehicle:GetChildren()) do
+            filter[#filter + 1] = child
         end
-
-        local tr = util.TraceLine({
-            start = startPos,
-            endpos = endPos,
-            filter = filter,
-            mask = MASK_SHOT,
-        })
-
-        return tr.Entity == target or not tr.Hit
     end
 
-    local function FindNearestCombatTarget(npc, vehicle, range)
-        if not IsValid(npc) or not IsValid(vehicle) then return nil end
+    local tr = util.TraceLine({
+        start = startPos,
+        endpos = endPos,
+        filter = filter,
+        mask = MASK_SHOT,
+    })
 
-        local startPos = npc:EyePos()
-        local nearestTarget = nil
-        local nearestDist = range * range
+    return tr.Entity == target or not tr.Hit
+end
 
-        for _, ent in ipairs(ents.FindInSphere(startPos, range)) do
-            if IsCombatTargetHostile(npc, ent) then
-                local targetPos = ent.WorldSpaceCenter and ent:WorldSpaceCenter() or (ent:GetPos() + Vector(0, 0, 40))
-                local dist = startPos:DistToSqr(targetPos)
+local function FindNearestCombatTarget(npc, vehicle, range)
+    if not IsValid(npc) or not IsValid(vehicle) then return nil end
 
-                if dist < nearestDist and HasPassengerLineOfSight(npc, vehicle, ent, startPos, targetPos) then
-                    nearestDist = dist
-                    nearestTarget = ent
-                end
+    local startPos = npc:EyePos()
+    local nearestTarget = nil
+    local nearestDist = range * range
+
+    for _, ent in ipairs(ents.FindInSphere(startPos, range)) do
+        if IsCombatTargetHostile(npc, ent) then
+            local targetPos = ent.WorldSpaceCenter and ent:WorldSpaceCenter() or (ent:GetPos() + Vector(0, 0, 40))
+            local dist = startPos:DistToSqr(targetPos)
+
+            if dist < nearestDist and HasPassengerLineOfSight(npc, vehicle, ent, startPos, targetPos) then
+                nearestDist = dist
+                nearestTarget = ent
             end
         end
-
-        return nearestTarget
     end
+
+    return nearestTarget
+end
 
 -- Find another passenger in the same vehicle for interaction
 local function FindPassengerToInteract(npc, vehicle, friendlyPassengers)
