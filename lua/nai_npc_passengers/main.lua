@@ -863,7 +863,8 @@ local function GetRootVehicle(ent)
 end
 
 local function VehicleHasPlayer(vehicle)
-    for _, ply in ipairs(player.GetAll()) do
+    local allPlayers = player.GetAll()
+    for _, ply in ipairs(allPlayers) do
         if IsValid(ply) and ply:InVehicle() then
             local plyVeh = ply:GetVehicle()
             if plyVeh == vehicle then return true end
