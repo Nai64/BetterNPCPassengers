@@ -1103,7 +1103,8 @@ local function DisableNPCAI(npc)
     if not IsValid(npc) then return {} end
 
     local relationships = {}
-    for _, ply in pairs(player.GetAll()) do
+    local allPlayers = player.GetAll()
+    for _, ply in ipairs(allPlayers) do
         if IsValid(ply) then
             relationships[ply] = npc:Disposition(ply)
             npc:AddEntityRelationship(ply, D_LI, 99)
