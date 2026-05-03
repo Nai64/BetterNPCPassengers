@@ -12,7 +12,7 @@ jobs:
     name: Upload to Steam Workshop
     runs-on: ubuntu-latest
     # Only run for releases created on the main repo (never on forks/PRs)
-    if: github.repository == 'Nai64/BetterNPCPassengers-gmod'
+    if: github.repository == 'Nai64/BetterNPCPassengers'
 
     steps:
       - name: Checkout repository
