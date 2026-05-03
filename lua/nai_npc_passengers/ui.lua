@@ -1248,7 +1248,6 @@ local function OpenSettingsPanel()
         surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 120)
         surface.SetMaterial(gradientMat)
         draw.RoundedBoxEx(12, 0, 0, w, 50, Theme.bgDark, true, true, false, false)
-        surface.DrawTexturedRect(0, 0, w, 50)
 
         -- Accent line under header
         surface.SetDrawColor(Theme.accent)
