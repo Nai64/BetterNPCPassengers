@@ -858,11 +858,11 @@ end
 local function GetRootVehicle(ent)
     if not IsValid(ent) then return nil end
     
-    if ent.base and isentity(ent.base) and IsValid(ent.base) and ent.base.IsSimfphyscar then
+    if ent.base and IsValid(ent.base) and ent.base.IsSimfphyscar then
         return ent.base
     end
 
-    if ent.LVS and isentity(ent.LVS) and IsValid(ent.LVS) then
+    if ent.LVS and IsValid(ent.LVS) then
         return ent.LVS
     end
     
@@ -879,8 +879,8 @@ local function VehicleHasPlayer(vehicle)
             local plyVeh = ply:GetVehicle()
             if plyVeh == vehicle then return true end
             if plyVeh:GetParent() == vehicle then return true end
-            if plyVeh.base and isentity(plyVeh.base) and IsValid(plyVeh.base) and plyVeh.base == vehicle then return true end
-            if plyVeh.LVS and isentity(plyVeh.LVS) and IsValid(plyVeh.LVS) and plyVeh.LVS == vehicle then return true end
+            if plyVeh.base and IsValid(plyVeh.base) and plyVeh.base == vehicle then return true end
+            if plyVeh.LVS and IsValid(plyVeh.LVS) and plyVeh.LVS == vehicle then return true end
         end
     end
     return false
