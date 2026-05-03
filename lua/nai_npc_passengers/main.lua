@@ -1063,9 +1063,6 @@ local function CalculatePassengerPosition(vehicle, npc)
                 end
             end
         end
-        if not hasPassengerAttachment then
-            return nil, nil, nil, nil, nil
-        end
         return nil, nil, nil, nil, nil
     end
     
