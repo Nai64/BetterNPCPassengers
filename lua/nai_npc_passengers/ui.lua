@@ -1237,6 +1237,8 @@ local function OpenSettingsPanel()
     AnimateSettingsFrameIn(settingsFrame, targetX, targetY)
     
     settingsFrame.Paint = function(self, w, h)
+        local isMinimized = self.isMinimized or false
+
         -- Subtle outline
         draw.RoundedBox(12, 0, 0, w, h, Color(0, 0, 0, 50))
 
@@ -1247,11 +1249,14 @@ local function OpenSettingsPanel()
         local gradientMat = Material("vgui/gradient-d")
         surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 120)
         surface.SetMaterial(gradientMat)
-        draw.RoundedBoxEx(12, 0, 0, w, 50, Theme.bgDark, true, true, false, false)
-
-        -- Accent line under header
-        surface.SetDrawColor(Theme.accent)
-        surface.DrawRect(0, 50, w, 2)
+        if isMinimized then
+            draw.RoundedBox(12, 0, 0, w, h, Theme.bgDark)
+        else
+            draw.RoundedBoxEx(12, 0, 0, w, 50, Theme.bgDark, true, true, false, false)
+            -- Accent line under header
+            surface.SetDrawColor(Theme.accent)
+            surface.DrawRect(0, 50, w, 2)
+        end
 
         -- Title text with shadow
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
