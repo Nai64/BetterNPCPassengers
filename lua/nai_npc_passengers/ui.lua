@@ -1203,6 +1203,8 @@ local function OpenSettingsPanel()
     local targetX, targetY = settingsFrame:GetPos()
     settingsFrame:SetTitle("")
     settingsFrame:SetDraggable(true)
+    settingsFrame:SetSizable(false)
+    settingsFrame:ShowCloseButton(false)
     settingsFrame:SetDeleteOnClose(true)
     settingsFrame.isClosingAnimated = false
 
@@ -1261,6 +1263,16 @@ local function OpenSettingsPanel()
         -- Title text with shadow
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    end
+
+    settingsFrame.OnMousePressed = function(self, mc)
+        if mc == MOUSE_LEFT then
+            local x, y = self:CursorPos()
+            local headerHeight = self.isMinimized and self:GetTall() or 50
+            if y < headerHeight then
+                self:StartDrag()
+            end
+        end
     end
     
     settingsFrame.btnClose:SetVisible(false)
