@@ -1203,8 +1203,6 @@ local function OpenSettingsPanel()
     local targetX, targetY = settingsFrame:GetPos()
     settingsFrame:SetTitle("")
     settingsFrame:SetDraggable(true)
-    settingsFrame:SetSizable(false)
-    settingsFrame:ShowCloseButton(false)
     settingsFrame:SetDeleteOnClose(true)
     settingsFrame.isClosingAnimated = false
 
@@ -1264,16 +1262,6 @@ local function OpenSettingsPanel()
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
-
-    settingsFrame.OnMousePressed = function(self, mc)
-        if mc == MOUSE_LEFT then
-            local x, y = self:CursorPos()
-            local headerHeight = self.isMinimized and self:GetTall() or 50
-            if y < headerHeight then
-                self:StartDrag()
-            end
-        end
-    end
     
     settingsFrame.btnClose:SetVisible(false)
     settingsFrame.btnMaxim:SetVisible(false)
@@ -1281,6 +1269,8 @@ local function OpenSettingsPanel()
 
     settingsFrame.isMinimized = false
     settingsFrame.originalHeight = settingsFrame:GetTall()
+
+    local dragHandle
 
     local minimizeBtn = vgui.Create("DButton", settingsFrame)
     minimizeBtn:SetPos(settingsFrame:GetWide() - 70, 12)
@@ -1316,6 +1306,11 @@ local function OpenSettingsPanel()
         else
             settingsFrame:SetTall(settingsFrame.originalHeight)
             minimizeBtn:SetTooltip("Minimize panel")
+        end
+
+        -- Update drag handle size
+        if IsValid(dragHandle) then
+            dragHandle:SetSize(settingsFrame:GetWide(), 50)
         end
     end
     minimizeBtn:SetTooltip("Minimize panel")
@@ -1378,6 +1373,22 @@ local function OpenSettingsPanel()
         timer.Simple(0.1, function() ShowWelcomePanel(true) end)
     end
     versionBtn:SetTooltip("Show welcome screen")
+
+    -- Drag handle for header area (created after buttons so it doesn't block them)
+    dragHandle = vgui.Create("DPanel", settingsFrame)
+    dragHandle:SetPos(0, 0)
+    dragHandle:SetSize(settingsFrame:GetWide(), 50)
+    dragHandle.Paint = function() end
+    dragHandle.OnMousePressed = function(self, mc)
+        if mc == MOUSE_LEFT and IsValid(settingsFrame) then
+            settingsFrame:DragMousePress(mc)
+        end
+    end
+    dragHandle.OnMouseReleased = function(self, mc)
+        if IsValid(settingsFrame) then
+            settingsFrame:DragMouseRelease(mc)
+        end
+    end
 
     local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches, searchStatus, searchClearBtn
     local ClearSearchSuggestions
