@@ -1237,11 +1237,11 @@ local function OpenSettingsPanel()
     AnimateSettingsFrameIn(settingsFrame, targetX, targetY)
     
     settingsFrame.Paint = function(self, w, h)
-        -- Outer shadow
-        draw.RoundedBox(14, 4, 4, w, h, Color(0, 0, 0, 140))
+        -- Subtle outline
+        draw.RoundedBox(12, 0, 0, w, h, Color(0, 0, 0, 50))
 
         -- Main background
-        draw.RoundedBox(12, 0, 0, w, h, Theme.bg)
+        draw.RoundedBox(11, 1, 1, w - 2, h - 2, Theme.bg)
 
         -- Header gradient
         local gradientMat = Material("vgui/gradient-d")
@@ -1257,10 +1257,13 @@ local function OpenSettingsPanel()
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
-        -- Version badge
-        local versionW = 45
+        -- Version badge (positioned after title)
+        local titleText = ADDON_DISPLAY_NAME .. " Settings"
+        surface.SetFont("NaiFont_Title")
+        local titleWidth = surface.GetTextSize(titleText)
+        local versionW = 55
         local versionH = 20
-        local versionX = w - versionW - 50
+        local versionX = 20 + titleWidth + 10
         local versionY = 15
         draw.RoundedBox(10, versionX, versionY, versionW, versionH, Theme.accentDark)
         draw.SimpleText("v" .. NPCPassengers.Version, "NaiFont_Small", versionX + versionW/2, versionY + versionH/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
