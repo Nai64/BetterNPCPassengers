@@ -877,6 +877,7 @@ local function VehicleHasPlayer(vehicle)
     for _, ply in ipairs(allPlayers) do
         if IsValid(ply) and ply:InVehicle() then
             local plyVeh = ply:GetVehicle()
+            if not IsValid(plyVeh) then continue end
             if plyVeh == vehicle then return true end
             if plyVeh:GetParent() == vehicle then return true end
             if plyVeh.base and IsValid(plyVeh.base) and plyVeh.base == vehicle then return true end
