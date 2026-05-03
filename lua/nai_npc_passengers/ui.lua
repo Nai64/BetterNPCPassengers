@@ -1261,7 +1261,48 @@ local function OpenSettingsPanel()
     settingsFrame.btnClose:SetVisible(false)
     settingsFrame.btnMaxim:SetVisible(false)
     settingsFrame.btnMinim:SetVisible(false)
-    
+
+    settingsFrame.isMinimized = false
+    settingsFrame.originalHeight = settingsFrame:GetTall()
+
+    local minimizeBtn = vgui.Create("DButton", settingsFrame)
+    minimizeBtn:SetPos(settingsFrame:GetWide() - 70, 12)
+    minimizeBtn:SetSize(28, 28)
+    minimizeBtn:SetText("")
+    minimizeBtn.hoverAnim = 0
+    minimizeBtn.Paint = function(self, w, h)
+        AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+        local pushOffset = GetButtonPushOffset(self, 2)
+        local baseColor = Theme.bgLight
+        local hoverColor = Theme.accent
+        local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
+        draw.RoundedBox(6, 0, pushOffset, w, h, col)
+
+        local iconColor = Theme.textBright
+        surface.SetDrawColor(iconColor)
+        if settingsFrame.isMinimized then
+            surface.DrawLine(8, h/2 + pushOffset, w - 8, h/2 + pushOffset)
+            surface.DrawLine(w/2, 8 + pushOffset, w/2, h - 8 + pushOffset)
+        else
+            surface.DrawLine(8, h/2 + pushOffset, w - 8, h/2 + pushOffset)
+        end
+    end
+    minimizeBtn.DoClick = function()
+        if not IsValid(settingsFrame) then return end
+        settingsFrame.isMinimized = not settingsFrame.isMinimized
+
+        if settingsFrame.isMinimized then
+            settingsFrame.originalHeight = settingsFrame:GetTall()
+            settingsFrame:SetTall(50)
+            minimizeBtn:SetTooltip("Expand panel")
+        else
+            settingsFrame:SetTall(settingsFrame.originalHeight)
+            minimizeBtn:SetTooltip("Minimize panel")
+        end
+    end
+    minimizeBtn:SetTooltip("Minimize panel")
+
     local closeBtn = vgui.Create("DButton", settingsFrame)
     closeBtn:SetPos(settingsFrame:GetWide() - 38, 12)
     closeBtn:SetSize(28, 28)
