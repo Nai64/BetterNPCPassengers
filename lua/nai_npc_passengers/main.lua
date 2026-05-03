@@ -4,6 +4,14 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.main = true
 
+local IsValid = IsValid
+local CurTime = CurTime
+local math = math
+local string = string
+local table = table
+local ipairs = ipairs
+local pairs = pairs
+
 local ADDON_DISPLAY_NAME = "Better NPC Passengers"
 local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
 
