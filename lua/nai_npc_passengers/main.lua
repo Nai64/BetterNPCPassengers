@@ -2978,6 +2978,38 @@ DetachNPC = function(npc)
         end
     end
 
+    -- No-collide NPC with vehicle for a few seconds so they can walk away without getting stuck
+    if IsValid(data.vehicle) and NPCPassengers.cv_detach_no_collide:GetBool() then
+        local vehicle = data.vehicle
+        local duration = math.max(0.5, NPCPassengers.cv_detach_no_collide_duration:GetFloat())
+        
+        -- Apply no-collide constraint between NPC and vehicle
+        local nocollide = constraint.NoCollide(npc, vehicle, 0, 0)
+        
+        -- Also no-collide with all vehicle children (chair, body parts, etc.)
+        local childConstraints = {}
+        for _, child in ipairs(vehicle:GetChildren()) do
+            if IsValid(child) and child ~= npc then
+                local c = constraint.NoCollide(npc, child, 0, 0)
+                if IsValid(c) then
+                    childConstraints[#childConstraints + 1] = c
+                end
+            end
+        end
+        
+        -- Remove the constraints after the duration
+        timer.Simple(duration, function()
+            if IsValid(nocollide) then
+                nocollide:Remove()
+            end
+            for _, c in ipairs(childConstraints) do
+                if IsValid(c) then
+                    c:Remove()
+                end
+            end
+        end)
+    end
+
     -- Stuck NPC fix: Check if NPC is still inside the vehicle and push them out if needed
     if IsValid(data.vehicle) then
         local vehicle = data.vehicle

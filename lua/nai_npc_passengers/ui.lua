@@ -3173,6 +3173,12 @@ local function OpenSettingsPanel()
     CreateCheckbox(tankPanel, "Auto-Eject Stuck NPCs", "nai_npc_eject_stuck_check")
     CreateHelpText(tankPanel, "Automatically push NPCs out of vehicles when they get stuck during ejection. Prevents NPCs from clipping into vehicles when exiting.")
 
+    CreateCheckbox(tankPanel, "No-Collide With Vehicle After Detach", "nai_npc_detach_no_collide")
+    CreateHelpText(tankPanel, "After detaching, NPCs temporarily pass through the vehicle so they can walk away without clipping or getting stuck.")
+
+    CreateSlider(tankPanel, "No-Collide Duration (seconds)", "nai_npc_detach_no_collide_duration", 1, 15, 1)
+    CreateHelpText(tankPanel, "How long NPCs ignore the vehicle's collision after detaching.")
+
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "NPC Auto-Driver")
     
