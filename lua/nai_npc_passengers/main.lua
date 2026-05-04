@@ -1135,16 +1135,15 @@ local function DisableNPCAI(npc)
     npc:Fire("SetReadinessLow")
     npc:Fire("DisableWeaponPickup")
 
-    -- VJ Base NPC fix: Stop VJ-specific schedules and animations
-    if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
-    if npc.StopAnimation then npc:StopAnimation() end
-    if npc.vjstopschedule then npc.vjstopschedule = true end
-    if npc.vjstopanim then npc.vjstopanim = true end
+    -- VJ Base SNPC support: properly freeze VJ-specific AI loop
+    if NPCPassengers.VJBase and NPCPassengers.VJBase.IsVJSNPC(npc) then
+        NPCPassengers.VJBase.FreezeForPassenger(npc)
+    end
 
     return relationships
 end
 
-local function EnableNPCAI(npc, relationships)
+local function EnableNPCAI(npc, relationships, vjState)
     if not IsValid(npc) then return end
     
     npc:SetSaveValue("m_bNPCFreeze", false)
@@ -1160,6 +1159,12 @@ local function EnableNPCAI(npc, relationships)
     
     npc:SetNPCState(NPC_STATE_ALERT)
     npc:SetSchedule(SCHED_ALERT_STAND)
+
+    -- VJ Base SNPC support: restore VJ AI state and animation table
+    if NPCPassengers.VJBase and NPCPassengers.VJBase.IsVJSNPC(npc) then
+        NPCPassengers.VJBase.RestoreState(npc, vjState)
+        NPCPassengers.VJBase.RestoreAnimTable(npc)
+    end
 end
 
 local function ForceSitAnimation(npc)
@@ -1195,11 +1200,11 @@ local function ForceSitAnimation(npc)
     npc:SetSaveValue("m_flPlaybackRate", 0)
     npc:SetSaveValue("m_flCycle", 0.5)
 
-    -- VJ Base NPC fix: Clear custom schedules and disable VJ-specific systems
-    if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
-    if npc.StopAnimation then npc:StopAnimation() end
-    if npc.vjstopschedule then npc.vjstopschedule = true end
-    if npc.vjstopanim then npc.vjstopanim = true end
+    -- VJ Base SNPC support: keep VJ AI suppressed and lock the sit pose
+    if NPCPassengers.VJBase and NPCPassengers.VJBase.IsVJSNPC(npc) then
+        NPCPassengers.VJBase.FreezeForPassenger(npc)
+        NPCPassengers.VJBase.ApplySitSequence(npc, sitSeq)
+    end
 
     return sitSeq
 end
@@ -2344,11 +2349,11 @@ StartAnimationEnforcement = function(npc)
     npc:SetPlaybackRate(0)
     npc.NPCPassengerSitSeq = sitSeq
 
-    -- VJ Base NPC fix: Ensure VJ NPCs stay frozen in sit position
-    if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
-    if npc.StopAnimation then npc:StopAnimation() end
-    if npc.vjstopschedule then npc.vjstopschedule = true end
-    if npc.vjstopanim then npc.vjstopanim = true end
+    -- VJ Base SNPC support: keep VJ NPCs frozen in sit position
+    if NPCPassengers.VJBase and NPCPassengers.VJBase.IsVJSNPC(npc) then
+        NPCPassengers.VJBase.FreezeForPassenger(npc)
+        NPCPassengers.VJBase.ApplySitSequence(npc, sitSeq)
+    end
 
     InitializeLookState(npcId)
 
@@ -2471,11 +2476,13 @@ local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headL
             npc:SetAutomaticFrameAdvance(false)
         end
 
-        -- VJ Base NPC maintenance: Keep VJ NPCs frozen
-        if npc.SetVJStopSchedule then npc:SetVJStopSchedule() end
-        if npc.StopAnimation then npc:StopAnimation() end
-        if npc.vjstopschedule then npc.vjstopschedule = true end
-        if npc.vjstopanim then npc.vjstopanim = true end
+        -- VJ Base SNPC maintenance: keep VJ NPCs frozen each tick
+        if NPCPassengers.VJBase and NPCPassengers.VJBase.IsVJSNPC(npc) then
+            -- Reassert flags only (no full re-freeze every tick — too heavy)
+            npc.VJ_IsBeingControlled = true
+            npc.vjstopschedule = true
+            npc.vjstopanim = true
+        end
 
         if curTime >= (pdata.nextRelationshipRefreshAt or 0) then
             for _, ply in ipairs(players) do
@@ -2763,6 +2770,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
     npc:SetNPCState(NPC_STATE_IDLE)
     
     SetNoTalkFlag(npc, true)
+    local vjState = (NPCPassengers.VJBase and NPCPassengers.VJBase.SaveState(npc)) or nil
     local relationships = DisableNPCAI(npc)
     ForceSitAnimation(npc)
     StartAnimationEnforcement(npc)
@@ -2779,6 +2787,7 @@ local function AttachNPCToVehicle(npc, vehicle, skipPlayerCheck)
         lastAngleCheck = CurTime(),
         capabilities = npc:CapabilitiesGet(),
         relationships = relationships,
+        vjState = vjState,
         baseLocalPos = baseLocalPos,
         baseLocalAng = baseLocalAng,
         vehicleType = vehicleType,
@@ -2904,7 +2913,7 @@ DetachNPC = function(npc)
         return true
     end
     
-    EnableNPCAI(npc, data.relationships)
+    EnableNPCAI(npc, data.relationships, data.vjState)
     
     if npc:GetParent() then
         npc:SetParent(nil)
@@ -4118,6 +4127,7 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
 
     npc:SetNPCState(NPC_STATE_IDLE)
     SetNoTalkFlag(npc, true)
+    local vjState = (NPCPassengers.VJBase and NPCPassengers.VJBase.SaveState(npc)) or nil
     local relationships = DisableNPCAI(npc)
     ForceSitAnimation(npc)
     StartAnimationEnforcement(npc)
@@ -4132,6 +4142,7 @@ net.Receive("NPCPassengers_AssignSeat", function(len, ply)
         lastAngleCheck = CurTime(),
         capabilities  = npc:CapabilitiesGet(),
         relationships = relationships,
+        vjState = vjState,
         baseLocalPos  = targetSeat:WorldToLocal(npcPos),
         baseLocalAng  = targetSeat:WorldToLocalAngles(npcAng),
         vehicleType   = vehicleType,
@@ -4950,6 +4961,7 @@ function NPCPassengers.MakeNPCDriver(npc, vehicle)
     npc:SetNPCState(NPC_STATE_IDLE)
     
     SetNoTalkFlag(npc, true)
+    local vjState = (NPCPassengers.VJBase and NPCPassengers.VJBase.SaveState(npc)) or nil
     local relationships = DisableNPCAI(npc)
     ForceSitAnimation(npc)
     StartAnimationEnforcement(npc)
@@ -4967,6 +4979,7 @@ function NPCPassengers.MakeNPCDriver(npc, vehicle)
         lastAngleCheck = CurTime(),
         capabilities = npc:CapabilitiesGet(),
         relationships = relationships,
+        vjState = vjState,
         baseLocalPos = baseLocalPos,
         baseLocalAng = baseLocalAng,
         vehicleType = vehicleType,

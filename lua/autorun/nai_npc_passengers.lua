@@ -10,6 +10,7 @@ include("nai_npc_passengers/main.lua")
 include("nai_npc_passengers/ui.lua")
 
 if SERVER then
+    include("nai_npc_passengers/vj_base.lua")
     include("nai_npc_passengers/lvs_turret.lua")
     include("nai_npc_passengers/lvs_driver.lua")
 end

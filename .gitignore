@@ -10,3 +10,7 @@
 *.rar
 publish_workshop.py
 release_data.json
+testing/
+AGENTS.md
+WORKSHOP_DESCRIPTION.md
+nul
