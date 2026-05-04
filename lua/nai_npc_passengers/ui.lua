@@ -1197,11 +1197,35 @@ local function StyleScrollbar(sbar)
         sbar.smoothScrollSpeed = smoothness and math.Clamp(smoothness:GetFloat(), 0.01, 1) or 0.15
     end
 
+    -- Auto-hide state: scrollbar fades out when not in use
+    sbar.activeAlpha = 0      -- 0 = hidden, 1 = visible
+    sbar.lastScrollAt = 0     -- last time the scrollbar's value changed
+
     sbar.Think = function(self)
         if self.smoothScroll ~= self.scrollTarget then
             self.smoothScroll = Lerp(self.smoothScrollSpeed, self.smoothScroll, self.scrollTarget)
             self:SetScroll(self.smoothScroll)
+            self.lastScrollAt = CurTime()
         end
+
+        -- Determine if the scrollbar should be visible
+        local autohide = GetConVar("nai_npc_ui_scrollbar_autohide")
+        local autohideOn = autohide and autohide:GetBool()
+
+        local shouldShow
+        if not autohideOn then
+            shouldShow = true
+        else
+            -- Show while hovered, while the grip is hovered/being dragged,
+            -- or for ~1 second after the last scroll update
+            local hovered = self:IsHovered()
+                or (IsValid(self.btnGrip) and (self.btnGrip:IsHovered() or self.btnGrip:IsDown()))
+            local recentlyScrolled = (CurTime() - (self.lastScrollAt or 0)) < 1.0
+            shouldShow = hovered or recentlyScrolled
+        end
+
+        local target = shouldShow and 1 or 0
+        self.activeAlpha = math.Approach(self.activeAlpha or 0, target, FrameTime() * (shouldShow and 8 or 4))
     end
 
     sbar.OnMouseWheeled = function(self, delta)
@@ -1211,17 +1235,24 @@ local function StyleScrollbar(sbar)
         local scrollMax = math.max(0, canvasHeight - self:GetTall())
         self.scrollTarget = self.scrollTarget - delta * 50
         self.scrollTarget = math.Clamp(self.scrollTarget, 0, scrollMax)
+        self.lastScrollAt = CurTime()
         return true
     end
 
     sbar.Paint = function(self, w, h)
-        draw.RoundedBox(4, 0, 0, w, h, Theme.bgDark)
+        local a = self.activeAlpha or 1
+        if a <= 0.01 then return end
+        local trackCol = Theme.bgDark
+        draw.RoundedBox(4, 0, 0, w, h, Color(trackCol.r, trackCol.g, trackCol.b, (trackCol.a or 255) * a))
     end
     sbar.btnUp.Paint = function() end
     sbar.btnDown.Paint = function() end
     sbar.btnGrip.Paint = function(self, w, h)
-        local col = self:IsHovered() and Theme.accentHover or Theme.scrollbarGrip
-        draw.RoundedBox(4, 0, 0, w, h, col)
+        local parentBar = self:GetParent()
+        local a = (parentBar and parentBar.activeAlpha) or 1
+        if a <= 0.01 then return end
+        local baseCol = self:IsHovered() and Theme.accentHover or Theme.scrollbarGrip
+        draw.RoundedBox(4, 0, 0, w, h, Color(baseCol.r, baseCol.g, baseCol.b, (baseCol.a or 255) * a))
     end
 end
 
@@ -1300,7 +1331,42 @@ local function OpenSettingsPanel()
     end
     settingsFrame:MakePopup()
     AnimateSettingsFrameIn(settingsFrame, targetX, targetY)
-    
+
+    -- Idle-fade: panel becomes more transparent when the mouse is not over it.
+    settingsFrame.idleFadeAlpha = 1  -- 1 = fully visible, 0 = fully faded
+    -- Don't start the fade until the entrance animation has finished, otherwise
+    -- it fights with the AlphaTo() in AnimateSettingsFrameIn.
+    settingsFrame.fadeReadyAt = CurTime() + 0.45
+    settingsFrame.Think = function(self)
+        if self.isClosingAnimated then return end
+        if CurTime() < (self.fadeReadyAt or 0) then return end
+        if not AreUIAnimationsEnabled() then
+            self.idleFadeAlpha = 1
+            return
+        end
+
+        local fadeEnabled = GetConVar("nai_npc_ui_idle_fade")
+        if not (fadeEnabled and fadeEnabled:GetBool()) then
+            self.idleFadeAlpha = 1
+            self:SetAlpha(255)
+            return
+        end
+
+        -- IsChildHovered returns true if any child (or this panel) is under the cursor
+        local hovered = self:IsHovered() or self:IsChildHovered(99)
+        local target = hovered and 1 or 0
+        self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, target, FrameTime() * (hovered and 6 or 3))
+
+        -- Map idleFadeAlpha (0..1) to the user-configured range:
+        --   1.0 -> 255 (fully opaque)
+        --   0.0 -> idle alpha from convar (0..100 -> 0..255)
+        local idleAlphaCV = GetConVar("nai_npc_ui_idle_alpha")
+        local minPct = idleAlphaCV and math.Clamp(idleAlphaCV:GetFloat(), 0, 100) or 30
+        local minAlpha = (minPct / 100) * 255
+        local alpha = Lerp(self.idleFadeAlpha, minAlpha, 255)
+        self:SetAlpha(alpha)
+    end
+
     settingsFrame.Paint = function(self, w, h)
         local isMinimized = self.isMinimized or false
 
@@ -3916,6 +3982,15 @@ local function OpenSettingsPanel()
     CreateCheckbox(interfacePanel, "Show Tooltips", "nai_npc_ui_tooltips")
     CreateHelpText(interfacePanel, "Display helpful tooltips when hovering over settings")
 
+    CreateCheckbox(interfacePanel, "Fade Panel When Idle", "nai_npc_ui_idle_fade")
+    CreateHelpText(interfacePanel, "Make the settings panel transparent when the mouse isn't over it.")
+
+    CreateSlider(interfacePanel, "Idle Panel Opacity (%)", "nai_npc_ui_idle_alpha", 0, 100, 0)
+    CreateHelpText(interfacePanel, "How visible the panel is when not hovered. 100 = fully opaque, 30 = the default 'mostly faded' look, 0 = invisible.")
+
+    CreateCheckbox(interfacePanel, "Auto-Hide Scrollbar", "nai_npc_ui_scrollbar_autohide")
+    CreateHelpText(interfacePanel, "Only show the scrollbar while you're scrolling or hovering it.")
+
     local _, scrollSmoothSlider = CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
     CreateHelpText(interfacePanel, "Lower values = smoother but slower scrolling (0.01-1)")
     
@@ -3952,6 +4027,9 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_use_default_font", "0")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
+        RunConsoleCommand("nai_npc_ui_idle_fade", "1")
+        RunConsoleCommand("nai_npc_ui_idle_alpha", "30")
+        RunConsoleCommand("nai_npc_ui_scrollbar_autohide", "1")
         RunConsoleCommand("nai_npc_ui_scroll_smoothness", "0.15")
 
         if IsValid(widthSlider) then
