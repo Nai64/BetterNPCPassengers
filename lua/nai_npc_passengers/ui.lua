@@ -1356,18 +1356,19 @@ local function OpenSettingsPanel()
     -- it fights with the AlphaTo() in AnimateSettingsFrameIn.
     settingsFrame.fadeReadyAt = CurTime() + 0.45
     settingsFrame.Think = function(self)
+        -- Idle fade logic
         if self.isClosingAnimated then return end
         if CurTime() < (self.fadeReadyAt or 0) then return end
         if not AreUIAnimationsEnabled() then
             self.idleFadeAlpha = 1
-            return
+            goto skipFade
         end
 
         local fadeEnabled = GetConVar("nai_npc_ui_idle_fade")
         if not (fadeEnabled and fadeEnabled:GetBool()) then
             self.idleFadeAlpha = 1
             self:SetAlpha(255)
-            return
+            goto skipFade
         end
 
         -- Check if any scrollbar is being dragged - if so, set to 70% transparent (30% opaque)
@@ -1382,7 +1383,7 @@ local function OpenSettingsPanel()
         if anyDragging then
             -- 70% transparent = 30% opaque = 76.5 alpha
             self:SetAlpha(76.5)
-            return
+            goto skipFade
         end
 
         -- IsChildHovered returns true if any child (or this panel) is under the cursor
@@ -1398,6 +1399,24 @@ local function OpenSettingsPanel()
         local minAlpha = (minPct / 100) * 255
         local alpha = Lerp(self.idleFadeAlpha, minAlpha, 255)
         self:SetAlpha(alpha)
+
+        ::skipFade::
+
+        -- Passenger auto-refresh logic
+        if not passengerAutoRefreshEnabled then
+            return
+        end
+
+        if currentPanel ~= passengersPanel then
+            return
+        end
+
+        if CurTime() < nextPassengerAutoRefresh then
+            return
+        end
+
+        nextPassengerAutoRefresh = CurTime() + 0.75
+        RefreshPassengersControlList()
     end
 
     settingsFrame.Paint = function(self, w, h)
@@ -2984,23 +3003,6 @@ local function OpenSettingsPanel()
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
     end
 
-    settingsFrame.Think = function(self)
-        if not passengerAutoRefreshEnabled then
-            return
-        end
-
-        if currentPanel ~= passengersPanel then
-            return
-        end
-
-        if CurTime() < nextPassengerAutoRefresh then
-            return
-        end
-
-        nextPassengerAutoRefresh = CurTime() + 0.75
-        RefreshPassengersControlList()
-    end
-    
     -- Position Tab
     local posPanel = CreateContentPanel()
     posPanel.SearchPanelName = "Position"
