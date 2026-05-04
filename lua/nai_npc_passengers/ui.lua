@@ -4059,7 +4059,7 @@ local function OpenSettingsPanel()
     CreateHelpText(interfacePanel, "Display helpful tooltips when hovering over settings")
 
     CreateCheckbox(interfacePanel, "Fade Panel When Idle", "nai_npc_ui_idle_fade")
-    CreateHelpText(interfacePanel, "Make the settings panel transparent when the mouse isn't over it.")
+    CreateHelpText(interfacePanel, "Make the settings panel transparent when the mouse isn't over it. (DISABLED by default - enable if you want this feature)")
 
     CreateSlider(interfacePanel, "Idle Panel Opacity (%)", "nai_npc_ui_idle_alpha", 0, 100, 0)
     CreateHelpText(interfacePanel, "How visible the panel is when not hovered. 100 = fully opaque, 30 = the default 'mostly faded' look, 0 = invisible.")
@@ -4105,7 +4105,7 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_use_default_font", "0")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
-        RunConsoleCommand("nai_npc_ui_idle_fade", "1")
+        RunConsoleCommand("nai_npc_ui_idle_fade", "0")  -- Disabled by default due to hover detection issues
         RunConsoleCommand("nai_npc_ui_idle_alpha", "30")
         RunConsoleCommand("nai_npc_ui_scrollbar_autohide", "1")
         RunConsoleCommand("nai_npc_ui_scroll_smoothness", "0.15")
