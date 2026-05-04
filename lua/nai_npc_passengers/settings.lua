@@ -160,6 +160,7 @@ NPCPassengers.cv_right_offset = CreateConVar("nai_npc_right_offset", "0", {FCVAR
 NPCPassengers.cv_yaw_offset = CreateConVar("nai_npc_yaw_offset", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional yaw offset for passengers")
 NPCPassengers.cv_pitch_offset = CreateConVar("nai_npc_pitch_offset", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional pitch offset for passengers")
 NPCPassengers.cv_roll_offset = CreateConVar("nai_npc_roll_offset", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional roll offset for passengers")
+NPCPassengers.cv_seat_collision_check = CreateConVar("nai_npc_seat_collision_check", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable collision detection to prevent NPC clipping through seats")
 
 -- NPC Driver settings
 NPCPassengers.cv_driver_enabled = CreateConVar("nai_npc_driver_enabled", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to drive vehicles")

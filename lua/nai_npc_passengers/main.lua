@@ -1010,11 +1010,11 @@ local VEHICLE_TYPE_GENERIC = "generic"
 local VEHICLE_TYPE_SLIGWOLF = "sligwolf"
 
 local VehicleOffsets = {
-    [VEHICLE_TYPE_LVS] = { height = -12, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 0 },
-    [VEHICLE_TYPE_SIMFPHYS] = { height = -10, right = 9, forward = 0, pitch = -4, yaw = 0, roll = 0, baseYaw = 90 },
-    [VEHICLE_TYPE_GLIDE] = { height = -8, right = 14, forward = 0, pitch = -4, yaw = 0, roll = 0, baseYaw = 90 },
-    [VEHICLE_TYPE_SLIGWOLF] = { height = -10, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
-    [VEHICLE_TYPE_GENERIC] = { height = 12, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_LVS] = { height = 0, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 0 },
+    [VEHICLE_TYPE_SIMFPHYS] = { height = 0, right = 5, forward = 0, pitch = -2, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_GLIDE] = { height = 0, right = 8, forward = 0, pitch = -2, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_SLIGWOLF] = { height = 0, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_GENERIC] = { height = 5, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
 }
 
 local function GetVehicleType(vehicle)
@@ -1048,12 +1048,90 @@ local function GetVehicleOffsets(vehicleType)
     return VehicleOffsets[vehicleType] or VehicleOffsets[VEHICLE_TYPE_GENERIC]
 end
 
+-- Helper function to find actual seat surface by tracing down
+local function FindSeatSurfacePos(startPos, vehicle, seat)
+    if not IsValid(vehicle) then return startPos end
+
+    -- Trace down from the seat position to find the actual surface
+    local traceData = {
+        start = startPos + Vector(0, 0, 50),
+        endpos = startPos - Vector(0, 0, 100),
+        filter = {vehicle, seat}
+    }
+
+    local trace = util.TraceLine(traceData)
+
+    if trace.Hit then
+        -- Return position slightly above the surface
+        return trace.HitPos + Vector(0, 0, 2)
+    end
+
+    return startPos
+end
+
+-- Helper function to check if NPC would clip at a position
+local function WouldClipAtPosition(npc, pos, vehicle, seat)
+    if not IsValid(npc) then return false end
+
+    local npcMins = npc:OBBMins()
+    local npcMaxs = npc:OBBMaxs()
+
+    local filter = {npc, vehicle}
+    if IsValid(seat) then
+        table.insert(filter, seat)
+    end
+
+    -- Check vehicle children too
+    if IsValid(vehicle) then
+        for _, child in ipairs(vehicle:GetChildren()) do
+            table.insert(filter, child)
+        end
+    end
+
+    local traceData = {
+        start = pos,
+        endpos = pos,
+        mins = npcMins,
+        maxs = npcMaxs,
+        filter = filter
+    }
+
+    local trace = util.TraceHull(traceData)
+    return trace.Hit
+end
+
+-- Helper function to find a valid non-clipping position
+local function FindValidPosition(npc, startPos, vehicle, seat, maxAttempts)
+    maxAttempts = maxAttempts or 20
+
+    for i = 0, maxAttempts do
+        local testPos = startPos + Vector(0, 0, i * 2)
+
+        if not WouldClipAtPosition(npc, testPos, vehicle, seat) then
+            return testPos
+        end
+    end
+
+    -- Fallback to original position + some height
+    return startPos + Vector(0, 0, 10)
+end
+
+-- Helper function to get NPC height for dynamic adjustment
+local function GetNPCHeight(npc)
+    if not IsValid(npc) then return 72 end -- Default height for citizens
+
+    local mins = npc:OBBMins()
+    local maxs = npc:OBBMaxs()
+    return maxs.z - mins.z
+end
+
 local function CalculatePassengerPosition(vehicle, npc)
     if not IsAddonEnabled() then return nil, nil, nil, nil, nil end
     if not IsVehicleAllowedByFilters(vehicle) then return nil, nil, nil, nil, nil end
 
     local seats = CollectVehicleSeats(vehicle)
     local vehicleType = GetVehicleType(vehicle)
+    local useCollisionCheck = NPCPassengers.cv_seat_collision_check:GetBool()
     
     if #seats == 0 then
         local passengerAttachments = {"vehicle_feet_passenger1", "vehicle_feet_passenger0", "passenger"}
@@ -1072,7 +1150,14 @@ local function CalculatePassengerPosition(vehicle, npc)
                         end
                     end
                     if not isOccupied then
-                        return attachData.Pos, attachData.Ang, nil, vehicle, vehicleType
+                        if useCollisionCheck then
+                            -- Find actual seat surface and validate position
+                            local surfacePos = FindSeatSurfacePos(attachData.Pos, vehicle, nil)
+                            local validPos = FindValidPosition(npc, surfacePos, vehicle, nil, 15)
+                            return validPos, attachData.Ang, nil, vehicle, vehicleType
+                        else
+                            return attachData.Pos, attachData.Ang, nil, vehicle, vehicleType
+                        end
                     end
                 end
             end
@@ -1095,9 +1180,18 @@ local function CalculatePassengerPosition(vehicle, npc)
             end
             
             if not isOccupied then
-                local pos = seat:GetPos()
-                local ang = seat:GetAngles()
-                return pos, ang, nil, seat, vehicleType
+                if useCollisionCheck then
+                    -- Find actual seat surface and validate position
+                    local seatPos = seat:GetPos()
+                    local surfacePos = FindSeatSurfacePos(seatPos, vehicle, seat)
+                    local validPos = FindValidPosition(npc, surfacePos, vehicle, seat, 15)
+                    local ang = seat:GetAngles()
+                    return validPos, ang, nil, seat, vehicleType
+                else
+                    local pos = seat:GetPos()
+                    local ang = seat:GetAngles()
+                    return pos, ang, nil, seat, vehicleType
+                end
             end
         end
     end
