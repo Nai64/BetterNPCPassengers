@@ -1012,7 +1012,8 @@ local function CreateCheckbox(parent, label, convar)
     return container, checkbox
 end
 
--- Track all sliders for panel transparency when dragging
+-- Global table to track all slider knobs for panel transparency logic
+-- When any slider in this table is being dragged, the panel becomes 70% transparent
 local uiSliders = {}
 
 local function CreateSlider(parent, label, convar, min, max, decimals)
@@ -1062,21 +1063,23 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     end
 
     slider.Slider.Knob:SetSize(14, 14)
-    slider.Slider.Knob.isDragging = false
+    slider.Slider.Knob.isDragging = false  -- Track if this slider knob is being dragged
 
+    -- Wrap the original OnMousePressed to set dragging state
     local originalOnMousePressed = slider.Slider.Knob.OnMousePressed
     slider.Slider.Knob.OnMousePressed = function(self, mcode)
-        self.isDragging = true
+        self.isDragging = true  -- Mark as dragging when mouse is pressed on knob
         if originalOnMousePressed then
-            return originalOnMousePressed(self, mcode)
+            return originalOnMousePressed(self, mcode)  -- Call original handler
         end
     end
 
+    -- Wrap the original OnMouseReleased to clear dragging state
     local originalOnMouseReleased = slider.Slider.Knob.OnMouseReleased
     slider.Slider.Knob.OnMouseReleased = function(self, mcode)
-        self.isDragging = false
+        self.isDragging = false  -- Clear dragging state when mouse is released
         if originalOnMouseReleased then
-            return originalOnMouseReleased(self, mcode)
+            return originalOnMouseReleased(self, mcode)  -- Call original handler
         end
     end
 
@@ -1087,6 +1090,7 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
         end
     end
 
+    -- Add this slider knob to the global tracking table for panel fade logic
     table.insert(uiSliders, slider.Slider.Knob)
 
     slider.TextArea:SetWide(60)
@@ -1312,7 +1316,8 @@ local function OpenSettingsPanel()
         settingsFrame:Remove()
     end
 
-    -- Clear slider tracking for new panel instance
+    -- Clear the slider tracking table to avoid tracking sliders from previous panel instances
+    -- This prevents stale references when the panel is reopened
     if uiSliders then
         for i = #uiSliders, 1, -1 do
             uiSliders[i] = nil
@@ -1370,58 +1375,70 @@ local function OpenSettingsPanel()
     -- it fights with the AlphaTo() in AnimateSettingsFrameIn.
     settingsFrame.fadeReadyAt = CurTime() + 0.45
     settingsFrame.Think = function(self)
-        -- Idle fade logic
+        -- IDLE FADE LOGIC: Panel becomes transparent when mouse is NOT over it
+        -- EXCEPTION: When dragging a SLIDER knob, panel is 70% transparent
         local shouldSkipFade = false
 
+        -- Skip all fade logic if panel is closing or entrance animation not done
         if self.isClosingAnimated then
             shouldSkipFade = true
         elseif CurTime() < (self.fadeReadyAt or 0) then
             shouldSkipFade = true
+        -- Skip if animations are disabled globally
         elseif not AreUIAnimationsEnabled() then
             self.idleFadeAlpha = 1
             shouldSkipFade = true
         else
+            -- Check if idle fade feature is enabled via convar
             local fadeEnabled = GetConVar("nai_npc_ui_idle_fade")
             if not (fadeEnabled and fadeEnabled:GetBool()) then
+                -- Feature disabled - keep panel fully opaque
                 self.idleFadeAlpha = 1
                 self:SetAlpha(255)
                 shouldSkipFade = true
             else
-                -- Check if any slider is being dragged - if so, set to 70% transparent (30% opaque)
-                local anyDragging = false
+                -- FEATURE ENABLED: Check if any SLIDER knob is being dragged
+                -- When dragging a slider, panel should be 70% transparent (30% opaque = 76.5 alpha)
+                local anySliderDragging = false
                 for _, knob in ipairs(uiSliders or {}) do
                     if IsValid(knob) and knob.isDragging then
-                        anyDragging = true
+                        anySliderDragging = true
                         break
                     end
                 end
 
-                if anyDragging then
-                    -- 70% transparent = 30% opaque = 76.5 alpha
-                    self:SetAlpha(76.5)
+                if anySliderDragging then
+                    -- SLIDER DRAGGING: Set panel to 70% transparent
+                    self:SetAlpha(76.5)  -- 30% of 255 = 76.5
                     shouldSkipFade = true
                 else
-                    -- Check if mouse is over the panel or any of its children
-                    -- Use both IsHovered (direct) and IsChildHovered (recursive) with high depth
-                    local hovered = self:IsHovered() or self:IsChildHovered(999)
-                    -- Also check if mouse is within panel bounds (catches scrollbars that might not be detected)
+                    -- NO SLIDER DRAGGING: Check if mouse is over the panel
+                    -- Use multiple methods to detect hover, including bounds check
+                    local isHovered = self:IsHovered() or self:IsChildHovered(999)
+                    
+                    -- FALLBACK: Check if mouse is within panel's rectangle bounds
+                    -- This catches cases where child elements (like scrollbars) aren't detected
                     local mouseX, mouseY = gui.MouseX(), gui.MouseY()
                     local panelX, panelY = self:GetPos()
                     local panelW, panelH = self:GetSize()
-                    local inBounds = mouseX >= panelX and mouseX <= panelX + panelW and mouseY >= panelY and mouseY <= panelY + panelH
-                    hovered = hovered or inBounds
+                    local inBounds = mouseX >= panelX and mouseX <= panelX + panelW and
+                                   mouseY >= panelY and mouseY <= panelY + panelH
+                    isHovered = isHovered or inBounds
 
-                    local target = hovered and 1 or 0
-                    self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, target, FrameTime() * (hovered and 6 or 3))
+                    -- If hovered, target is 1 (fully opaque), if not, target is 0 (idle fade)
+                    local fadeTarget = isHovered and 1 or 0
+                    -- Smoothly approach the target (faster when hovering, slower when fading)
+                    self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, fadeTarget,
+                        FrameTime() * (isHovered and 6 or 3))
 
-                    -- Map idleFadeAlpha (0..1) to the user-configured range:
-                    --   1.0 -> 255 (fully opaque)
-                    --   0.0 -> idle alpha from convar (0..100 -> 0..255)
+                    -- Map the fade value (0-1) to actual alpha (0-255)
+                    -- When fade is 1: alpha = 255 (fully opaque)
+                    -- When fade is 0: alpha = user-configured idle opacity (default 30% = 76.5)
                     local idleAlphaCV = GetConVar("nai_npc_ui_idle_alpha")
-                    local minPct = idleAlphaCV and math.Clamp(idleAlphaCV:GetFloat(), 0, 100) or 30
-                    local minAlpha = (minPct / 100) * 255
-                    local alpha = Lerp(self.idleFadeAlpha, minAlpha, 255)
-                    self:SetAlpha(alpha)
+                    local idleOpacityPercent = idleAlphaCV and math.Clamp(idleAlphaCV:GetFloat(), 0, 100) or 30
+                    local idleAlpha = (idleOpacityPercent / 100) * 255
+                    local finalAlpha = Lerp(self.idleFadeAlpha, idleAlpha, 255)
+                    self:SetAlpha(finalAlpha)
                 end
             end
         end
