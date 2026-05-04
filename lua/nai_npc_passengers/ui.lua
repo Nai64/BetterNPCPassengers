@@ -1369,78 +1369,14 @@ local function OpenSettingsPanel()
     settingsFrame:MakePopup()
     AnimateSettingsFrameIn(settingsFrame, targetX, targetY)
 
-    -- Idle-fade: panel becomes more transparent when the mouse is not over it.
-    settingsFrame.idleFadeAlpha = 1  -- 1 = fully visible, 0 = fully faded
-    -- Don't start the fade until the entrance animation has finished, otherwise
-    -- it fights with the AlphaTo() in AnimateSettingsFrameIn.
-    settingsFrame.fadeReadyAt = CurTime() + 0.45
+    -- IDLE FADE LOGIC: TEMPORARILY DISABLED TO ISOLATE TRANSPARENCY BUG
+    -- The panel should stay fully opaque at all times until we identify the root cause
+    -- of the transparency issue when hovering the scrollbar area.
     settingsFrame.Think = function(self)
-        -- IDLE FADE LOGIC: Panel becomes transparent when mouse is NOT over it
-        -- EXCEPTION: When dragging a SLIDER knob, panel is 70% transparent
-        local shouldSkipFade = false
-
-        -- Skip all fade logic if panel is closing or entrance animation not done
-        if self.isClosingAnimated then
-            shouldSkipFade = true
-        elseif CurTime() < (self.fadeReadyAt or 0) then
-            shouldSkipFade = true
-        -- Skip if animations are disabled globally
-        elseif not AreUIAnimationsEnabled() then
-            self.idleFadeAlpha = 1
-            shouldSkipFade = true
-        else
-            -- Check if idle fade feature is enabled via convar
-            local fadeEnabled = GetConVar("nai_npc_ui_idle_fade")
-            if not (fadeEnabled and fadeEnabled:GetBool()) then
-                -- Feature disabled - keep panel fully opaque
-                self.idleFadeAlpha = 1
-                self:SetAlpha(255)
-                shouldSkipFade = true
-            else
-                -- FEATURE ENABLED: Check if any SLIDER knob is being dragged
-                -- When dragging a slider, panel should be 70% transparent (30% opaque = 76.5 alpha)
-                local anySliderDragging = false
-                for _, knob in ipairs(uiSliders or {}) do
-                    if IsValid(knob) and knob.isDragging then
-                        anySliderDragging = true
-                        break
-                    end
-                end
-
-                if anySliderDragging then
-                    -- SLIDER DRAGGING: Set panel to 70% transparent
-                    self:SetAlpha(76.5)  -- 30% of 255 = 76.5
-                    shouldSkipFade = true
-                else
-                    -- NO SLIDER DRAGGING: Check if mouse is over the panel
-                    -- Use multiple methods to detect hover, including bounds check
-                    local isHovered = self:IsHovered() or self:IsChildHovered(999)
-                    
-                    -- FALLBACK: Check if mouse is within panel's rectangle bounds
-                    -- This catches cases where child elements (like scrollbars) aren't detected
-                    local mouseX, mouseY = gui.MouseX(), gui.MouseY()
-                    local panelX, panelY = self:GetPos()
-                    local panelW, panelH = self:GetSize()
-                    local inBounds = mouseX >= panelX and mouseX <= panelX + panelW and
-                                   mouseY >= panelY and mouseY <= panelY + panelH
-                    isHovered = isHovered or inBounds
-
-                    -- If hovered, target is 1 (fully opaque), if not, target is 0 (idle fade)
-                    local fadeTarget = isHovered and 1 or 0
-                    -- Smoothly approach the target (faster when hovering, slower when fading)
-                    self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, fadeTarget,
-                        FrameTime() * (isHovered and 6 or 3))
-
-                    -- Map the fade value (0-1) to actual alpha (0-255)
-                    -- When fade is 1: alpha = 255 (fully opaque)
-                    -- When fade is 0: alpha = user-configured idle opacity (default 30% = 76.5)
-                    local idleAlphaCV = GetConVar("nai_npc_ui_idle_alpha")
-                    local idleOpacityPercent = idleAlphaCV and math.Clamp(idleAlphaCV:GetFloat(), 0, 100) or 30
-                    local idleAlpha = (idleOpacityPercent / 100) * 255
-                    local finalAlpha = Lerp(self.idleFadeAlpha, idleAlpha, 255)
-                    self:SetAlpha(finalAlpha)
-                end
-            end
+        -- TEMPORARY: Force panel to always be fully opaque
+        -- This will help us determine if the issue is in this Think function or elsewhere
+        if self:GetAlpha() ~= 255 then
+            self:SetAlpha(255)
         end
 
         -- Passenger auto-refresh logic
