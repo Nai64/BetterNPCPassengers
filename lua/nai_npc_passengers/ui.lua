@@ -1249,7 +1249,7 @@ local function AnimateSettingsFrameIn(frame, targetX, targetY)
     frame:SetPos(targetX, ScrH() + 50)
 
     -- Smooth entrance
-    frame:AlphaTo(255, 0.3, 0, -1)
+    frame:AlphaTo(255, 0.3, 0)
     frame:MoveTo(targetX, targetY, 0.35, 0, -1)
 end
 
@@ -1291,7 +1291,7 @@ local function OpenSettingsPanel()
         local closeX = self:GetX()
 
         -- Smooth close animation
-        self:AlphaTo(0, 0.2, 0, -1)
+        self:AlphaTo(0, 0.2, 0)
         self:MoveTo(closeX, ScrH() + 50, 0.25, 0, -1, function()
             if IsValid(self) then
                 defaultClose(self)
@@ -4532,7 +4532,7 @@ function ShowWelcomePanel(forceShow)
         frame:SetAlpha(0)
         local targetX, targetY = frame:GetPos()
         frame:SetPos(targetX, targetY - 50)
-        frame:AlphaTo(255, 0.3, 0, -1)
+        frame:AlphaTo(255, 0.3, 0)
         frame:MoveTo(targetX, targetY, 0.35, 0, -1)
     end
     
