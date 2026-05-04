@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.6.0"
+NPCPassengers.Version = NPCPassengers.Version or "2.6.1"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-05-04"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -39,6 +39,7 @@ NPCPassengers.cv_hide_in_tanks = CreateConVar("nai_npc_hide_in_tanks", "1", {FCV
 NPCPassengers.cv_eject_stuck_check = CreateConVar("nai_npc_eject_stuck_check", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Automatically push NPCs out of vehicles when they get stuck during ejection")
 NPCPassengers.cv_detach_no_collide = CreateConVar("nai_npc_detach_no_collide", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Disable collision between NPC and vehicle after detach so NPCs can walk through")
 NPCPassengers.cv_detach_no_collide_duration = CreateConVar("nai_npc_detach_no_collide_duration", "5", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "How long (seconds) NPCs ignore vehicle collision after detach")
+NPCPassengers.cv_die_with_vehicle = CreateConVar("nai_npc_die_with_vehicle", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Kill all NPC passengers when their vehicle is destroyed/explodes")
 
 -- Addon safety and seat behavior controls
 NPCPassengers.cv_enabled = CreateConVar("nai_npc_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable/disable NPC passenger addon features")

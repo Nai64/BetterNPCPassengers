@@ -3179,6 +3179,9 @@ local function OpenSettingsPanel()
     CreateSlider(tankPanel, "No-Collide Duration (seconds)", "nai_npc_detach_no_collide_duration", 1, 15, 1)
     CreateHelpText(tankPanel, "How long NPCs ignore the vehicle's collision after detaching.")
 
+    CreateCheckbox(tankPanel, "Kill Passengers When Vehicle Explodes", "nai_npc_die_with_vehicle")
+    CreateHelpText(tankPanel, "NPC passengers die when their vehicle is destroyed by explosion or fire (more immersive than them walking out of a wreck unharmed).")
+
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "NPC Auto-Driver")
     

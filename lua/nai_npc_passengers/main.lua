@@ -3646,6 +3646,35 @@ hook.Add("PlayerLeaveVehicle", "NPCPassengerDetach", function(ply, vehicle)
     end)
 end)
 
+-- Kill all passengers in a vehicle (used for explosion / vehicle destruction)
+local function KillVehiclePassengers(vehicle, attacker, inflictor, dmgType)
+    if not IsValid(vehicle) then return end
+
+    local rootVehicle = GetRootVehicle(vehicle) or vehicle
+
+    local passengersToKill = {}
+    for npc, data in pairs(friendlyPassengers) do
+        if IsValid(npc) and npc:Health() > 0 then
+            local vehMatch = data.vehicle == vehicle or data.vehicle == rootVehicle
+            local seatMatch = data.seat == vehicle
+            if vehMatch or seatMatch then
+                passengersToKill[#passengersToKill + 1] = npc
+            end
+        end
+    end
+
+    for _, npc in ipairs(passengersToKill) do
+        if IsValid(npc) and npc:Health() > 0 then
+            local dmg = DamageInfo()
+            dmg:SetDamage(npc:Health() + 1000)
+            dmg:SetDamageType(dmgType or DMG_BLAST)
+            dmg:SetAttacker(IsValid(attacker) and attacker or game.GetWorld())
+            dmg:SetInflictor(IsValid(inflictor) and inflictor or (IsValid(vehicle) and vehicle or game.GetWorld()))
+            npc:TakeDamageInfo(dmg)
+        end
+    end
+end
+
 hook.Add("EntityTakeDamage", "NPCPassengerDeathHandler", function(target, dmginfo)
     if not IsAddonEnabled() then return end
     if friendlyPassengers[target] then
@@ -3653,7 +3682,26 @@ hook.Add("EntityTakeDamage", "NPCPassengerDeathHandler", function(target, dmginf
         -- via right-click "Remove Passenger" or the nai_passengers_eject_dead command.
         return
     end
-    
+
+    -- Kill passengers when their vehicle takes blast/lethal damage
+    if NPCPassengers.cv_die_with_vehicle:GetBool() and IsValid(target) then
+        local dmgType = dmginfo:GetDamageType()
+        local isBlast = bit.band(dmgType, DMG_BLAST) > 0
+        local isFire = bit.band(dmgType, DMG_BURN) > 0 or bit.band(dmgType, DMG_SLOWBURN) > 0
+        local rootVehicle = GetRootVehicle(target)
+        local isVehicle = (target:IsVehicle() or (IsValid(rootVehicle) and rootVehicle ~= target) or target.IsSimfphyscar or target.IsLVS or target.IsGlideVehicle)
+
+        if isVehicle then
+            local vehicleHealth = target:Health()
+            local incomingDamage = dmginfo:GetDamage()
+            local willDie = vehicleHealth > 0 and incomingDamage >= vehicleHealth
+
+            if isBlast or willDie or (isFire and incomingDamage > 50) then
+                KillVehiclePassengers(target, dmginfo:GetAttacker(), dmginfo:GetInflictor(), dmgType)
+            end
+        end
+    end
+
     local exitMode = NPCPassengers.cv_exit_mode:GetInt()
     if exitMode == 2 then return end
     if exitMode == 0 then return end
@@ -3722,8 +3770,19 @@ hook.Add("EntityRemoved", "NPCPassengerCleanup", function(ent)
         end
     end
     
+    -- If vehicle is being destroyed/removed, kill passengers (they died with the vehicle)
+    local killWithVehicle = NPCPassengers.cv_die_with_vehicle:GetBool() and #passengersToCleanup > 0
+    
     for _, npc in ipairs(passengersToCleanup) do
         if IsValid(npc) then
+            if killWithVehicle and npc:Health() > 0 then
+                local dmg = DamageInfo()
+                dmg:SetDamage(npc:Health() + 1000)
+                dmg:SetDamageType(DMG_BLAST)
+                dmg:SetAttacker(game.GetWorld())
+                dmg:SetInflictor(game.GetWorld())
+                npc:TakeDamageInfo(dmg)
+            end
             DetachNPC(npc)
         else
             RemovePassengerData(npc)
