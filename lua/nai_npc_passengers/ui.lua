@@ -1059,12 +1059,25 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     end
 
     slider.Slider.Knob:SetSize(14, 14)
+    slider.Slider.Knob.isDragging = false
+
+    slider.Slider.Knob.OnMousePressed = function(self, mcode)
+        self.isDragging = true
+        return self:CallOld("OnMousePressed", mcode)
+    end
+    slider.Slider.Knob.OnMouseReleased = function(self, mcode)
+        self.isDragging = false
+        return self:CallOld("OnMouseReleased", mcode)
+    end
+
     slider.Slider.Knob.Paint = function(self, w, h)
         draw.RoundedBox(7, 0, 0, w, h, Theme.accent)
         if self:IsHovered() then
             draw.RoundedBox(7, 0, 0, w, h, Theme.accentHover)
         end
     end
+
+    table.insert(uiSliders, slider.Slider.Knob)
 
     slider.TextArea:SetWide(60)
     slider.TextArea:SetTextColor(Theme.text)
@@ -1181,6 +1194,9 @@ end
 -- Track all scrollbars for live smoothness updates
 local sidebarScrollbars = {}
 
+-- Track all sliders for panel transparency when dragging
+local uiSliders = {}
+
 local function StyleScrollbar(sbar)
     sbar:SetWide(8)
     sbar:SetHideButtons(true)
@@ -1200,7 +1216,6 @@ local function StyleScrollbar(sbar)
     -- Auto-hide state: scrollbar fades out when not in use
     sbar.activeAlpha = 0      -- 0 = hidden, 1 = visible
     sbar.lastScrollAt = 0     -- last time the scrollbar's value changed
-    sbar.isDraggingGrip = false  -- true when the grip is being dragged
 
     sbar.Think = function(self)
         if self.smoothScroll ~= self.scrollTarget then
@@ -1248,23 +1263,6 @@ local function StyleScrollbar(sbar)
     end
     sbar.btnUp.Paint = function() end
     sbar.btnDown.Paint = function() end
-
-    -- Track grip dragging state
-    sbar.btnGrip.OnMousePressed = function(self, mcode)
-        local parentBar = self:GetParent()
-        if IsValid(parentBar) then
-            parentBar.isDraggingGrip = true
-        end
-        return self:CallOld("OnMousePressed", mcode)
-    end
-    sbar.btnGrip.OnMouseReleased = function(self, mcode)
-        local parentBar = self:GetParent()
-        if IsValid(parentBar) then
-            parentBar.isDraggingGrip = false
-        end
-        return self:CallOld("OnMouseReleased", mcode)
-    end
-
     sbar.btnGrip.Paint = function(self, w, h)
         local parentBar = self:GetParent()
         local a = (parentBar and parentBar.activeAlpha) or 1
@@ -1373,10 +1371,10 @@ local function OpenSettingsPanel()
                 self:SetAlpha(255)
                 shouldSkipFade = true
             else
-                -- Check if any scrollbar is being dragged - if so, set to 70% transparent (30% opaque)
+                -- Check if any slider is being dragged - if so, set to 70% transparent (30% opaque)
                 local anyDragging = false
-                for _, sbar in ipairs(sidebarScrollbars or {}) do
-                    if IsValid(sbar) and sbar.isDraggingGrip then
+                for _, knob in ipairs(uiSliders or {}) do
+                    if IsValid(knob) and knob.isDragging then
                         anyDragging = true
                         break
                     end
@@ -4027,6 +4025,8 @@ local function OpenSettingsPanel()
 
     CreateCheckbox(interfacePanel, "Auto-Hide Scrollbar", "nai_npc_ui_scrollbar_autohide")
     CreateHelpText(interfacePanel, "Only show the scrollbar while you're scrolling or hovering it.")
+
+    CreateHelpText(interfacePanel, "Note: Panel becomes 70% transparent when dragging any slider to see content in background.")
 
     local _, scrollSmoothSlider = CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
     CreateHelpText(interfacePanel, "Lower values = smoother but slower scrolling (0.01-1)")
