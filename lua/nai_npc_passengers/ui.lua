@@ -1216,10 +1216,10 @@ local function StyleScrollbar(sbar)
         if not autohideOn then
             shouldShow = true
         else
-            -- Show while hovered, while the grip is hovered/being dragged,
+            -- Show while hovered, while the grip is hovered,
             -- or for ~1 second after the last scroll update
             local hovered = self:IsHovered()
-                or (IsValid(self.btnGrip) and (self.btnGrip:IsHovered() or self.btnGrip:IsDown()))
+                or (IsValid(self.btnGrip) and self.btnGrip:IsHovered())
             local recentlyScrolled = (CurTime() - (self.lastScrollAt or 0)) < 1.0
             shouldShow = hovered or recentlyScrolled
         end
