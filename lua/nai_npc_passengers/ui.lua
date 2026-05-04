@@ -923,6 +923,7 @@ local function CreateCheckbox(parent, label, convar)
     checkbox.animScale = 1
     checkbox.popTimer = 0
     checkbox.hoverAnim = 0
+    checkbox.checkedAnim = 0  -- Animation for enabled/disabled state transition
 
     -- Override background to remove square
     checkbox.Paint = function(self, w, h)
@@ -940,6 +941,16 @@ local function CreateCheckbox(parent, label, convar)
             self.hoverAnim = math.Approach(self.hoverAnim or 0, hoverTarget, FrameTime() * (hovered and 8 or 6))
         else
             self.hoverAnim = hoverTarget
+        end
+
+        -- Enabled/disabled state animation
+        local cv = GetConVar(convar)
+        local isChecked = cv and cv:GetBool() or false
+        local checkedTarget = isChecked and 1 or 0
+        if animationsEnabled then
+            self.checkedAnim = math.Approach(self.checkedAnim or 0, checkedTarget, FrameTime() * (isChecked and 12 or 8))
+        else
+            self.checkedAnim = checkedTarget
         end
 
         -- Pop animation: quickly scale up, then slowly return to normal
@@ -983,13 +994,15 @@ local function CreateCheckbox(parent, label, convar)
         -- Apply pop animation to checked dot
         local popScale = self.animScale or 1
         
-        local borderCol = isChecked and Theme.accentHover or Theme.border
-        local fillCol = isChecked and Theme.accent or Theme.bgLighter
+        -- Interpolate colors based on checked animation state
+        local checkedAnim = self.checkedAnim or 0
+        local borderCol = LerpColor(checkedAnim, Theme.border, Theme.accentHover)
+        local fillCol = LerpColor(checkedAnim, Theme.bgLighter, Theme.accent)
 
-        -- Outer glow for checked state
-        if isChecked then
+        -- Outer glow with animation
+        if checkedAnim > 0 then
             draw.NoTexture()
-            surface.SetDrawColor(Theme.glow.r, Theme.glow.g, Theme.glow.b, Theme.glow.a)
+            surface.SetDrawColor(Theme.glow.r, Theme.glow.g, Theme.glow.b, Theme.glow.a * checkedAnim)
             draw.Circle(centerX, centerY, radius + 3, 32)
         end
 
@@ -1003,7 +1016,7 @@ local function CreateCheckbox(parent, label, convar)
         draw.Circle(centerX, centerY, radius, 32)
 
         -- Checked dot with pop animation
-        if isChecked then
+        if checkedAnim > 0.01 then
             surface.SetDrawColor(Theme.textBright)
             draw.Circle(centerX, centerY, (radius * 0.5) * popScale, 32)
         end
