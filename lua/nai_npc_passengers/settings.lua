@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.7.7"
+NPCPassengers.Version = NPCPassengers.Version or "2.7.8"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-05-04"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -79,6 +79,7 @@ if CLIENT then
     NPCPassengers.cv_ui_panel_width = CreateClientConVar("nai_npc_ui_panel_width", "950", true, false, "Settings panel width")
     NPCPassengers.cv_ui_panel_height = CreateClientConVar("nai_npc_ui_panel_height", "700", true, false, "Settings panel height")
     NPCPassengers.cv_ui_use_default_font = CreateClientConVar("nai_npc_ui_use_default_font", "0", true, false, "Use the default GMod UI font instead of Metropolis")
+    NPCPassengers.cv_ui_custom_font = CreateClientConVar("nai_npc_ui_custom_font", "Metropolis", true, false, "Custom font name for UI (must be in resource/fonts/)")
     NPCPassengers.cv_ui_animations = CreateClientConVar("nai_npc_ui_animations", "1", true, false, "Enable UI animations")
     NPCPassengers.cv_ui_tooltips = CreateClientConVar("nai_npc_ui_tooltips", "1", true, false, "Show tooltips in UI")
     NPCPassengers.cv_ui_scroll_smoothness = CreateClientConVar("nai_npc_ui_scroll_smoothness", "0.15", true, false, "Sidebar scroll smoothness (0.01-1, lower = smoother)")

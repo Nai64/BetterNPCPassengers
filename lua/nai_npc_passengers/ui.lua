@@ -571,8 +571,33 @@ local function GetUIFontName()
         return DEFAULT_FONT_NAME
     end
 
+    local customFont = GetConVar("nai_npc_ui_custom_font")
+    if customFont then
+        local fontName = customFont:GetString()
+        if fontName and fontName ~= "" then
+            return fontName
+        end
+    end
+
     return fontName
 end
+
+-- Function to scan the resource/fonts/ folder for available fonts
+local function GetAvailableFonts()
+    local fonts = {"Metropolis"} -- Default font
+    local files, folders = file.Find("resource/fonts/*.ttf", "GAME")
+    
+    if files then
+        for _, filename in ipairs(files) do
+            -- Remove .ttf extension to get font name
+            local fontName = string.gsub(filename, "%.ttf$", "")
+            table.insert(fonts, fontName)
+        end
+    end
+    
+    return fonts
+end
+
 
 local function CreateNaiFonts()
     local activeFontName = GetUIFontName()
@@ -3950,7 +3975,67 @@ local function OpenSettingsPanel()
         if IsValid(settingsFrame) then
             settingsFrame:InvalidateLayout(true)
         end
+
+        -- Hide/show custom font dropdown based on default font setting
+        if IsValid(fontCombo) then
+            fontCombo:SetVisible(not val)
+        end
+        if IsValid(fontLabel) then
+            fontLabel:SetVisible(not val)
+        end
     end
+
+    -- Custom font dropdown
+    local availableFonts = GetAvailableFonts()
+    local fontLabel = vgui.Create("DLabel", interfacePanel)
+    fontLabel:SetText("Custom Font")
+    fontLabel:SetFont("NaiFont_Normal")
+    fontLabel:SetTextColor(Theme.text)
+    fontLabel:Dock(TOP)
+    fontLabel:DockMargin(10, 8, 10, 2)
+
+    local fontCombo = vgui.Create("DComboBox", interfacePanel)
+    fontCombo.SearchLabel = "Custom Font"
+    fontCombo.SearchConVar = "nai_npc_ui_custom_font"
+    fontCombo:Dock(TOP)
+    fontCombo:DockMargin(10, 0, 10, 5)
+    fontCombo:SetTall(28)
+    fontCombo:SetFont("NaiFont_Normal")
+    fontCombo:SetTextColor(Theme.text)
+    
+    for _, font in ipairs(availableFonts) do
+        fontCombo:AddChoice(font, font)
+    end
+    
+    local currentFont = GetConVarStringSafe("nai_npc_ui_custom_font", "Metropolis")
+    fontCombo:SetValue(currentFont)
+    
+    fontCombo.Paint = function(self, w, h)
+        draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
+        if self:IsMenuOpen() then
+            surface.SetDrawColor(Theme.accent)
+            surface.DrawOutlinedRect(0, 0, w, h, 1)
+        end
+    end
+    
+    fontCombo.OnSelect = function(self, index, value, data)
+        RunConsoleCommand("nai_npc_ui_custom_font", data)
+        CreateNaiFonts()
+        
+        if IsValid(settingsFrame) then
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
+
+    CreateHelpText(interfacePanel, "Select a custom font from your resource/fonts/ folder. Changes apply immediately.")
+
+    -- Initially hide custom font dropdown if default font is enabled
+    local useDefaultFont = GetConVarBoolSafe("nai_npc_ui_use_default_font", false)
+    if useDefaultFont then
+        fontCombo:SetVisible(false)
+        fontLabel:SetVisible(false)
+    end
+
     
     local _, widthSlider = CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
     CreateHelpText(interfacePanel, "Width of the settings panel")
