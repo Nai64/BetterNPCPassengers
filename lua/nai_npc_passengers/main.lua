@@ -857,15 +857,15 @@ end
 
 local function GetRootVehicle(ent)
     if not IsValid(ent) then return nil end
-    
+
     if ent.base and IsValid(ent.base) and ent.base.IsSimfphyscar then
         return ent.base
     end
 
-    if ent.LVS and IsValid(ent.LVS) then
+    if ent.LVS and istable(ent.LVS) and IsValid(ent.LVS) then
         return ent.LVS
     end
-    
+
     if ent:GetClass() == "prop_vehicle_prisoner_pod" and IsValid(ent:GetParent()) then
         return ent:GetParent()
     end
