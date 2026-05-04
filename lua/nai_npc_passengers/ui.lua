@@ -925,6 +925,7 @@ local function CreateCheckbox(parent, label, convar)
     checkbox.hoverAnim = 0
     checkbox.checkedAnim = 0  -- Animation for enabled/disabled state transition
     checkbox.circleScale = 1  -- Popup animation for the entire circle
+    checkbox.popupStartScale = 0  -- Starting scale for popup animation
 
     -- Override background to remove square
     checkbox.Paint = function(self, w, h)
@@ -957,16 +958,16 @@ local function CreateCheckbox(parent, label, convar)
         -- Popup animation on toggle (both circle and dot)
         if animationsEnabled and self.popTimer > 0 then
             self.popTimer = self.popTimer - FrameTime()
-            -- Bouncy popup: scale up, then bounce back
-            if self.popTimer > 0.1 then
-                self.circleScale = Lerp(FrameTime() * 10, self.circleScale, 1.3)
-                self.animScale = Lerp(FrameTime() * 10, self.animScale, 1.2)
-            elseif self.popTimer > 0.05 then
-                self.circleScale = Lerp(FrameTime() * 15, self.circleScale, 0.95)
-                self.animScale = Lerp(FrameTime() * 12, self.animScale, 0.95)
+            -- Bouncy popup: start from 0, scale up to 1.2, then bounce back to 1
+            if self.popTimer > 0.12 then
+                self.circleScale = Lerp(FrameTime() * 12, self.circleScale, 1.2)
+                self.animScale = Lerp(FrameTime() * 12, self.animScale, 1.1)
+            elseif self.popTimer > 0.06 then
+                self.circleScale = Lerp(FrameTime() * 15, self.circleScale, 0.9)
+                self.animScale = Lerp(FrameTime() * 15, self.animScale, 0.9)
             else
-                self.circleScale = Lerp(FrameTime() * 8, self.circleScale, 1)
-                self.animScale = Lerp(FrameTime() * 8, self.animScale, 1)
+                self.circleScale = Lerp(FrameTime() * 10, self.circleScale, 1)
+                self.animScale = Lerp(FrameTime() * 10, self.animScale, 1)
             end
         else
             self.circleScale = Lerp(FrameTime() * 8, self.circleScale, 1)
@@ -978,7 +979,9 @@ local function CreateCheckbox(parent, label, convar)
     checkbox.OnChange = function(self, val)
         local animationsEnabled = GetConVar("nai_npc_ui_animations"):GetBool()
         if animationsEnabled then
-            self.popTimer = 0.15  -- 150ms pop animation
+            self.popTimer = 0.18  -- 180ms pop animation
+            self.circleScale = 0  -- Start from 0 scale
+            self.animScale = 0  -- Start from 0 scale
         end
         
         if IsValid(LocalPlayer()) and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
