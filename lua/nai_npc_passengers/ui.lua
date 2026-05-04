@@ -642,42 +642,6 @@ end
 
 local TransparentColor = Color(0, 0, 0, 0)
 
--- Bouncy easing functions for fluid animations
-local function EaseOutBounce(t)
-    if t < 1/2.75 then
-        return 7.5625 * t * t
-    elseif t < 2/2.75 then
-        t = t - 1.5/2.75
-        return 7.5625 * t * t + 0.75
-    elseif t < 2.5/2.75 then
-        t = t - 2.25/2.75
-        return 7.5625 * t * t + 0.9375
-    else
-        t = t - 2.625/2.75
-        return 7.5625 * t * t + 0.984375
-    end
-end
-
-local function EaseOutElastic(t)
-    if t == 0 then return 0 end
-    if t == 1 then return 1 end
-    return math.pow(2, -10 * t) * math.sin((t * 10 - 0.75) * (2 * math.pi) / 3) + 1
-end
-
-local function EaseOutBack(t)
-    local c1 = 1.70158
-    local c3 = c1 + 1
-    return 1 + c3 * math.pow(t - 1, 3) + c1 * math.pow(t - 1, 2)
-end
-
-local function EaseOutQuart(t)
-    return 1 - math.pow(1 - t, 4)
-end
-
-local function EaseInOutCubic(t)
-    return t < 0.5 and 4 * t * t * t or 1 - math.pow(-2 * t + 2, 3) / 2
-end
-
 local function AnimateButtonVisualState(button, hoverInSpeed, hoverOutSpeed, pressInSpeed, pressOutSpeed)
     local hovered = button:IsHovered()
     local pressed = button:IsDown()
