@@ -1369,14 +1369,27 @@ local function OpenSettingsPanel()
     settingsFrame:MakePopup()
     AnimateSettingsFrameIn(settingsFrame, targetX, targetY)
 
-    -- IDLE FADE LOGIC: TEMPORARILY DISABLED TO ISOLATE TRANSPARENCY BUG
-    -- The panel should stay fully opaque at all times until we identify the root cause
-    -- of the transparency issue when hovering the scrollbar area.
+    -- PANEL TRANSPARENCY LOGIC
+    -- Panel becomes 70% transparent ONLY when dragging a SLIDER knob
+    -- No idle fade when mouse is not over panel (that feature was causing issues)
     settingsFrame.Think = function(self)
-        -- TEMPORARY: Force panel to always be fully opaque
-        -- This will help us determine if the issue is in this Think function or elsewhere
-        if self:GetAlpha() ~= 255 then
-            self:SetAlpha(255)
+        -- Check if any SLIDER knob is being dragged
+        local anySliderDragging = false
+        for _, knob in ipairs(uiSliders or {}) do
+            if IsValid(knob) and knob.isDragging then
+                anySliderDragging = true
+                break
+            end
+        end
+
+        if anySliderDragging then
+            -- SLIDER DRAGGING: Set panel to 70% transparent (30% opaque = 76.5 alpha)
+            self:SetAlpha(76.5)
+        else
+            -- NOT DRAGGING: Keep panel fully opaque
+            if self:GetAlpha() ~= 255 then
+                self:SetAlpha(255)
+            end
         end
 
         -- Passenger auto-refresh logic
@@ -3994,12 +4007,6 @@ local function OpenSettingsPanel()
     CreateCheckbox(interfacePanel, "Show Tooltips", "nai_npc_ui_tooltips")
     CreateHelpText(interfacePanel, "Display helpful tooltips when hovering over settings")
 
-    CreateCheckbox(interfacePanel, "Fade Panel When Idle", "nai_npc_ui_idle_fade")
-    CreateHelpText(interfacePanel, "Make the settings panel transparent when the mouse isn't over it. (DISABLED by default - enable if you want this feature)")
-
-    CreateSlider(interfacePanel, "Idle Panel Opacity (%)", "nai_npc_ui_idle_alpha", 0, 100, 0)
-    CreateHelpText(interfacePanel, "How visible the panel is when not hovered. 100 = fully opaque, 30 = the default 'mostly faded' look, 0 = invisible.")
-
     CreateCheckbox(interfacePanel, "Auto-Hide Scrollbar", "nai_npc_ui_scrollbar_autohide")
     CreateHelpText(interfacePanel, "Only show the scrollbar while you're scrolling or hovering it.")
 
@@ -4041,8 +4048,6 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_ui_use_default_font", "0")
         RunConsoleCommand("nai_npc_ui_animations", "1")
         RunConsoleCommand("nai_npc_ui_tooltips", "1")
-        RunConsoleCommand("nai_npc_ui_idle_fade", "0")  -- Disabled by default due to hover detection issues
-        RunConsoleCommand("nai_npc_ui_idle_alpha", "30")
         RunConsoleCommand("nai_npc_ui_scrollbar_autohide", "1")
         RunConsoleCommand("nai_npc_ui_scroll_smoothness", "0.15")
 

@@ -82,8 +82,6 @@ if CLIENT then
     NPCPassengers.cv_ui_animations = CreateClientConVar("nai_npc_ui_animations", "1", true, false, "Enable UI animations")
     NPCPassengers.cv_ui_tooltips = CreateClientConVar("nai_npc_ui_tooltips", "1", true, false, "Show tooltips in UI")
     NPCPassengers.cv_ui_scroll_smoothness = CreateClientConVar("nai_npc_ui_scroll_smoothness", "0.15", true, false, "Sidebar scroll smoothness (0.01-1, lower = smoother)")
-    NPCPassengers.cv_ui_idle_fade = CreateClientConVar("nai_npc_ui_idle_fade", "0", true, false, "Fade panel when mouse is not over it (DISABLED by default due to hover detection issues)")
-    NPCPassengers.cv_ui_idle_alpha = CreateClientConVar("nai_npc_ui_idle_alpha", "30", true, false, "Panel alpha (0-100) when not hovered. 100 = fully opaque, 0 = invisible")
     NPCPassengers.cv_ui_scrollbar_autohide = CreateClientConVar("nai_npc_ui_scrollbar_autohide", "1", true, false, "Hide scrollbar unless the player is actively scrolling or hovering it")
 end
 NPCPassengers.cv_speech_volume = CreateConVar("nai_npc_speech_volume", "75", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPC speech volume (0-100)")
