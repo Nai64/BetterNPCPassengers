@@ -888,9 +888,20 @@ local function CreateCheckbox(parent, label, convar)
     container:SetTall(32)
     container:Dock(TOP)
     container:DockMargin(5, 3, 5, 3)
+    container.hoverAnim = 0
     container.hasPlayedHoverSound = false
     container.Paint = function(self, w, h)
-        if self:IsHovered() then
+        -- Hover animation
+        local animationsEnabled = GetConVar("nai_npc_ui_animations"):GetBool()
+        local hovered = self:IsHovered()
+        local hoverTarget = hovered and 1 or 0
+        if animationsEnabled then
+            self.hoverAnim = math.Approach(self.hoverAnim or 0, hoverTarget, FrameTime() * (hovered and 8 or 6))
+        else
+            self.hoverAnim = hoverTarget
+        end
+
+        if self.hoverAnim > 0 then
             draw.RoundedBox(6, 0, 0, w, h, Theme.bgLight)
             if not self.hasPlayedHoverSound then
                 if GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_hover_enabled"):GetBool() then
@@ -911,6 +922,7 @@ local function CreateCheckbox(parent, label, convar)
     -- Animation state for checkbox tick pop effect
     checkbox.animScale = 1
     checkbox.popTimer = 0
+    checkbox.hoverAnim = 0
 
     -- Override background to remove square
     checkbox.Paint = function(self, w, h)
@@ -919,8 +931,19 @@ local function CreateCheckbox(parent, label, convar)
 
     -- Custom animated rendering
     checkbox.Think = function(self)
+        local animationsEnabled = GetConVar("nai_npc_ui_animations"):GetBool()
+
+        -- Hover animation for checkbox circle
+        local hovered = self:IsHovered()
+        local hoverTarget = hovered and 1 or 0
+        if animationsEnabled then
+            self.hoverAnim = math.Approach(self.hoverAnim or 0, hoverTarget, FrameTime() * (hovered and 8 or 6))
+        else
+            self.hoverAnim = hoverTarget
+        end
+
         -- Pop animation: quickly scale up, then slowly return to normal
-        if self.popTimer > 0 then
+        if animationsEnabled and self.popTimer > 0 then
             self.popTimer = self.popTimer - FrameTime()
             -- Quick pop up, then slow return
             if self.popTimer > 0.08 then
@@ -935,7 +958,10 @@ local function CreateCheckbox(parent, label, convar)
 
     -- Trigger pop animation on state change
     checkbox.OnChange = function(self, val)
-        self.popTimer = 0.15  -- 150ms pop animation
+        local animationsEnabled = GetConVar("nai_npc_ui_animations"):GetBool()
+        if animationsEnabled then
+            self.popTimer = 0.15  -- 150ms pop animation
+        end
         
         if IsValid(LocalPlayer()) and GetConVar("nai_npc_ui_sounds_enabled"):GetBool() and GetConVar("nai_npc_ui_click_enabled"):GetBool() then
             LocalPlayer():EmitSound("nai_passengers/ui_click.wav", 75, val and 100 or 80)
@@ -948,7 +974,15 @@ local function CreateCheckbox(parent, label, convar)
         local isChecked = cv and cv:GetBool() or false
         
         local centerX, centerY = w / 2, h / 2
-        local radius = math.min(w, h) / 2 - 1
+        local baseRadius = math.min(w, h) / 2 - 1
+        
+        -- Apply hover scale animation (10% scale increase on hover)
+        local hoverScale = 1 + (self.hoverAnim or 0) * 0.1
+        local radius = baseRadius * hoverScale
+        
+        -- Apply pop animation to checked dot
+        local popScale = self.animScale or 1
+        
         local borderCol = isChecked and Theme.accentHover or Theme.border
         local fillCol = isChecked and Theme.accent or Theme.bgLighter
 
@@ -968,10 +1002,10 @@ local function CreateCheckbox(parent, label, convar)
         surface.SetDrawColor(borderCol)
         draw.Circle(centerX, centerY, radius, 32)
 
-        -- Checked dot
+        -- Checked dot with pop animation
         if isChecked then
             surface.SetDrawColor(Theme.textBright)
-            draw.Circle(centerX, centerY, radius * 0.5, 32)
+            draw.Circle(centerX, centerY, (radius * 0.5) * popScale, 32)
         end
     end
     
