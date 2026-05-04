@@ -4792,9 +4792,8 @@ local WELCOME_VERSION = NPCPassengers.Version or "2.5.61"
 
 function ShowWelcomePanel(forceShow)
     local dontShow = cookie.GetString("nai_passengers_hide_welcome", "0")
-    local lastVersion = cookie.GetString("nai_passengers_last_version", "")
-    
-    if not forceShow and dontShow == "1" and lastVersion == WELCOME_VERSION then return end
+
+    if not forceShow and dontShow == "1" then return end
     
     local frame = vgui.Create("DFrame")
     frame:SetSize(620, 560)
@@ -5043,7 +5042,6 @@ function ShowWelcomePanel(forceShow)
     okBtn.DoClick = function()
         if dontShowCheck:GetChecked() then
             cookie.Set("nai_passengers_hide_welcome", "1")
-            cookie.Set("nai_passengers_last_version", WELCOME_VERSION)
         end
         frame:Close()
     end
