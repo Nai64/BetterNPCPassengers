@@ -2,6 +2,7 @@
 .env.*
 *.file
 *.zip
+!versions/*.zip
 .qwen/
 *.txt
 *.ps1
