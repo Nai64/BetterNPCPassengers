@@ -1200,6 +1200,7 @@ local function StyleScrollbar(sbar)
     -- Auto-hide state: scrollbar fades out when not in use
     sbar.activeAlpha = 0      -- 0 = hidden, 1 = visible
     sbar.lastScrollAt = 0     -- last time the scrollbar's value changed
+    sbar.isDraggingGrip = false  -- true when the grip is being dragged
 
     sbar.Think = function(self)
         if self.smoothScroll ~= self.scrollTarget then
@@ -1247,6 +1248,23 @@ local function StyleScrollbar(sbar)
     end
     sbar.btnUp.Paint = function() end
     sbar.btnDown.Paint = function() end
+
+    -- Track grip dragging state
+    sbar.btnGrip.OnMousePressed = function(self, mcode)
+        local parentBar = self:GetParent()
+        if IsValid(parentBar) then
+            parentBar.isDraggingGrip = true
+        end
+        return self:CallOld("OnMousePressed", mcode)
+    end
+    sbar.btnGrip.OnMouseReleased = function(self, mcode)
+        local parentBar = self:GetParent()
+        if IsValid(parentBar) then
+            parentBar.isDraggingGrip = false
+        end
+        return self:CallOld("OnMouseReleased", mcode)
+    end
+
     sbar.btnGrip.Paint = function(self, w, h)
         local parentBar = self:GetParent()
         local a = (parentBar and parentBar.activeAlpha) or 1
@@ -1349,6 +1367,21 @@ local function OpenSettingsPanel()
         if not (fadeEnabled and fadeEnabled:GetBool()) then
             self.idleFadeAlpha = 1
             self:SetAlpha(255)
+            return
+        end
+
+        -- Check if any scrollbar is being dragged - if so, set to 70% transparent (30% opaque)
+        local anyDragging = false
+        for _, sbar in ipairs(sidebarScrollbars or {}) do
+            if IsValid(sbar) and sbar.isDraggingGrip then
+                anyDragging = true
+                break
+            end
+        end
+
+        if anyDragging then
+            -- 70% transparent = 30% opaque = 76.5 alpha
+            self:SetAlpha(76.5)
             return
         end
 
