@@ -1357,50 +1357,52 @@ local function OpenSettingsPanel()
     settingsFrame.fadeReadyAt = CurTime() + 0.45
     settingsFrame.Think = function(self)
         -- Idle fade logic
-        if self.isClosingAnimated then return end
-        if CurTime() < (self.fadeReadyAt or 0) then return end
-        if not AreUIAnimationsEnabled() then
-            self.idleFadeAlpha = 1
-            goto skipFade
-        end
+        local shouldSkipFade = false
 
-        local fadeEnabled = GetConVar("nai_npc_ui_idle_fade")
-        if not (fadeEnabled and fadeEnabled:GetBool()) then
+        if self.isClosingAnimated then
+            shouldSkipFade = true
+        elseif CurTime() < (self.fadeReadyAt or 0) then
+            shouldSkipFade = true
+        elseif not AreUIAnimationsEnabled() then
             self.idleFadeAlpha = 1
-            self:SetAlpha(255)
-            goto skipFade
-        end
+            shouldSkipFade = true
+        else
+            local fadeEnabled = GetConVar("nai_npc_ui_idle_fade")
+            if not (fadeEnabled and fadeEnabled:GetBool()) then
+                self.idleFadeAlpha = 1
+                self:SetAlpha(255)
+                shouldSkipFade = true
+            else
+                -- Check if any scrollbar is being dragged - if so, set to 70% transparent (30% opaque)
+                local anyDragging = false
+                for _, sbar in ipairs(sidebarScrollbars or {}) do
+                    if IsValid(sbar) and sbar.isDraggingGrip then
+                        anyDragging = true
+                        break
+                    end
+                end
 
-        -- Check if any scrollbar is being dragged - if so, set to 70% transparent (30% opaque)
-        local anyDragging = false
-        for _, sbar in ipairs(sidebarScrollbars or {}) do
-            if IsValid(sbar) and sbar.isDraggingGrip then
-                anyDragging = true
-                break
+                if anyDragging then
+                    -- 70% transparent = 30% opaque = 76.5 alpha
+                    self:SetAlpha(76.5)
+                    shouldSkipFade = true
+                else
+                    -- IsChildHovered returns true if any child (or this panel) is under the cursor
+                    local hovered = self:IsHovered() or self:IsChildHovered(99)
+                    local target = hovered and 1 or 0
+                    self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, target, FrameTime() * (hovered and 6 or 3))
+
+                    -- Map idleFadeAlpha (0..1) to the user-configured range:
+                    --   1.0 -> 255 (fully opaque)
+                    --   0.0 -> idle alpha from convar (0..100 -> 0..255)
+                    local idleAlphaCV = GetConVar("nai_npc_ui_idle_alpha")
+                    local minPct = idleAlphaCV and math.Clamp(idleAlphaCV:GetFloat(), 0, 100) or 30
+                    local minAlpha = (minPct / 100) * 255
+                    local alpha = Lerp(self.idleFadeAlpha, minAlpha, 255)
+                    self:SetAlpha(alpha)
+                end
             end
         end
-
-        if anyDragging then
-            -- 70% transparent = 30% opaque = 76.5 alpha
-            self:SetAlpha(76.5)
-            goto skipFade
-        end
-
-        -- IsChildHovered returns true if any child (or this panel) is under the cursor
-        local hovered = self:IsHovered() or self:IsChildHovered(99)
-        local target = hovered and 1 or 0
-        self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, target, FrameTime() * (hovered and 6 or 3))
-
-        -- Map idleFadeAlpha (0..1) to the user-configured range:
-        --   1.0 -> 255 (fully opaque)
-        --   0.0 -> idle alpha from convar (0..100 -> 0..255)
-        local idleAlphaCV = GetConVar("nai_npc_ui_idle_alpha")
-        local minPct = idleAlphaCV and math.Clamp(idleAlphaCV:GetFloat(), 0, 100) or 30
-        local minAlpha = (minPct / 100) * 255
-        local alpha = Lerp(self.idleFadeAlpha, minAlpha, 255)
-        self:SetAlpha(alpha)
-
-        ::skipFade::
 
         -- Passenger auto-refresh logic
         if not passengerAutoRefreshEnabled then
