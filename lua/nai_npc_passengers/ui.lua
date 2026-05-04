@@ -1249,8 +1249,8 @@ local function AnimateSettingsFrameIn(frame, targetX, targetY)
     frame:SetPos(targetX, ScrH() + 50)
 
     -- Smooth entrance
-    frame:AlphaTo(255, 0.3)
-    frame:MoveTo(targetX, targetY, 0.35)
+    frame:AlphaTo(255, 0.3, 0, -1)
+    frame:MoveTo(targetX, targetY, 0.35, 0, -1)
 end
 
 local function OpenSettingsPanel()
@@ -1291,8 +1291,8 @@ local function OpenSettingsPanel()
         local closeX = self:GetX()
 
         -- Smooth close animation
-        self:AlphaTo(0, 0.2)
-        self:MoveTo(closeX, ScrH() + 50, 0.25, 0, function()
+        self:AlphaTo(0, 0.2, 0, -1)
+        self:MoveTo(closeX, ScrH() + 50, 0.25, 0, -1, function()
             if IsValid(self) then
                 defaultClose(self)
             end
@@ -1398,10 +1398,10 @@ local function OpenSettingsPanel()
             if settingsFrame.isMinimized then
                 settingsFrame.originalHeight = settingsFrame:GetTall()
                 -- Smooth collapse animation
-                settingsFrame:SizeTo(settingsFrame:GetWide(), 50, 0.25)
+                settingsFrame:SizeTo(settingsFrame:GetWide(), 50, 0.25, 0, -1)
             else
                 -- Smooth expand animation
-                settingsFrame:SizeTo(settingsFrame:GetWide(), settingsFrame.originalHeight, 0.3)
+                settingsFrame:SizeTo(settingsFrame:GetWide(), settingsFrame.originalHeight, 0.3, 0, -1)
             end
         else
             if settingsFrame.isMinimized then
@@ -4532,8 +4532,8 @@ function ShowWelcomePanel(forceShow)
         frame:SetAlpha(0)
         local targetX, targetY = frame:GetPos()
         frame:SetPos(targetX, targetY - 50)
-        frame:AlphaTo(255, 0.3)
-        frame:MoveTo(targetX, targetY, 0.35)
+        frame:AlphaTo(255, 0.3, 0, -1)
+        frame:MoveTo(targetX, targetY, 0.35, 0, -1)
     end
     
     frame.Paint = function(self, w, h)
