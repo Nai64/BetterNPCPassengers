@@ -582,11 +582,28 @@ local function GetUIFontName()
     return fontName
 end
 
+-- Function to copy fonts from addon folder to global resource/fonts/
+local function InstallAddonFonts()
+    local addonFontFiles = file.Find("addons/betternpcpassengers-gmod/resource/fonts/*.ttf", "GAME")
+    
+    if addonFontFiles then
+        for _, filename in ipairs(addonFontFiles) do
+            local sourcePath = "addons/betternpcpassengers-gmod/resource/fonts/" .. filename
+            local destPath = "resource/fonts/" .. filename
+
+            -- Only copy if file doesn't already exist in global folder
+            if not file.Exists(destPath, "GAME") then
+                file.Copy(sourcePath, destPath, "GAME")
+            end
+        end
+    end
+end
+
 -- Function to scan the resource/fonts/ folder for available fonts
 local function GetAvailableFonts()
     local fonts = {"Metropolis"} -- Default font
-    local files, folders = file.Find("addons/betternpcpassengers-gmod/resource/fonts/*.ttf", "GAME")
-    
+    local files, folders = file.Find("resource/fonts/*.ttf", "GAME")
+
     if files then
         for _, filename in ipairs(files) do
             -- Remove .ttf extension to get font name
@@ -594,7 +611,7 @@ local function GetAvailableFonts()
             table.insert(fonts, fontName)
         end
     end
-    
+
     return fonts
 end
 
@@ -647,9 +664,11 @@ end
 
 -- Create fonts inside Initialize so the renderer is fully ready
 hook.Add("Initialize", "NPCPassengers_CreateFonts", function()
+    InstallAddonFonts()
     CreateNaiFonts()
 end)
 -- Also create them immediately in case Initialize already fired (e.g. Lua file refresh)
+InstallAddonFonts()
 CreateNaiFonts()
 
 local function Lerp(t, a, b)
@@ -4020,8 +4039,9 @@ local function OpenSettingsPanel()
     
     fontCombo.OnSelect = function(self, index, value, data)
         RunConsoleCommand("nai_npc_ui_custom_font", data)
+        InstallAddonFonts()
         CreateNaiFonts()
-        
+
         if IsValid(settingsFrame) then
             settingsFrame:InvalidateLayout(true)
         end
