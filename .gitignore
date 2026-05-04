@@ -15,3 +15,5 @@ testing/
 AGENTS.md
 WORKSHOP_DESCRIPTION.md
 nul
+check_syntax.py
+check_syntax.lua
