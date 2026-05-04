@@ -1238,27 +1238,41 @@ local function OpenSettingsPanel()
     settingsFrame.Paint = function(self, w, h)
         local isMinimized = self.isMinimized or false
 
-        -- Subtle outline
-        draw.RoundedBox(12, 0, 0, w, h, Color(0, 0, 0, 50))
+        -- Subtle shadow/glow effect
+        draw.RoundedBox(12, 0, 0, w, h, Color(0, 0, 0, 80))
 
-        -- Main background
+        -- Main background with subtle gradient
         draw.RoundedBox(11, 1, 1, w - 2, h - 2, Theme.bg)
 
-        -- Header gradient
+        -- Subtle inner border
+        draw.RoundedBox(10, 2, 2, w - 4, h - 4, Color(255, 255, 255, 3))
+
+        -- Header with enhanced gradient
         local gradientMat = Material("vgui/gradient-d")
-        surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 120)
-        surface.SetMaterial(gradientMat)
         if isMinimized then
+            -- Minimized state - full gradient
+            surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 80)
+            surface.SetMaterial(gradientMat)
             draw.RoundedBox(12, 0, 0, w, h, Theme.bgDark)
+            draw.RoundedBox(12, 0, 0, w, h, Color(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 30))
         else
+            -- Normal state - header only
+            surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 100)
+            surface.SetMaterial(gradientMat)
             draw.RoundedBoxEx(12, 0, 0, w, 50, Theme.bgDark, true, true, false, false)
-            -- Accent line under header
+
+            -- Add subtle glow to header
+            draw.RoundedBoxEx(12, 0, 0, w, 50, Color(Theme.accent.r, Theme.accent.g, Theme.accent.b, 15), true, true, false, false)
+
+            -- Accent line under header with glow
             surface.SetDrawColor(Theme.accent)
             surface.DrawRect(0, 50, w, 2)
+            surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 50)
+            surface.DrawRect(0, 52, w, 1)
         end
 
-        -- Title text with shadow
-        draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 21, 26, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        -- Title text with enhanced shadow
+        draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 22, 27, Color(0, 0, 0, 150), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText(ADDON_DISPLAY_NAME .. " Settings", "NaiFont_Title", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
 
@@ -1281,14 +1295,19 @@ local function OpenSettingsPanel()
         local baseColor = Theme.bgLight
         local hoverColor = Theme.accent
         local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
+
+        -- Button background with subtle border
         draw.RoundedBox(6, 0, pushOffset, w, h, col)
+        draw.RoundedBox(5, 1, 1 + pushOffset, w - 2, h - 2, Color(255, 255, 255, 10))
 
         local iconColor = Theme.textBright
         surface.SetDrawColor(iconColor)
         if settingsFrame.isMinimized then
+            -- Plus icon
             surface.DrawLine(8, h/2 + pushOffset, w - 8, h/2 + pushOffset)
             surface.DrawLine(w/2, 8 + pushOffset, w/2, h - 8 + pushOffset)
         else
+            -- Minus icon
             surface.DrawLine(8, h/2 + pushOffset, w - 8, h/2 + pushOffset)
         end
     end
@@ -1320,9 +1339,12 @@ local function OpenSettingsPanel()
         local baseColor = Theme.bgLight
         local hoverColor = Theme.error
         local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
-        local pressedColor = Color(170, 72, 72)
+        local pressedColor = Color(180, 60, 60)
         col = LerpColor(self.pressAnim, col, pressedColor)
+
+        -- Button background with subtle border
         draw.RoundedBox(6, 0, pushOffset, w, h, col)
+        draw.RoundedBox(5, 1, 1 + pushOffset, w - 2, h - 2, Color(255, 255, 255, 10))
 
         local iconColor = Theme.textBright
         surface.SetDrawColor(iconColor)
@@ -4404,10 +4426,34 @@ function ShowWelcomePanel(forceShow)
     frame:SetDeleteOnClose(true)
     
     frame.Paint = function(self, w, h)
+        -- Shadow/glow effect
         draw.RoundedBox(12, 4, 4, w, h, Color(0, 0, 0, 100))
+
+        -- Main background
         draw.RoundedBox(10, 0, 0, w, h, Theme.bg)
+
+        -- Subtle inner border
+        draw.RoundedBox(9, 1, 1, w - 2, h - 2, Color(255, 255, 255, 3))
+
+        -- Header with gradient
+        local gradientMat = Material("vgui/gradient-d")
+        surface.SetDrawColor(Theme.accentDark.r, Theme.accentDark.g, Theme.accentDark.b, 100)
+        surface.SetMaterial(gradientMat)
         draw.RoundedBoxEx(10, 0, 0, w, 44, Theme.bgDark, true, true, false, false)
+
+        -- Subtle glow on header
+        draw.RoundedBoxEx(10, 0, 0, w, 44, Color(Theme.accent.r, Theme.accent.g, Theme.accent.b, 15), true, true, false, false)
+
+        -- Accent line under header
+        surface.SetDrawColor(Theme.accent)
+        surface.DrawRect(0, 44, w, 2)
+        surface.SetDrawColor(Theme.accent.r, Theme.accent.g, Theme.accent.b, 50)
+        surface.DrawRect(0, 46, w, 1)
+
+        -- Title text with shadow
+        draw.SimpleText(ADDON_DISPLAY_NAME, "NaiFont_Title", 16, 23, Color(0, 0, 0, 120), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         draw.SimpleText(ADDON_DISPLAY_NAME, "NaiFont_Title", 15, 22, Theme.accent, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        draw.SimpleText("v" .. WELCOME_VERSION, "NaiFont_Small", w - 50, 23, Color(0, 0, 0, 80), TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
         draw.SimpleText("v" .. WELCOME_VERSION, "NaiFont_Small", w - 50, 22, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
     end
     
@@ -4419,10 +4465,26 @@ function ShowWelcomePanel(forceShow)
     closeBtn:SetPos(frame:GetWide() - 40, 10)
     closeBtn:SetSize(26, 26)
     closeBtn:SetText("")
+    closeBtn.hoverAnim = 0
     closeBtn.Paint = function(self, w, h)
-        local col = Theme.textDim
-        if self:IsHovered() then col = Theme.error end
-        draw.SimpleText("X", "NaiFont_Large", w/2, h/2, col, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        local baseColor = Theme.bgLight
+        local hoverColor = Theme.error
+        local col = baseColor
+        if self:IsHovered() then
+            closeBtn.hoverAnim = math.min(closeBtn.hoverAnim + 0.2, 1)
+        else
+            closeBtn.hoverAnim = math.max(closeBtn.hoverAnim - 0.2, 0)
+        end
+        col = LerpColor(closeBtn.hoverAnim, baseColor, hoverColor)
+
+        -- Button background with subtle border
+        draw.RoundedBox(5, 0, 0, w, h, col)
+        draw.RoundedBox(4, 1, 1, w - 2, h - 2, Color(255, 255, 255, 10))
+
+        local iconColor = Theme.textBright
+        surface.SetDrawColor(iconColor)
+        surface.DrawLine(7, 7, w - 7, h - 7)
+        surface.DrawLine(w - 7, 7, 7, h - 7)
     end
     closeBtn.DoClick = function()
         frame:Close()
