@@ -1012,6 +1012,9 @@ local function CreateCheckbox(parent, label, convar)
     return container, checkbox
 end
 
+-- Track all sliders for panel transparency when dragging
+local uiSliders = {}
+
 local function CreateSlider(parent, label, convar, min, max, decimals)
     local container = vgui.Create("DPanel", parent)
     container.SearchLabel = label
@@ -1201,9 +1204,6 @@ end
 -- Track all scrollbars for live smoothness updates
 local sidebarScrollbars = {}
 
--- Track all sliders for panel transparency when dragging
-local uiSliders = {}
-
 local function StyleScrollbar(sbar)
     sbar:SetWide(8)
     sbar:SetHideButtons(true)
@@ -1313,7 +1313,13 @@ local function OpenSettingsPanel()
     end
 
     -- Clear slider tracking for new panel instance
-    uiSliders = {}
+    if uiSliders then
+        for i = #uiSliders, 1, -1 do
+            uiSliders[i] = nil
+        end
+    else
+        uiSliders = {}
+    end
     
     local panelWidth = GetConVar("nai_npc_ui_panel_width"):GetInt()
     local panelHeight = GetConVar("nai_npc_ui_panel_height"):GetInt()
