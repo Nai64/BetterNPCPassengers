@@ -924,6 +924,7 @@ local function CreateCheckbox(parent, label, convar)
     checkbox.popTimer = 0
     checkbox.hoverAnim = 0
     checkbox.checkedAnim = 0  -- Animation for enabled/disabled state transition
+    checkbox.circleScale = 1  -- Popup animation for the entire circle
 
     -- Override background to remove square
     checkbox.Paint = function(self, w, h)
@@ -953,17 +954,23 @@ local function CreateCheckbox(parent, label, convar)
             self.checkedAnim = checkedTarget
         end
 
-        -- Pop animation: quickly scale up, then slowly return to normal
+        -- Popup animation on toggle (both circle and dot)
         if animationsEnabled and self.popTimer > 0 then
             self.popTimer = self.popTimer - FrameTime()
-            -- Quick pop up, then slow return
-            if self.popTimer > 0.08 then
-                self.animScale = Lerp(FrameTime() * 8, self.animScale, 1.2)
+            -- Bouncy popup: scale up, then bounce back
+            if self.popTimer > 0.1 then
+                self.circleScale = Lerp(FrameTime() * 10, self.circleScale, 1.3)
+                self.animScale = Lerp(FrameTime() * 10, self.animScale, 1.2)
+            elseif self.popTimer > 0.05 then
+                self.circleScale = Lerp(FrameTime() * 15, self.circleScale, 0.95)
+                self.animScale = Lerp(FrameTime() * 12, self.animScale, 0.95)
             else
-                self.animScale = Lerp(FrameTime() * 5, self.animScale, 1)
+                self.circleScale = Lerp(FrameTime() * 8, self.circleScale, 1)
+                self.animScale = Lerp(FrameTime() * 8, self.animScale, 1)
             end
         else
-            self.animScale = Lerp(FrameTime() * 5, self.animScale, 1)
+            self.circleScale = Lerp(FrameTime() * 8, self.circleScale, 1)
+            self.animScale = Lerp(FrameTime() * 8, self.animScale, 1)
         end
     end
 
@@ -989,10 +996,15 @@ local function CreateCheckbox(parent, label, convar)
         
         -- Apply hover scale animation (10% scale increase on hover)
         local hoverScale = 1 + (self.hoverAnim or 0) * 0.1
-        local radius = baseRadius * hoverScale
+        
+        -- Apply popup animation to entire circle
+        local popupScale = self.circleScale or 1
+        
+        -- Combined scale
+        local radius = baseRadius * hoverScale * popupScale
         
         -- Apply pop animation to checked dot
-        local popScale = self.animScale or 1
+        local dotPopScale = self.animScale or 1
         
         -- Interpolate colors based on checked animation state
         local checkedAnim = self.checkedAnim or 0
@@ -1018,7 +1030,7 @@ local function CreateCheckbox(parent, label, convar)
         -- Checked dot with pop animation
         if checkedAnim > 0.01 then
             surface.SetDrawColor(Theme.textBright)
-            draw.Circle(centerX, centerY, (radius * 0.5) * popScale, 32)
+            draw.Circle(centerX, centerY, (radius * 0.5) * dotPopScale, 32)
         end
     end
     
