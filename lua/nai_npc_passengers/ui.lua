@@ -585,7 +585,7 @@ end
 -- Function to scan the resource/fonts/ folder for available fonts
 local function GetAvailableFonts()
     local fonts = {"Metropolis"} -- Default font
-    local files, folders = file.Find("resource/fonts/*.ttf", "GAME")
+    local files, folders = file.Find("addons/betternpcpassengers-gmod/resource/fonts/*.ttf", "GAME")
     
     if files then
         for _, filename in ipairs(files) do
