@@ -5,7 +5,7 @@
   - Panel fades when mouse is not over it (configurable)
   - Idle panel opacity slider (0-100%, default 30%)
   - Scrollbar auto-hide when not scrolling/hovering
-  - Panel becomes 70% transparent when dragging scrollbar
+  - Panel becomes 70% transparent when dragging SLIDERS (not scrollbars)
 
 ## UI Controls
 - Added "Fade Panel When Idle" checkbox in Interface settings
