@@ -4007,7 +4007,7 @@ local function OpenSettingsPanel()
         fontCombo:AddChoice(font, font)
     end
     
-    local currentFont = GetConVarStringSafe("nai_npc_ui_custom_font", "Metropolis")
+    local currentFont = GetConVar("nai_npc_ui_custom_font") and GetConVar("nai_npc_ui_custom_font"):GetString() or "Metropolis"
     fontCombo:SetValue(currentFont)
     
     fontCombo.Paint = function(self, w, h)
