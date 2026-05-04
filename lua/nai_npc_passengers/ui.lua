@@ -1311,6 +1311,17 @@ local function AnimateSettingsFrameIn(frame, targetX, targetY)
     frame:MoveTo(targetX, targetY, 0.35, 0, -1)
 end
 
+-- Module-level variables for Passengers tab (reduces local variable count in OpenSettingsPanel)
+local passengerControlList
+local passengerFilterQuery = ""
+local passengerSortMode = "vehicle"
+local passengersCurrentVehicleOnly = false
+local passengerAutoRefreshEnabled = false
+local nextPassengerAutoRefresh = 0
+local passengerOverviewPanel
+local currentVehicleOnlyBtn
+local passengerAutoRefreshBtn
+
 local function OpenSettingsPanel()
     if IsValid(settingsFrame) then
         settingsFrame:Remove()
@@ -2178,46 +2189,46 @@ local function OpenSettingsPanel()
             ClearSearchQuery(false)
         end
     end
-    
+
     -- General Tab
     local generalPanel = CreateContentPanel()
     generalPanel.SearchPanelName = "General"
     local generalBtn = CreateNavButton("General", "icon16/cog.png")
     generalPanel.SearchNavButton = generalBtn
     generalBtn.DoClick = function() SwitchToPanel(generalPanel, generalBtn) end
-    
+
     CreateSectionHeader(generalPanel, "General Settings")
-    
+
     CreateCheckbox(generalPanel, "Allow Multiple Passengers", "nai_npc_allow_multiple")
     CreateHelpText(generalPanel, "Let multiple NPCs ride in the same vehicle.")
-    
+
     CreateSpacer(generalPanel, 5)
-    
+
     CreateComboBox(generalPanel, "Exit Behavior", "nai_npc_exit_mode", {
         { label = "Leave when player exits", value = 0 },
         { label = "Leave when vehicle is attacked", value = 1 },
         { label = "Never leave automatically", value = 2 },
     })
     CreateHelpText(generalPanel, "When should NPC passengers exit the vehicle?")
-    
+
     CreateSpacer(generalPanel, 10)
     CreateSectionHeader(generalPanel, "Timing")
-    
+
     CreateSlider(generalPanel, "Max Attach Distance", "nai_npc_max_attach_dist", 100, 2000, 0)
     CreateHelpText(generalPanel, "Maximum distance (units) to attach NPC to vehicle.")
-    
+
     CreateSlider(generalPanel, "Detach Delay", "nai_npc_detach_delay", 0, 10, 1)
     CreateHelpText(generalPanel, "Seconds to wait before detaching after player leaves.")
-    
+
     CreateSlider(generalPanel, "AI Restore Delay", "nai_npc_ai_delay", 0, 10, 1)
     CreateHelpText(generalPanel, "Seconds to wait before restoring NPC AI after detaching.")
-    
+
     CreateSlider(generalPanel, "Cooldown Time", "nai_npc_cooldown", 0, 10, 1)
     CreateHelpText(generalPanel, "Cooldown between attaching NPCs to same vehicle.")
-    
+
     CreateSlider(generalPanel, "Passenger Limit", "nai_npc_passenger_limit", 1, 20, 0)
     CreateHelpText(generalPanel, "Max NPCs allowed in vehicle.")
-    
+
     -- Auto-Join Tab
     local autoJoinPanel = CreateContentPanel()
     autoJoinPanel.SearchPanelName = "Auto-Join"
@@ -2248,17 +2259,17 @@ local function OpenSettingsPanel()
     local passengersBtn = CreateNavButton("Passengers", "icon16/group_gear.png")
     passengersPanel.SearchNavButton = passengersBtn
 
-    local passengerControlList
-    local passengersCurrentVehicleOnly = false
-    local currentVehicleOnlyBtn
-    local passengerAutoRefreshBtn
-    local passengerOverviewPanel
-    local passengerFilterEntry
+    passengerControlList = nil
+    passengersCurrentVehicleOnly = false
+    currentVehicleOnlyBtn = nil
+    passengerAutoRefreshBtn = nil
+    passengerOverviewPanel = nil
+    passengerFilterEntry = nil
     local passengerVisiblePassengers = {}
-    local passengerFilterQuery = ""
-    local passengerAutoRefreshEnabled = false
-    local nextPassengerAutoRefresh = 0
-    local passengerSortMode = "vehicle"
+    passengerFilterQuery = ""
+    passengerAutoRefreshEnabled = false
+    nextPassengerAutoRefresh = 0
+    passengerSortMode = "vehicle"
     local passengerCardIcons = {}
     local passengerCardIconsLoaded = false
 
