@@ -10,6 +10,7 @@
 - Fixed GetConVarStringSafe error in font dropdown
 - Fixed custom font loading by copying fonts to global resource/fonts folder on addon load
 - Fixed font system to use actual font names instead of filenames
+- Fixed welcome panel "don't show again" to actually never show again (removed version check)
 
 ### Technical Details
 - Added ConVar `nai_npc_ui_custom_font` in settings.lua
@@ -19,3 +20,4 @@
 - Font dropdown and text entry added in Interface tab
 - Text entry syncs with dropdown selection
 - GMod's surface.CreateFont requires actual font names (e.g., "Bebas Neue") not filenames
+- Removed version check from welcome panel logic so "don't show again" persists across updates
