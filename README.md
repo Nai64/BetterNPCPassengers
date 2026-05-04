@@ -3,15 +3,15 @@
 <div align="center">
 
 
-[![Version](https://img.shields.io/badge/version-v2.7.9-blue?style=for-the-badge)](https://github.com/Nai64/BetterNPCPassengers/releases)
-[![Last Update](https://img.shields.io/github/last-commit/Nai64/BetterNPCPassengers?style=for-the-badge&logo=github)](https://github.com/Nai64/BetterNPCPassengers/commits/main)
-[![GMod](https://img.shields.io/badge/Garry's%20Mod-Addon-black?style=for-the-badge&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
-[![GMod Version](https://img.shields.io/badge/GMod-13-orange?style=for-the-badge&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
-[![Workshop](https://img.shields.io/badge/Steam%20Workshop-Subscribe-1b2838?style=for-the-badge&logo=steam)](https://steamcommunity.com/sharedfiles/filedetails/?id=3633546098)
-[![Lua](https://img.shields.io/badge/Lua-5.1-2C2D72?style=for-the-badge&logo=lua)](https://www.lua.org/)
-[![License](https://img.shields.io/badge/license-MIT-green?style=for-the-badge)](LICENSE)
-[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/RYbnePuvZE)
-[![YouTube](https://img.shields.io/badge/YouTube-Watch-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@naidev5)
+[![Version](https://img.shields.io/badge/version-v2.7.9-blue?style=social)](https://github.com/Nai64/BetterNPCPassengers/releases)
+[![Last Update](https://img.shields.io/github/last-commit/Nai64/BetterNPCPassengers?style=social&logo=github)](https://github.com/Nai64/BetterNPCPassengers/commits/main)
+[![GMod](https://img.shields.io/badge/Garry's%20Mod-Addon-black?style=social&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
+[![GMod Version](https://img.shields.io/badge/GMod-13-orange?style=social&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
+[![Workshop](https://img.shields.io/badge/Steam%20Workshop-Subscribe-1b2838?style=social&logo=steam)](https://steamcommunity.com/sharedfiles/filedetails/?id=3633546098)
+[![Lua](https://img.shields.io/badge/Lua-5.1-2C2D72?style=social&logo=lua)](https://www.lua.org/)
+[![License](https://img.shields.io/badge/license-MIT-green?style=social)](LICENSE)
+[![Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=social&logo=discord&logoColor=white)](https://discord.gg/RYbnePuvZE)
+[![YouTube](https://img.shields.io/badge/YouTube-Watch-FF0000?style=social&logo=youtube&logoColor=white)](https://youtube.com/@naidev5)
 
 *Board NPCs into vehicles with full animation, emotional state tracking, and multi-framework support.*
 
