@@ -1292,7 +1292,7 @@ local function OpenSettingsPanel()
 
         -- Smooth close animation
         self:AlphaTo(0, 0.2)
-        self:MoveTo(closeX, ScrH() + 50, 0.25, function()
+        self:MoveTo(closeX, ScrH() + 50, 0.25, 0, function()
             if IsValid(self) then
                 defaultClose(self)
             end
