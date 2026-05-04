@@ -1401,8 +1401,16 @@ local function OpenSettingsPanel()
                     self:SetAlpha(76.5)
                     shouldSkipFade = true
                 else
-                    -- IsChildHovered returns true if any child (or this panel) is under the cursor
-                    local hovered = self:IsHovered() or self:IsChildHovered(99)
+                    -- Check if mouse is over the panel or any of its children
+                    -- Use both IsHovered (direct) and IsChildHovered (recursive) with high depth
+                    local hovered = self:IsHovered() or self:IsChildHovered(999)
+                    -- Also check if mouse is within panel bounds (catches scrollbars that might not be detected)
+                    local mouseX, mouseY = gui.MouseX(), gui.MouseY()
+                    local panelX, panelY = self:GetPos()
+                    local panelW, panelH = self:GetSize()
+                    local inBounds = mouseX >= panelX and mouseX <= panelX + panelW and mouseY >= panelY and mouseY <= panelY + panelH
+                    hovered = hovered or inBounds
+
                     local target = hovered and 1 or 0
                     self.idleFadeAlpha = math.Approach(self.idleFadeAlpha or 1, target, FrameTime() * (hovered and 6 or 3))
 
