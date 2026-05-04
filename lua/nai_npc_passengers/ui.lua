@@ -1061,13 +1061,20 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     slider.Slider.Knob:SetSize(14, 14)
     slider.Slider.Knob.isDragging = false
 
+    local originalOnMousePressed = slider.Slider.Knob.OnMousePressed
     slider.Slider.Knob.OnMousePressed = function(self, mcode)
         self.isDragging = true
-        return self:CallOld("OnMousePressed", mcode)
+        if originalOnMousePressed then
+            return originalOnMousePressed(self, mcode)
+        end
     end
+
+    local originalOnMouseReleased = slider.Slider.Knob.OnMouseReleased
     slider.Slider.Knob.OnMouseReleased = function(self, mcode)
         self.isDragging = false
-        return self:CallOld("OnMouseReleased", mcode)
+        if originalOnMouseReleased then
+            return originalOnMouseReleased(self, mcode)
+        end
     end
 
     slider.Slider.Knob.Paint = function(self, w, h)
@@ -1304,6 +1311,9 @@ local function OpenSettingsPanel()
     if IsValid(settingsFrame) then
         settingsFrame:Remove()
     end
+
+    -- Clear slider tracking for new panel instance
+    uiSliders = {}
     
     local panelWidth = GetConVar("nai_npc_ui_panel_width"):GetInt()
     local panelHeight = GetConVar("nai_npc_ui_panel_height"):GetInt()
