@@ -583,7 +583,11 @@ local function GetUIFontName()
 end
 
 -- Function to copy fonts from addon folder to global resource/fonts/
+local fontsInstalled = false
 local function InstallAddonFonts()
+    if fontsInstalled then return end
+    fontsInstalled = true
+
     local addonFontFiles = file.Find("addons/betternpcpassengers-gmod/resource/fonts/*.ttf", "GAME")
 
     if addonFontFiles then
@@ -600,7 +604,10 @@ local function InstallAddonFonts()
 end
 
 -- Function to get available fonts (using actual font names, not filenames)
+local cachedAvailableFonts = nil
 local function GetAvailableFonts()
+    if cachedAvailableFonts then return cachedAvailableFonts end
+
     -- List of known fonts with their actual font names
     local knownFonts = {
         {file = "metropolis.ttf", name = "Metropolis"},
@@ -620,6 +627,7 @@ local function GetAvailableFonts()
         end
     end
 
+    cachedAvailableFonts = fonts
     return fonts
 end
 
