@@ -585,7 +585,7 @@ end
 -- Function to copy fonts from addon folder to global resource/fonts/
 local function InstallAddonFonts()
     local addonFontFiles = file.Find("addons/betternpcpassengers-gmod/resource/fonts/*.ttf", "GAME")
-    
+
     if addonFontFiles then
         for _, filename in ipairs(addonFontFiles) do
             local sourcePath = "addons/betternpcpassengers-gmod/resource/fonts/" .. filename
@@ -599,16 +599,24 @@ local function InstallAddonFonts()
     end
 end
 
--- Function to scan the resource/fonts/ folder for available fonts
+-- Function to get available fonts (using actual font names, not filenames)
 local function GetAvailableFonts()
-    local fonts = {"Metropolis"} -- Default font
-    local files, folders = file.Find("resource/fonts/*.ttf", "GAME")
+    -- List of known fonts with their actual font names
+    local knownFonts = {
+        {file = "metropolis.ttf", name = "Metropolis"},
+        {file = "bebasneue.ttf", name = "Bebas Neue"},
+        {file = "sharetech.ttf", name = "Share Tech"},
+    }
 
-    if files then
-        for _, filename in ipairs(files) do
-            -- Remove .ttf extension to get font name
-            local fontName = string.gsub(filename, "%.ttf$", "")
-            table.insert(fonts, fontName)
+    local fonts = {"Metropolis"} -- Default font
+
+    -- Check which known fonts are actually present
+    for _, fontInfo in ipairs(knownFonts) do
+        local addonPath = "addons/betternpcpassengers-gmod/resource/fonts/" .. fontInfo.file
+        local globalPath = "resource/fonts/" .. fontInfo.file
+
+        if file.Exists(addonPath, "GAME") or file.Exists(globalPath, "GAME") then
+            table.insert(fonts, fontInfo.name)
         end
     end
 
@@ -3983,26 +3991,8 @@ local function OpenSettingsPanel()
     local _, defaultFontCheckbox = CreateCheckbox(interfacePanel, "Use Default Font Instead of Metropolis", "nai_npc_ui_use_default_font")
     CreateHelpText(interfacePanel, "Switch the UI to Garry's Mod default fonts if you prefer cleaner fallback rendering.")
 
-    local defaultFontOnChange = defaultFontCheckbox.OnChange
-    defaultFontCheckbox.OnChange = function(self, val)
-        if defaultFontOnChange then
-            defaultFontOnChange(self, val)
-        end
-
-        CreateNaiFonts()
-
-        if IsValid(settingsFrame) then
-            settingsFrame:InvalidateLayout(true)
-        end
-
-        -- Hide/show custom font dropdown based on default font setting
-        if IsValid(fontCombo) then
-            fontCombo:SetVisible(not val)
-        end
-        if IsValid(fontLabel) then
-            fontLabel:SetVisible(not val)
-        end
-    end
+    -- Custom font dropdown and text entry will be created below
+    -- We'll set up the OnChange handler after they're created
 
     -- Custom font dropdown
     local availableFonts = GetAvailableFonts()
@@ -4039,6 +4029,9 @@ local function OpenSettingsPanel()
     
     fontCombo.OnSelect = function(self, index, value, data)
         RunConsoleCommand("nai_npc_ui_custom_font", data)
+        if IsValid(customFontText) then
+            customFontText:SetText(data)
+        end
         InstallAddonFonts()
         CreateNaiFonts()
 
@@ -4047,16 +4040,77 @@ local function OpenSettingsPanel()
         end
     end
 
-    CreateHelpText(interfacePanel, "Select a custom font from your resource/fonts/ folder. Changes apply immediately.")
+    CreateHelpText(interfacePanel, "Select a custom font. Add .ttf files to resource/fonts/ and use the actual font name (e.g., 'Roboto', 'Arial'). Changes apply immediately.")
 
-    -- Initially hide custom font dropdown if default font is enabled
+    -- Custom font name text entry
+    local customFontLabel = vgui.Create("DLabel", interfacePanel)
+    customFontLabel:SetText("Or Enter Custom Font Name")
+    customFontLabel:SetFont("NaiFont_Normal")
+    customFontLabel:SetTextColor(Theme.text)
+    customFontLabel:Dock(TOP)
+    customFontLabel:DockMargin(10, 8, 10, 2)
+
+    local customFontText = vgui.Create("DTextEntry", interfacePanel)
+    customFontText:Dock(TOP)
+    customFontText:DockMargin(10, 0, 10, 5)
+    customFontText:SetTall(28)
+    customFontText:SetFont("NaiFont_Normal")
+    customFontText:SetTextColor(Theme.text)
+    customFontText:SetPlaceholderText("e.g., Roboto, Arial, etc.")
+
+    local currentCustomFont = GetConVar("nai_npc_ui_custom_font") and GetConVar("nai_npc_ui_custom_font"):GetString() or ""
+    customFontText:SetText(currentCustomFont)
+
+    customFontText.OnEnter = function(self)
+        local text = self:GetText()
+        RunConsoleCommand("nai_npc_ui_custom_font", text)
+        InstallAddonFonts()
+        CreateNaiFonts()
+
+        if IsValid(settingsFrame) then
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
+
+    -- Set up the default font checkbox OnChange handler now that controls exist
+    local defaultFontOnChange = defaultFontCheckbox.OnChange
+    defaultFontCheckbox.OnChange = function(self, val)
+        if defaultFontOnChange then
+            defaultFontOnChange(self, val)
+        end
+
+        InstallAddonFonts()
+        CreateNaiFonts()
+
+        if IsValid(settingsFrame) then
+            settingsFrame:InvalidateLayout(true)
+        end
+
+        -- Hide/show custom font controls based on default font setting
+        if IsValid(fontCombo) then
+            fontCombo:SetVisible(not val)
+        end
+        if IsValid(fontLabel) then
+            fontLabel:SetVisible(not val)
+        end
+        if IsValid(customFontLabel) then
+            customFontLabel:SetVisible(not val)
+        end
+        if IsValid(customFontText) then
+            customFontText:SetVisible(not val)
+        end
+    end
+
+    -- Initially hide custom font controls if default font is enabled
     local useDefaultFont = GetConVarBoolSafe("nai_npc_ui_use_default_font", false)
     if useDefaultFont then
         fontCombo:SetVisible(false)
         fontLabel:SetVisible(false)
+        customFontLabel:SetVisible(false)
+        customFontText:SetVisible(false)
     end
 
-    
+
     local _, widthSlider = CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
     CreateHelpText(interfacePanel, "Width of the settings panel")
     widthSlider.OnValueChanged = function(_, val)
