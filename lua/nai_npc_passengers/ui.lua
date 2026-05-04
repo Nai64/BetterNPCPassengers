@@ -642,11 +642,51 @@ end
 
 local TransparentColor = Color(0, 0, 0, 0)
 
+-- Bouncy easing functions for fluid animations
+local function EaseOutBounce(t)
+    if t < 1/2.75 then
+        return 7.5625 * t * t
+    elseif t < 2/2.75 then
+        t = t - 1.5/2.75
+        return 7.5625 * t * t + 0.75
+    elseif t < 2.5/2.75 then
+        t = t - 2.25/2.75
+        return 7.5625 * t * t + 0.9375
+    else
+        t = t - 2.625/2.75
+        return 7.5625 * t * t + 0.984375
+    end
+end
+
+local function EaseOutElastic(t)
+    if t == 0 then return 0 end
+    if t == 1 then return 1 end
+    return math.pow(2, -10 * t) * math.sin((t * 10 - 0.75) * (2 * math.pi) / 3) + 1
+end
+
+local function EaseOutBack(t)
+    local c1 = 1.70158
+    local c3 = c1 + 1
+    return 1 + c3 * math.pow(t - 1, 3) + c1 * math.pow(t - 1, 2)
+end
+
+local function EaseOutQuart(t)
+    return 1 - math.pow(1 - t, 4)
+end
+
+local function EaseInOutCubic(t)
+    return t < 0.5 and 4 * t * t * t or 1 - math.pow(-2 * t + 2, 3) / 2
+end
+
 local function AnimateButtonVisualState(button, hoverInSpeed, hoverOutSpeed, pressInSpeed, pressOutSpeed)
     local hovered = button:IsHovered()
     local pressed = button:IsDown()
 
-    button.hoverAnim = math.Approach(button.hoverAnim or 0, hovered and 1 or 0, FrameTime() * (hovered and (hoverInSpeed or 8) or (hoverOutSpeed or 10)))
+    -- Bouncy hover animation using easing
+    local hoverTarget = hovered and 1 or 0
+    local hoverSpeed = hovered and (hoverInSpeed or 12) or (hoverOutSpeed or 8)
+    button.hoverAnim = math.Approach(button.hoverAnim or 0, hoverTarget, FrameTime() * hoverSpeed)
+
     button.pressAnim = math.Approach(button.pressAnim or 0, pressed and 1 or 0, FrameTime() * (pressed and (pressInSpeed or 18) or (pressOutSpeed or 12)))
 
     return button.hoverAnim, button.pressAnim
@@ -1184,9 +1224,11 @@ local function AnimateSettingsFrameIn(frame, targetX, targetY)
 
     frame:Stop()
     frame:SetAlpha(0)
-    frame:SetPos(targetX, ScrH() + 24)
-    frame:AlphaTo(255, 0.18, 0)
-    frame:MoveTo(targetX, targetY, 0.22, 0, 0.22)
+    frame:SetPos(targetX, ScrH() + 50)
+
+    -- Smooth entrance with out-cubic easing
+    frame:AlphaTo(255, 0.3, 0)
+    frame:MoveTo(targetX, targetY, 0.35, 0)
 end
 
 local function OpenSettingsPanel()
@@ -1225,8 +1267,10 @@ local function OpenSettingsPanel()
         self:SetKeyboardInputEnabled(false)
         self:Stop()
         local closeX = self:GetX()
-        self:AlphaTo(0, 0.14, 0)
-        self:MoveTo(closeX, ScrH() + 24, 0.18, 0, 0.18, function()
+
+        -- Smooth close animation
+        self:AlphaTo(0, 0.2, 0)
+        self:MoveTo(closeX, ScrH() + 50, 0.25, 0, function()
             if IsValid(self) then
                 defaultClose(self)
             end
@@ -1288,41 +1332,65 @@ local function OpenSettingsPanel()
     minimizeBtn:SetSize(28, 28)
     minimizeBtn:SetText("")
     minimizeBtn.hoverAnim = 0
+    minimizeBtn.scaleAnim = 0
     minimizeBtn.Paint = function(self, w, h)
         AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+        -- Scale animation on hover
+        local scale = 1 + (self.hoverAnim or 0) * 0.1
+        local scaledW = w * scale
+        local scaledH = h * scale
+        local offsetX = (w - scaledW) / 2
+        local offsetY = (h - scaledH) / 2
 
         local pushOffset = GetButtonPushOffset(self, 2)
         local baseColor = Theme.bgLight
         local hoverColor = Theme.accent
         local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
 
-        -- Button background with subtle border
-        draw.RoundedBox(6, 0, pushOffset, w, h, col)
-        draw.RoundedBox(5, 1, 1 + pushOffset, w - 2, h - 2, Color(255, 255, 255, 10))
+        -- Button background with subtle border and scale
+        draw.RoundedBox(6, offsetX, offsetY + pushOffset, scaledW, scaledH, col)
+        draw.RoundedBox(5, offsetX + 1, offsetY + 1 + pushOffset, scaledW - 2, scaledH - 2, Color(255, 255, 255, 10))
 
         local iconColor = Theme.textBright
         surface.SetDrawColor(iconColor)
+
+        -- Scale icon position
+        local iconOffsetX = (w - scaledW) / 2
+        local iconOffsetY = (h - scaledH) / 2
+
         if settingsFrame.isMinimized then
             -- Plus icon
-            surface.DrawLine(8, h/2 + pushOffset, w - 8, h/2 + pushOffset)
-            surface.DrawLine(w/2, 8 + pushOffset, w/2, h - 8 + pushOffset)
+            surface.DrawLine(8 + iconOffsetX, h/2 + iconOffsetY + pushOffset, w - 8 + iconOffsetX, h/2 + iconOffsetY + pushOffset)
+            surface.DrawLine(w/2 + iconOffsetX, 8 + iconOffsetY + pushOffset, w/2 + iconOffsetX, h - 8 + iconOffsetY + pushOffset)
         else
             -- Minus icon
-            surface.DrawLine(8, h/2 + pushOffset, w - 8, h/2 + pushOffset)
+            surface.DrawLine(8 + iconOffsetX, h/2 + iconOffsetY + pushOffset, w - 8 + iconOffsetX, h/2 + iconOffsetY + pushOffset)
         end
     end
     minimizeBtn.DoClick = function()
         if not IsValid(settingsFrame) then return end
         settingsFrame.isMinimized = not settingsFrame.isMinimized
 
-        if settingsFrame.isMinimized then
-            settingsFrame.originalHeight = settingsFrame:GetTall()
-            settingsFrame:SetTall(50)
-            minimizeBtn:SetTooltip("Expand panel")
+        if AreUIAnimationsEnabled() then
+            if settingsFrame.isMinimized then
+                settingsFrame.originalHeight = settingsFrame:GetTall()
+                -- Smooth collapse animation
+                settingsFrame:SizeTo(settingsFrame:GetWide(), 50, 0.25, 0)
+            else
+                -- Smooth expand animation
+                settingsFrame:SizeTo(settingsFrame:GetWide(), settingsFrame.originalHeight, 0.3, 0)
+            end
         else
-            settingsFrame:SetTall(settingsFrame.originalHeight)
-            minimizeBtn:SetTooltip("Minimize panel")
+            if settingsFrame.isMinimized then
+                settingsFrame.originalHeight = settingsFrame:GetTall()
+                settingsFrame:SetTall(50)
+            else
+                settingsFrame:SetTall(settingsFrame.originalHeight)
+            end
         end
+
+        minimizeBtn:SetTooltip(settingsFrame.isMinimized and "Expand panel" or "Minimize panel")
     end
     minimizeBtn:SetTooltip("Minimize panel")
 
@@ -1335,6 +1403,13 @@ local function OpenSettingsPanel()
     closeBtn.Paint = function(self, w, h)
         AnimateButtonVisualState(self, 8, 10, 18, 12)
 
+        -- Scale animation on hover
+        local scale = 1 + (self.hoverAnim or 0) * 0.1
+        local scaledW = w * scale
+        local scaledH = h * scale
+        local offsetX = (w - scaledW) / 2
+        local offsetY = (h - scaledH) / 2
+
         local pushOffset = GetButtonPushOffset(self, 2)
         local baseColor = Theme.bgLight
         local hoverColor = Theme.error
@@ -1342,14 +1417,19 @@ local function OpenSettingsPanel()
         local pressedColor = Color(180, 60, 60)
         col = LerpColor(self.pressAnim, col, pressedColor)
 
-        -- Button background with subtle border
-        draw.RoundedBox(6, 0, pushOffset, w, h, col)
-        draw.RoundedBox(5, 1, 1 + pushOffset, w - 2, h - 2, Color(255, 255, 255, 10))
+        -- Button background with subtle border and scale
+        draw.RoundedBox(6, offsetX, offsetY + pushOffset, scaledW, scaledH, col)
+        draw.RoundedBox(5, offsetX + 1, offsetY + 1 + pushOffset, scaledW - 2, scaledH - 2, Color(255, 255, 255, 10))
 
         local iconColor = Theme.textBright
         surface.SetDrawColor(iconColor)
-        surface.DrawLine(8, 8 + pushOffset, w - 8, h - 8 + pushOffset)
-        surface.DrawLine(w - 8, 8 + pushOffset, 8, h - 8 + pushOffset)
+
+        -- Scale icon position
+        local iconOffsetX = (w - scaledW) / 2
+        local iconOffsetY = (h - scaledH) / 2
+
+        surface.DrawLine(8 + iconOffsetX, 8 + iconOffsetY + pushOffset, w - 8 + iconOffsetX, h - 8 + iconOffsetY + pushOffset)
+        surface.DrawLine(w - 8 + iconOffsetX, 8 + iconOffsetY + pushOffset, 8 + iconOffsetX, h - 8 + iconOffsetY + pushOffset)
     end
     closeBtn.DoClick = function()
         if IsValid(settingsFrame) then
@@ -4424,6 +4504,15 @@ function ShowWelcomePanel(forceShow)
     frame:SetTitle("")
     frame:MakePopup()
     frame:SetDeleteOnClose(true)
+
+    -- Fluid entrance animation for welcome panel
+    if AreUIAnimationsEnabled() then
+        frame:SetAlpha(0)
+        local targetX, targetY = frame:GetPos()
+        frame:SetPos(targetX, targetY - 50)
+        frame:AlphaTo(255, 0.3, 0)
+        frame:MoveTo(targetX, targetY, 0.35, 0)
+    end
     
     frame.Paint = function(self, w, h)
         -- Shadow/glow effect
@@ -4477,14 +4566,26 @@ function ShowWelcomePanel(forceShow)
         end
         col = LerpColor(closeBtn.hoverAnim, baseColor, hoverColor)
 
-        -- Button background with subtle border
-        draw.RoundedBox(5, 0, 0, w, h, col)
-        draw.RoundedBox(4, 1, 1, w - 2, h - 2, Color(255, 255, 255, 10))
+        -- Scale animation on hover
+        local scale = 1 + closeBtn.hoverAnim * 0.1
+        local scaledW = w * scale
+        local scaledH = h * scale
+        local offsetX = (w - scaledW) / 2
+        local offsetY = (h - scaledH) / 2
+
+        -- Button background with subtle border and scale
+        draw.RoundedBox(5, offsetX, offsetY, scaledW, scaledH, col)
+        draw.RoundedBox(4, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Color(255, 255, 255, 10))
 
         local iconColor = Theme.textBright
         surface.SetDrawColor(iconColor)
-        surface.DrawLine(7, 7, w - 7, h - 7)
-        surface.DrawLine(w - 7, 7, 7, h - 7)
+
+        -- Scale icon position
+        local iconOffsetX = (w - scaledW) / 2
+        local iconOffsetY = (h - scaledH) / 2
+
+        surface.DrawLine(7 + iconOffsetX, 7 + iconOffsetY, w - 7 + iconOffsetX, h - 7 + iconOffsetY)
+        surface.DrawLine(w - 7 + iconOffsetX, 7 + iconOffsetY, 7 + iconOffsetX, h - 7 + iconOffsetY)
     end
     closeBtn.DoClick = function()
         frame:Close()
