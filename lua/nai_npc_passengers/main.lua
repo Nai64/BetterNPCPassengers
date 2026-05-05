@@ -98,6 +98,7 @@ local function SetPassengerData(npc, data)
     friendlyPassengers[npc] = data
     UpdateVehiclePassengerCount(data.vehicle, 1)
     SetPassengerSeatOccupancy(data.seat, npc)
+    data.intentionallyDetached = false
     return data
 end
 
@@ -2641,7 +2642,7 @@ local function UpdatePassengerAnimationState(npc, pdata, curTime, players, headL
     local shouldSyncTransform = npc:GetParent() ~= expectedParent or curTime >= (pdata.nextTransformSyncAt or 0)
 
     if shouldSyncTransform and IsValid(expectedParent) then
-        if npc:GetParent() ~= expectedParent then
+        if npc:GetParent() ~= expectedParent and not pdata.intentionallyDetached then
             npc:SetParent(expectedParent)
         end
 
@@ -2697,9 +2698,11 @@ hook.Add("Think", "NPCPassengerAnimationThink", function()
     }
 
     for npc, pdata in pairs(friendlyPassengers) do
-        local npcId = IsValid(npc) and npc:EntIndex() or pdata.npcId
-        if npcId and animationTimers[npcId] and IsValid(npc) and IsValid(pdata.vehicle) then
-            UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
+        if IsValid(npc) and IsValid(pdata.vehicle) then
+            local npcId = npc:EntIndex()
+            if animationTimers[npcId] then
+                UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
+            end
         end
     end
 end)
@@ -2995,6 +2998,7 @@ DetachNPC = function(npc)
     
     -- Dead NPCs: unparent, clear state, then remove the corpse
     if isDead then
+        data.intentionallyDetached = true
         npc:SetParent(nil)
         npc:SetCollisionGroup(data.originalCollision or COLLISION_GROUP_NPC)
         npc:SetNotSolid(false)
@@ -3010,7 +3014,9 @@ DetachNPC = function(npc)
     end
     
     EnableNPCAI(npc, data.relationships, data.vjState)
-    
+
+    data.intentionallyDetached = true
+
     if npc:GetParent() then
         npc:SetParent(nil)
     end
@@ -3241,7 +3247,10 @@ hook.Add("Think", "NPCPassengerThink", function()
             passengersToDetach[#passengersToDetach + 1] = npc
         else
             if not npc:GetParent() then
-                npc:SetParent(data.vehicle)
+                -- Only re-parent if the NPC wasn't intentionally detached
+                if not data.intentionallyDetached then
+                    npc:SetParent(data.vehicle)
+                end
             end
             
             -- Ensure hidden NPCs stay hidden
@@ -3873,7 +3882,7 @@ hook.Add("EntityRemoved", "NPCPassengerCleanup", function(ent)
     
     local passengersToCleanup = {}
     for npc, data in pairs(friendlyPassengers) do
-        if IsValid(data.vehicle) and data.vehicle == ent then
+        if IsValid(npc) and IsValid(data.vehicle) and data.vehicle == ent then
             passengersToCleanup[#passengersToCleanup + 1] = npc
         end
     end
@@ -4897,7 +4906,7 @@ hook.Add("Think", "NPCPassengers_PreventUnparenting", function()
             local expectedParent = pdata.seat or pdata.vehicle
             
             -- If parent relationship broke (from collision/damage), restore it immediately
-            if npc:GetParent() ~= expectedParent then
+            if npc:GetParent() ~= expectedParent and not pdata.intentionallyDetached then
                 npc:SetParent(expectedParent)
                 
                 -- Restore collision group
