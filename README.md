@@ -3,7 +3,7 @@
 <div align="center">
 
 
-[![Version](https://img.shields.io/badge/version-v2.7.10-blue?style=flat)](https://github.com/Nai64/BetterNPCPassengers/releases)
+[![Version](https://img.shields.io/badge/version-v2.7.11-blue?style=flat)](https://github.com/Nai64/BetterNPCPassengers/releases)
 [![Last Update](https://img.shields.io/github/last-commit/Nai64/BetterNPCPassengers?style=flat&logo=github)](https://github.com/Nai64/BetterNPCPassengers/commits/main)
 [![GMod](https://img.shields.io/badge/Garry's%20Mod-Addon-black?style=flat&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
 [![GMod Version](https://img.shields.io/badge/GMod-13-orange?style=flat&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
