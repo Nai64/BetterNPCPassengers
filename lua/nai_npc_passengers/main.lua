@@ -1010,11 +1010,11 @@ local VEHICLE_TYPE_GENERIC = "generic"
 local VEHICLE_TYPE_SLIGWOLF = "sligwolf"
 
 local VehicleOffsets = {
-    [VEHICLE_TYPE_LVS] = { height = 0, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 0 },
-    [VEHICLE_TYPE_SIMFPHYS] = { height = 0, right = 5, forward = 0, pitch = -2, yaw = 0, roll = 0, baseYaw = 90 },
-    [VEHICLE_TYPE_GLIDE] = { height = 0, right = 8, forward = 0, pitch = -2, yaw = 0, roll = 0, baseYaw = 90 },
-    [VEHICLE_TYPE_SLIGWOLF] = { height = 0, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
-    [VEHICLE_TYPE_GENERIC] = { height = 5, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_LVS] = { height = 10, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 0 },
+    [VEHICLE_TYPE_SIMFPHYS] = { height = 10, right = 5, forward = 0, pitch = -2, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_GLIDE] = { height = 10, right = 8, forward = 0, pitch = -2, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_SLIGWOLF] = { height = 10, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
+    [VEHICLE_TYPE_GENERIC] = { height = 15, right = 0, forward = 0, pitch = 0, yaw = 0, roll = 0, baseYaw = 90 },
 }
 
 local function GetVehicleType(vehicle)
@@ -1053,20 +1053,22 @@ local function FindSeatSurfacePos(startPos, vehicle, seat)
     if not IsValid(vehicle) then return startPos end
 
     -- Trace down from the seat position to find the actual surface
+    -- Use a larger trace range to ensure we hit the seat
     local traceData = {
-        start = startPos + Vector(0, 0, 50),
-        endpos = startPos - Vector(0, 0, 100),
+        start = startPos + Vector(0, 0, 100),
+        endpos = startPos - Vector(0, 0, 200),
         filter = {vehicle, seat}
     }
 
     local trace = util.TraceLine(traceData)
 
     if trace.Hit then
-        -- Return position slightly above the surface
-        return trace.HitPos + Vector(0, 0, 2)
+        -- Return position above the surface (more offset to prevent sinking)
+        return trace.HitPos + Vector(0, 0, 15)
     end
 
-    return startPos
+    -- Fallback: return original position with upward offset
+    return startPos + Vector(0, 0, 20)
 end
 
 -- Helper function to check if NPC would clip at a position
@@ -1102,18 +1104,18 @@ end
 
 -- Helper function to find a valid non-clipping position
 local function FindValidPosition(npc, startPos, vehicle, seat, maxAttempts)
-    maxAttempts = maxAttempts or 20
+    maxAttempts = maxAttempts or 30
 
     for i = 0, maxAttempts do
-        local testPos = startPos + Vector(0, 0, i * 2)
+        local testPos = startPos + Vector(0, 0, i * 3)
 
         if not WouldClipAtPosition(npc, testPos, vehicle, seat) then
             return testPos
         end
     end
 
-    -- Fallback to original position + some height
-    return startPos + Vector(0, 0, 10)
+    -- Fallback to original position with significant height offset
+    return startPos + Vector(0, 0, 30)
 end
 
 -- Helper function to get NPC height for dynamic adjustment
