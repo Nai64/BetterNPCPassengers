@@ -3634,6 +3634,9 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                 local distSqr = playerPos:DistToSqr(npc:GetPos())
                 if distSqr > autoJoinRange * autoJoinRange then continue end
 
+                -- Calculate actual distance for sorting
+                local dist = math.sqrt(distSqr)
+
                 -- Check if friendly to player
                 if not IsFriendlyNPC(npc, nil) then continue end
 
