@@ -5249,15 +5249,16 @@ end)
 -- Update driver AI and vehicle control
 function NPCPassengers.UpdateNPCDriver(npc, data, phys, curTime)
     local vehicle = data.vehicle
-    local vehPos = vehicle:GetPos()
-    local vehAng = vehicle:GetAngles()
-    local vehVel = phys:GetVelocity()
-    local currentSpeed = vehVel:Length()
-    
+
     if not IsValid(vehicle) then
         data.targetSpeed = 0
         return
     end
+
+    local vehPos = vehicle:GetPos()
+    local vehAng = vehicle:GetAngles()
+    local vehVel = phys:GetVelocity()
+    local currentSpeed = vehVel:Length()
     
     -- If no destination, pick one now
     if not data.destination then
