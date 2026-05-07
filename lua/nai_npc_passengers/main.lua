@@ -742,6 +742,8 @@ local function CollectVehicleSeats(vehicle)
     end
 
     table.sort(seats, function(a, b)
+        if not IsValid(a) then return false end
+        if not IsValid(b) then return true end
         local posA = vehicle:WorldToLocal(a:GetPos())
         local posB = vehicle:WorldToLocal(b:GetPos())
         return posA.x > posB.x
