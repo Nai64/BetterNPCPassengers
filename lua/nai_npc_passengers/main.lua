@@ -770,6 +770,7 @@ local function GetAvailableSeatCount(vehicle)
     
     local available = 0
     for _, seat in ipairs(seats) do
+        if not IsValid(seat) then continue end
         if not IsValid(seat:GetDriver()) then
             local occupant = occupiedPassengerSeats[seat]
             if occupant ~= nil then
