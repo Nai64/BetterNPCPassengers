@@ -4883,8 +4883,9 @@ net.Receive("NPCPassengers_EjectDead", function(len, ply)
         -- Eject all dead passengers
         for _, npc in ipairs(deadPassengers) do
             DetachNPC(npc)
-            
+
             -- Add some physics force for dramatic effect
+            if not IsValid(npc) then continue end
             local phys = npc:GetPhysicsObject()
             if IsValid(phys) then
                 local dir = (ply:GetPos() - npc:GetPos()):GetNormalized()
@@ -4892,8 +4893,9 @@ net.Receive("NPCPassengers_EjectDead", function(len, ply)
                 phys:EnableCollisions(true)
                 phys:SetVelocity(dir * 100 + Vector(0, 0, 50))
             end
-            
+
             -- Reset collision group so body is interactive
+            if not IsValid(npc) then continue end
             npc:SetCollisionGroup(COLLISION_GROUP_DEBRIS)
         end
         
