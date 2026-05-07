@@ -1167,8 +1167,9 @@ local function CalculatePassengerPosition(vehicle, npc)
         end
         return nil, nil, nil, nil, nil
     end
-    
+
     for _, seat in ipairs(seats) do
+        if not IsValid(seat) then continue end
         if not IsValid(seat:GetDriver()) then
             local isOccupied = false
             for npc, data in pairs(friendlyPassengers) do
@@ -1183,6 +1184,7 @@ local function CalculatePassengerPosition(vehicle, npc)
             end
             
             if not isOccupied then
+                if not IsValid(seat) then continue end
                 if useCollisionCheck then
                     -- Find actual seat surface and validate position
                     local seatPos = seat:GetPos()
