@@ -154,7 +154,7 @@ NPCPassengers.cv_action_scared = CreateConVar("nai_npc_action_scared", "2", {FCV
 NPCPassengers.cv_action_drowsy = CreateConVar("nai_npc_action_drowsy", "6", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Action when passenger is drowsy")
 
 -- Position offset settings
-NPCPassengers.cv_height_offset = CreateConVar("nai_npc_height_offset", "-3", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional vertical offset for passengers")
+NPCPassengers.cv_height_offset = CreateConVar("nai_npc_height_offset", "-24", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional vertical offset for passengers")
 NPCPassengers.cv_forward_offset = CreateConVar("nai_npc_forward_offset", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional forward offset for passengers")
 NPCPassengers.cv_right_offset = CreateConVar("nai_npc_right_offset", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional right offset for passengers")
 NPCPassengers.cv_yaw_offset = CreateConVar("nai_npc_yaw_offset", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Additional yaw offset for passengers")
