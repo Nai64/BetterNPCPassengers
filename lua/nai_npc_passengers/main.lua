@@ -3154,9 +3154,9 @@ DetachNPC = function(npc)
                             endpos = pushPos,
                             filter = {vehicle, npc}
                         })
-                        
+
                         if not tr.Hit then
-                            npc:SetPos(tr.HitPos)
+                            npc:SetPos(pushPos)
                         else
                             -- Try pushing to the back
                             pushPos = npcPos - vehicleForward * pushDist
@@ -3166,7 +3166,7 @@ DetachNPC = function(npc)
                                 filter = {vehicle, npc}
                             })
                             if not tr.Hit then
-                                npc:SetPos(tr.HitPos)
+                                npc:SetPos(pushPos)
                             else
                                 -- Last resort: teleport above vehicle
                                 npc:SetPos(vehicle:GetPos() + Vector(0, 0, 100))
