@@ -3134,7 +3134,7 @@ DetachNPC = function(npc)
         if NPCPassengers.cv_eject_stuck_check:GetBool() then
             npc:Fire("DisableMotion")
             timer.Simple(0.05, function()
-                if IsValid(npc) then
+                if IsValid(npc) and IsValid(vehicle) then
                     -- Check if NPC is overlapping with vehicle
                     local vehicleMins, vehicleMaxs = vehicle:WorldSpaceAABB()
                     local npcPos = npc:GetPos()
