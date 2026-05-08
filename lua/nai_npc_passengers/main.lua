@@ -3149,7 +3149,7 @@ DetachNPC = function(npc)
                         
                         -- Try pushing to the right side first
                         local pushPos = npcPos + vehicleRight * pushDist
-                        local tr = util.TraceEntity({
+                        local tr = util.TraceLine({
                             start = npcPos,
                             endpos = pushPos,
                             filter = {vehicle, npc}
@@ -3160,7 +3160,7 @@ DetachNPC = function(npc)
                         else
                             -- Try pushing to the back
                             pushPos = npcPos - vehicleForward * pushDist
-                            tr = util.TraceEntity({
+                            tr = util.TraceLine({
                                 start = npcPos,
                                 endpos = pushPos,
                                 filter = {vehicle, npc}
