@@ -3260,17 +3260,17 @@ local function OpenSettingsPanel()
     CreateSectionHeader(posPanel, L("npcpassengers.position.header"))
     CreateHelpText(posPanel, L("npcpassengers.panel.position.desc"))
     
-    CreateSlider(posPanel, "Height Offset", "nai_npc_height_offset", -50, 50, 0)
-    CreateSlider(posPanel, "Forward Offset", "nai_npc_forward_offset", -50, 50, 0)
-    CreateSlider(posPanel, "Right Offset", "nai_npc_right_offset", -50, 50, 0)
+    CreateSlider(posPanel, L("npcpassengers.height_offset"), "nai_npc_height_offset", -50, 50, 0)
+    CreateSlider(posPanel, L("npcpassengers.forward_offset"), "nai_npc_forward_offset", -50, 50, 0)
+    CreateSlider(posPanel, L("npcpassengers.right_offset"), "nai_npc_right_offset", -50, 50, 0)
     
     CreateSpacer(posPanel, 10)
     CreateSectionHeader(posPanel, L("npcpassengers.angle.header"))
     CreateHelpText(posPanel, L("npcpassengers.panel.angle.desc"))
     
-    CreateSlider(posPanel, "Yaw (Rotation)", "nai_npc_yaw_offset", -180, 180, 0)
-    CreateSlider(posPanel, "Pitch (Tilt Forward)", "nai_npc_pitch_offset", -45, 45, 0)
-    CreateSlider(posPanel, "Roll (Tilt Sideways)", "nai_npc_roll_offset", -45, 45, 0)
+    CreateSlider(posPanel, L("npcpassengers.yaw_offset"), "nai_npc_yaw_offset", -180, 180, 0)
+    CreateSlider(posPanel, L("npcpassengers.pitch_offset"), "nai_npc_pitch_offset", -45, 45, 0)
+    CreateSlider(posPanel, L("npcpassengers.roll_offset"), "nai_npc_roll_offset", -45, 45, 0)
     
     CreateSpacer(posPanel, 15)
     CreateButton(posPanel, "Reset Position & Angles", function()
@@ -3299,10 +3299,10 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.speech_enable"), "nai_npc_speech_enabled")
     CreateHelpText(speechPanel, L("npcpassengers.speech_enable.help"))
     
-    CreateSlider(speechPanel, "Speech Volume", "nai_npc_speech_volume", 0, 100, 0)
+    CreateSlider(speechPanel, L("npcpassengers.speech_volume"), "nai_npc_speech_volume", 0, 100, 0)
     CreateHelpText(speechPanel, L("npcpassengers.speech_volume.help"))
     
-    CreateSlider(speechPanel, "Pitch Variation (+/-)", "nai_npc_speech_pitch_var", 0, 20, 0)
+    CreateSlider(speechPanel, L("npcpassengers.pitch_variation"), "nai_npc_speech_pitch_var", 0, 20, 0)
     CreateHelpText(speechPanel, L("npcpassengers.pitch_variation.help"))
 
     -- QoL: Quick Enable All / Disable All buttons for speech settings
@@ -3376,10 +3376,10 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.crash_enable"), "nai_npc_speech_crash")
     CreateHelpText(speechPanel, L("npcpassengers.crash_enable.help"))
     
-    CreateSlider(speechPanel, "Crash Sensitivity", "nai_npc_speech_crash_threshold", 100, 1000, 0)
+    CreateSlider(speechPanel, L("npcpassengers.crash_threshold"), "nai_npc_speech_crash_threshold", 100, 1000, 0)
     CreateHelpText(speechPanel, L("npcpassengers.crash_threshold.help"))
     
-    CreateSlider(speechPanel, "Crash Sound Cooldown", "nai_npc_speech_crash_cooldown", 0.5, 5, 1)
+    CreateSlider(speechPanel, L("npcpassengers.crash_cooldown"), "nai_npc_speech_crash_cooldown", 0.5, 5, 1)
     CreateHelpText(speechPanel, L("npcpassengers.crash_cooldown.help"))
     
     CreateSpacer(speechPanel, 10)
@@ -3388,10 +3388,10 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.speech_idle"), "nai_npc_speech_idle")
     CreateHelpText(speechPanel, L("npcpassengers.speech_idle.help"))
     
-    CreateSlider(speechPanel, "Chatter Chance", "nai_npc_speech_idle_chance", 0, 1, 2)
+    CreateSlider(speechPanel, L("npcpassengers.speech_idle_chance"), "nai_npc_speech_idle_chance", 0, 1, 2)
     CreateHelpText(speechPanel, L("npcpassengers.speech_idle_chance.help"))
     
-    CreateSlider(speechPanel, "Chatter Interval", "nai_npc_speech_idle_interval", 5, 60, 0)
+    CreateSlider(speechPanel, L("npcpassengers.speech_idle_interval"), "nai_npc_speech_idle_interval", 5, 60, 0)
     CreateHelpText(speechPanel, L("npcpassengers.speech_idle_interval.help"))
     
     CreateSpacer(speechPanel, 10)
@@ -3406,11 +3406,11 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.ambient_sounds"), "nai_npc_ambient_sounds")
     CreateHelpText(speechPanel, L("npcpassengers.ambient_sounds.help"))
     
-    CreateSlider(speechPanel, "Ambient Sound Interval", "nai_npc_ambient_interval", 10, 120, 0)
+    CreateSlider(speechPanel, L("npcpassengers.ambient_interval"), "nai_npc_ambient_interval", 10, 120, 0)
     CreateHelpText(speechPanel, L("npcpassengers.ambient_interval.help"))
     
     CreateSpacer(speechPanel, 15)
-    CreateSectionHeader(speechPanel, "Animation & Behavior")
+    CreateSectionHeader(speechPanel, L("npcpassengers.section.animation"))
     CreateHelpText(speechPanel, L("npcpassengers.animation.help"))
     
     CreateSpacer(speechPanel, 5)
@@ -3418,7 +3418,7 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.head_look"), "nai_npc_head_look")
     CreateHelpText(speechPanel, L("npcpassengers.head_look.help"))
     
-    CreateSlider(speechPanel, "Head Smoothness", "nai_npc_head_smooth", 0.1, 1, 2)
+    CreateSlider(speechPanel, L("npcpassengers.head_smooth"), "nai_npc_head_smooth", 0.1, 1, 2)
     CreateHelpText(speechPanel, L("npcpassengers.head_smooth.help"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.blink"), "nai_npc_blink")
@@ -3427,11 +3427,11 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.breathing"), "nai_npc_breathing")
     CreateHelpText(speechPanel, L("npcpassengers.breathing.help"))
     
-    CreateSlider(speechPanel, "Walk Timeout", "nai_npc_walk_timeout", 1, 15, 0)
+    CreateSlider(speechPanel, L("npcpassengers.walk_timeout"), "nai_npc_walk_timeout", 1, 15, 0)
     CreateHelpText(speechPanel, L("npcpassengers.walk_timeout.help"))
     
     CreateSpacer(speechPanel, 15)
-    CreateSectionHeader(speechPanel, "Advanced Realism")
+    CreateSectionHeader(speechPanel, L("npcpassengers.section.realism"))
     CreateHelpText(speechPanel, L("npcpassengers.realism.help"))
     
     CreateSpacer(speechPanel, 5)
@@ -3440,16 +3440,16 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.talking_gestures"), "nai_npc_talking_gestures")
     CreateHelpText(speechPanel, L("npcpassengers.talking_gestures.help"))
     
-    CreateSlider(speechPanel, "Gesture Chance (%)", "nai_npc_gesture_chance", 1, 50, 0)
+    CreateSlider(speechPanel, L("npcpassengers.gesture_chance"), "nai_npc_gesture_chance", 1, 50, 0)
     CreateHelpText(speechPanel, L("npcpassengers.gesture_chance.help"))
     
-    CreateSlider(speechPanel, "Gesture Interval", "nai_npc_gesture_interval", 3, 30, 0)
+    CreateSlider(speechPanel, L("npcpassengers.gesture_interval"), "nai_npc_gesture_interval", 3, 30, 0)
     CreateHelpText(speechPanel, L("npcpassengers.gesture_interval.help"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.crash_flinch"), "nai_npc_crash_flinch")
     CreateHelpText(speechPanel, L("npcpassengers.crash_flinch.help"))
     
-    CreateSlider(speechPanel, "Crash Sensitivity", "nai_npc_crash_threshold", 200, 800, 0)
+    CreateSlider(speechPanel, L("npcpassengers.crash_threshold"), "nai_npc_crash_threshold", 200, 800, 0)
     CreateHelpText(speechPanel, L("npcpassengers.crash_threshold_flinch.help"))
     
     CreateSpacer(speechPanel, 10)
@@ -3458,7 +3458,7 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.body_sway"), "nai_npc_body_sway")
     CreateHelpText(speechPanel, L("npcpassengers.body_sway.help"))
     
-    CreateSlider(speechPanel, "Sway Intensity", "nai_npc_body_sway_amount", 0.1, 3, 1)
+    CreateSlider(speechPanel, L("npcpassengers.body_sway_amount"), "nai_npc_body_sway_amount", 0.1, 3, 1)
     CreateHelpText(speechPanel, L("npcpassengers.body_sway_amount.help"))
     
     CreateSpacer(speechPanel, 10)
@@ -3467,7 +3467,7 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.threat_awareness"), "nai_npc_threat_awareness")
     CreateHelpText(speechPanel, L("npcpassengers.threat_awareness.help"))
     
-    CreateSlider(speechPanel, "Threat Detection Range", "nai_npc_threat_range", 500, 5000, 0)
+    CreateSlider(speechPanel, L("npcpassengers.threat_range"), "nai_npc_threat_range", 500, 5000, 0)
     CreateHelpText(speechPanel, L("npcpassengers.threat_range.help"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.combat_alert"), "nai_npc_combat_alert")
@@ -3476,13 +3476,13 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.passenger_combat"), "nai_npc_passenger_combat")
     CreateHelpText(speechPanel, L("npcpassengers.passenger_combat.help"))
 
-    CreateSlider(speechPanel, "Passenger Combat Range", "nai_npc_passenger_combat_range", 500, 5000, 0)
+    CreateSlider(speechPanel, L("npcpassengers.passenger_combat_range"), "nai_npc_passenger_combat_range", 500, 5000, 0)
     CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_range.help"))
 
-    CreateSlider(speechPanel, "Passenger Accuracy", "nai_npc_passenger_combat_accuracy", 0.1, 1, 2)
+    CreateSlider(speechPanel, L("npcpassengers.passenger_combat_accuracy"), "nai_npc_passenger_combat_accuracy", 0.1, 1, 2)
     CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_accuracy.help"))
 
-    CreateSlider(speechPanel, "Passenger Damage Multiplier", "nai_npc_passenger_combat_damage", 0.25, 3, 2)
+    CreateSlider(speechPanel, L("npcpassengers.passenger_combat_damage"), "nai_npc_passenger_combat_damage", 0.25, 3, 2)
     CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_damage.help"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.passenger_interaction"), "nai_npc_passenger_interaction")
@@ -3494,13 +3494,13 @@ local function OpenSettingsPanel()
     CreateCheckbox(speechPanel, L("npcpassengers.fear_reactions"), "nai_npc_fear_reactions")
     CreateHelpText(speechPanel, L("npcpassengers.fear_reactions.help"))
     
-    CreateSlider(speechPanel, "Fear Speed Threshold", "nai_npc_fear_speed", 400, 2000, 0)
+    CreateSlider(speechPanel, L("npcpassengers.fear_speed_threshold"), "nai_npc_fear_speed", 400, 2000, 0)
     CreateHelpText(speechPanel, L("npcpassengers.fear_speed_threshold.help"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.drowsiness"), "nai_npc_drowsiness")
     CreateHelpText(speechPanel, L("npcpassengers.drowsiness.help"))
     
-    CreateSlider(speechPanel, "Drowsy Time", "nai_npc_drowsy_time", 20, 180, 0)
+    CreateSlider(speechPanel, L("npcpassengers.drowsy_time"), "nai_npc_drowsy_time", 20, 180, 0)
     CreateHelpText(speechPanel, L("npcpassengers.drowsy_time.help"))
     
     -- Tank/LVS Tab
@@ -3524,7 +3524,7 @@ local function OpenSettingsPanel()
     CreateCheckbox(tankPanel, L("npcpassengers.detach_no_collide"), "nai_npc_detach_no_collide")
     CreateHelpText(tankPanel, L("npcpassengers.detach_no_collide.help"))
 
-    CreateSlider(tankPanel, "No-Collide Duration (seconds)", "nai_npc_detach_no_collide_duration", 1, 15, 1)
+    CreateSlider(tankPanel, L("npcpassengers.detach_no_collide_duration"), "nai_npc_detach_no_collide_duration", 1, 15, 1)
     CreateHelpText(tankPanel, L("npcpassengers.detach_no_collide_duration.help"))
 
     CreateCheckbox(tankPanel, L("npcpassengers.die_with_vehicle"), "nai_npc_die_with_vehicle")
@@ -3536,16 +3536,16 @@ local function OpenSettingsPanel()
     CreateCheckbox(tankPanel, L("npcpassengers.driver_enabled"), "nai_npc_driver_enabled")
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver.help"))
     
-    CreateSlider(tankPanel, "Detection Range", "nai_npc_driver_range", 500, 10000, 0)
+    CreateSlider(tankPanel, L("npcpassengers.tank_driver_range"), "nai_npc_driver_range", 500, 10000, 0)
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver_range.help"))
     
-    CreateSlider(tankPanel, "Engage Distance", "nai_npc_driver_engage_distance", 200, 2000, 0)
+    CreateSlider(tankPanel, L("npcpassengers.tank_driver_engage_distance"), "nai_npc_driver_engage_distance", 200, 2000, 0)
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver_distance.help"))
     
-    CreateSlider(tankPanel, "Drive Speed", "nai_npc_driver_speed", 0.1, 1, 2)
+    CreateSlider(tankPanel, L("npcpassengers.tank_driver_speed"), "nai_npc_driver_speed", 0.1, 1, 2)
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver_throttle.help"))
     
-    CreateSlider(tankPanel, "Reverse Distance", "nai_npc_driver_reverse_distance", 100, 800, 0)
+    CreateSlider(tankPanel, L("npcpassengers.tank_driver_reverse_distance"), "nai_npc_driver_reverse_distance", 100, 800, 0)
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver_reverse.help"))
     
     CreateSpacer(tankPanel, 10)
@@ -3554,11 +3554,11 @@ local function OpenSettingsPanel()
     CreateCheckbox(tankPanel, L("npcpassengers.turret_enabled"), "nai_npc_turret_enabled")
     CreateHelpText(tankPanel, L("npcpassengers.tank_turret.help"))
     
-    CreateSlider(tankPanel, "Target Range", "nai_npc_turret_range", 500, 10000, 0)
-    CreateSlider(tankPanel, "Accuracy", "nai_npc_turret_accuracy", 0, 1, 2)
-    CreateSlider(tankPanel, "Reaction Time", "nai_npc_turret_reaction_time", 0, 3, 2)
-    CreateSlider(tankPanel, "Fire Delay", "nai_npc_turret_fire_delay", 0.05, 1, 2)
-    CreateSlider(tankPanel, "Aim Speed", "nai_npc_turret_aim_speed", 1, 20, 1)
+    CreateSlider(tankPanel, L("npcpassengers.turret_range"), "nai_npc_turret_range", 500, 10000, 0)
+    CreateSlider(tankPanel, L("npcpassengers.turret_accuracy"), "nai_npc_turret_accuracy", 0, 1, 2)
+    CreateSlider(tankPanel, L("npcpassengers.turret_reaction_time"), "nai_npc_turret_reaction_time", 0, 3, 2)
+    CreateSlider(tankPanel, L("npcpassengers.turret_fire_delay"), "nai_npc_turret_fire_delay", 0.05, 1, 2)
+    CreateSlider(tankPanel, L("npcpassengers.turret_aim_speed"), "nai_npc_turret_aim_speed", 1, 20, 1)
 
     CreateCheckbox(tankPanel, L("npcpassengers.turret_lead_targets"), "nai_npc_turret_lead_targets")
     CreateCheckbox(tankPanel, L("npcpassengers.turret_friendly_fire"), "nai_npc_turret_friendly_fire")
@@ -3620,7 +3620,7 @@ local function OpenSettingsPanel()
     CreateHelpText(hudPanel, L("npcpassengers.hud_show_calm.help"))
     
     CreateSpacer(hudPanel, 10)
-    CreateSectionHeader(hudPanel, "HUD Position & Style")
+    CreateSectionHeader(hudPanel, L("npcpassengers.section.hud_position"))
     
     -- Position dropdown
     local posLabel = vgui.Create("DLabel", hudPanel)
@@ -3655,24 +3655,24 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_hud_position", tostring(data))
     end
     
-    CreateSlider(hudPanel, "HUD Scale", "nai_npc_hud_scale", 0.5, 2, 2)
-    CreateSlider(hudPanel, "HUD Opacity", "nai_npc_hud_opacity", 0.3, 1, 2)
+    CreateSlider(hudPanel, L("npcpassengers.hud_scale"), "nai_npc_hud_scale", 0.5, 2, 2)
+    CreateSlider(hudPanel, L("npcpassengers.hud_opacity"), "nai_npc_hud_opacity", 0.3, 1, 2)
     
     CreateSpacer(hudPanel, 10)
-    CreateSectionHeader(hudPanel, "Emotion Thresholds")
+    CreateSectionHeader(hudPanel, L("npcpassengers.section.emotion_thresholds"))
     CreateHelpText(hudPanel, L("npcpassengers.hud_thresholds.desc"))
     
-    CreateSlider(hudPanel, "Alert Threshold", "nai_npc_hud_alert_threshold", 0.1, 1, 2)
+    CreateSlider(hudPanel, L("npcpassengers.hud_alert_threshold"), "nai_npc_hud_alert_threshold", 0.1, 1, 2)
     CreateHelpText(hudPanel, L("npcpassengers.hud_alert_threshold.help"))
     
-    CreateSlider(hudPanel, "Fear Threshold", "nai_npc_hud_fear_threshold", 0.1, 1, 2)
+    CreateSlider(hudPanel, L("npcpassengers.hud_fear_threshold"), "nai_npc_hud_fear_threshold", 0.1, 1, 2)
     CreateHelpText(hudPanel, L("npcpassengers.hud_fear_threshold.help"))
     
-    CreateSlider(hudPanel, "Drowsy Threshold", "nai_npc_hud_drowsy_threshold", 0.3, 1, 2)
+    CreateSlider(hudPanel, L("npcpassengers.hud_drowsy_threshold"), "nai_npc_hud_drowsy_threshold", 0.3, 1, 2)
     CreateHelpText(hudPanel, L("npcpassengers.hud_drowsy_threshold.help"))
     
     CreateSpacer(hudPanel, 15)
-    CreateSectionHeader(hudPanel, "Emotion Actions")
+    CreateSectionHeader(hudPanel, L("npcpassengers.section.emotion_actions"))
     CreateHelpText(hudPanel, L("npcpassengers.hud_actions.desc"))
     
     -- Action choices table
@@ -3880,7 +3880,7 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(keybindsPanel, 10)
-    CreateSectionHeader(keybindsPanel, "Vehicle Control")
+    CreateSectionHeader(keybindsPanel, L("npcpassengers.section.vehicle_control"))
     
     local vehicleKeybinds = {
         {name = "NPCs Exit Vehicle", cvar = "nai_npc_key_exit_all", desc = "Command all passengers to exit the vehicle"},
@@ -3894,7 +3894,7 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(keybindsPanel, 10)
-    CreateSectionHeader(keybindsPanel, "HUD Controls")
+    CreateSectionHeader(keybindsPanel, L("npcpassengers.section.hud_controls"))
     CreateHelpText(keybindsPanel, L("npcpassengers.keybinds_hud.desc"))
 
     local hudKeybinds = {
@@ -3908,7 +3908,7 @@ local function OpenSettingsPanel()
     end
 
     CreateSpacer(keybindsPanel, 10)
-    CreateSectionHeader(keybindsPanel, "Debug Controls")
+    CreateSectionHeader(keybindsPanel, L("npcpassengers.section.debug_controls"))
     CreateHelpText(keybindsPanel, L("npcpassengers.keybinds_debug_note"))
     
     local debugKeybinds = {
@@ -3984,7 +3984,7 @@ local function OpenSettingsPanel()
     CreateHelpText(debugPanel, L("npcpassengers.debug_mode.help"))
     
     CreateSpacer(debugPanel, 15)
-    CreateSectionHeader(debugPanel, "Passenger Status Control")
+    CreateSectionHeader(debugPanel, L("npcpassengers.section.passenger_status"))
     CreateHelpText(debugPanel, L("npcpassengers.debug_status.help"))
     
     local passengerListPanel = vgui.Create("DScrollPanel", debugPanel)
@@ -4079,7 +4079,7 @@ local function OpenSettingsPanel()
     local refreshBtn = CreateButton(debugPanel, "Refresh Passenger List", RefreshPassengerList)
     
     CreateSpacer(debugPanel, 15)
-    CreateSectionHeader(debugPanel, "Quick Test Buttons")
+    CreateSectionHeader(debugPanel, L("npcpassengers.section.quick_test"))
     
     CreateButton(debugPanel, "Test Flinch Gesture", function()
         net.Start("NPCPassengers_DebugTest")
@@ -4106,7 +4106,7 @@ local function OpenSettingsPanel()
     driverPanel.SearchNavButton = driverBtn
     driverBtn.DoClick = function() SwitchToPanel(driverPanel, driverBtn) end
     
-    CreateSectionHeader(driverPanel, "NPC Driver System")
+    CreateSectionHeader(driverPanel, L("npcpassengers.section.driver_system"))
     
     -- Work In Progress Panel
     local wipPanel = vgui.Create("DPanel", driverPanel)
@@ -4134,13 +4134,13 @@ local function OpenSettingsPanel()
     interfacePanel.SearchNavButton = interfaceBtn
     interfaceBtn.DoClick = function() SwitchToPanel(interfacePanel, interfaceBtn) end
     
-    CreateSectionHeader(interfacePanel, "UI Sound Settings")
+    CreateSectionHeader(interfacePanel, L("npcpassengers.section.ui_sounds"))
     CreateHelpText(interfacePanel, L("npcpassengers.panel.interface.desc"))
     
     CreateCheckbox(interfacePanel, "Enable UI Sounds", "nai_npc_ui_sounds_enabled")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_sounds_enabled.help"))
     
-    CreateSlider(interfacePanel, "UI Sounds Volume", "nai_npc_ui_sounds_volume", 0, 2, 1)
+    CreateSlider(interfacePanel, L("npcpassengers.ui_sounds_volume"), "nai_npc_ui_sounds_volume", 0, 2, 1)
     CreateHelpText(interfacePanel, L("npcpassengers.ui_sounds_volume.help"))
     
     CreateCheckbox(interfacePanel, "Button Hover Sounds", "nai_npc_ui_hover_enabled")
@@ -4150,7 +4150,7 @@ local function OpenSettingsPanel()
     CreateHelpText(interfacePanel, L("npcpassengers.ui_click_enabled.help"))
     
     CreateSpacer(interfacePanel, 10)
-    CreateSectionHeader(interfacePanel, "Context Menu Options")
+    CreateSectionHeader(interfacePanel, L("npcpassengers.section.context_menu"))
     CreateHelpText(interfacePanel, L("npcpassengers.context_menu.desc"))
     
     CreateCheckbox(interfacePanel, "Show 'Make Passenger'", "nai_npc_context_make_passenger")
@@ -4177,7 +4177,7 @@ local function OpenSettingsPanel()
     end)
     
     CreateSpacer(interfacePanel, 10)
-    CreateSectionHeader(interfacePanel, "Settings Panel Preferences")
+    CreateSectionHeader(interfacePanel, L("npcpassengers.section.panel_preferences"))
     
     CreateCheckbox(interfacePanel, "Show Welcome Screen on Updates", "nai_npc_ui_show_welcome")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_show_welcome.help"))
@@ -4305,7 +4305,7 @@ local function OpenSettingsPanel()
     end
 
 
-    local _, widthSlider = CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
+    local _, widthSlider = CreateSlider(interfacePanel, L("npcpassengers.ui_panel_width"), "nai_npc_ui_panel_width", 800, 1400, 0)
     CreateHelpText(interfacePanel, L("npcpassengers.ui_panel_width.help"))
     widthSlider.OnValueChanged = function(_, val)
         if IsValid(settingsFrame) then
@@ -4396,7 +4396,7 @@ local function OpenSettingsPanel()
     end
 
     CreateSpacer(interfacePanel, 10)
-    CreateSectionHeader(interfacePanel, "Performance & Technical")
+    CreateSectionHeader(interfacePanel, L("npcpassengers.section.performance"))
     
     CreateButton(interfacePanel, "Reset All UI Settings to Default", function()
         RunConsoleCommand("nai_npc_ui_sounds_enabled", "1")
@@ -4468,7 +4468,7 @@ local function OpenSettingsPanel()
     simulatePanel.SearchNavButton = simulateBtn
     simulateBtn.DoClick = function() SwitchToPanel(simulatePanel, simulateBtn) end
     
-    CreateSectionHeader(simulatePanel, "Simulation System")
+    CreateSectionHeader(simulatePanel, L("npcpassengers.section.simulation"))
     
     -- Work In Progress Panel
     local wipPanel2 = vgui.Create("DPanel", simulatePanel)
@@ -4496,7 +4496,7 @@ local function OpenSettingsPanel()
     modulesPanel.SearchNavButton = modulesBtn
     modulesBtn.DoClick = function() SwitchToPanel(modulesPanel, modulesBtn) end
     
-    CreateSectionHeader(modulesPanel, "Modules System")
+    CreateSectionHeader(modulesPanel, L("npcpassengers.section.modules"))
     
     -- Work In Progress Panel
     local wipPanel3 = vgui.Create("DPanel", modulesPanel)
