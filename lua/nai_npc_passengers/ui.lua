@@ -1703,13 +1703,19 @@ local function OpenSettingsPanel()
         draw.RoundedBox(4, offsetX, offsetY, scaledW, scaledH, col)
         draw.RoundedBox(3, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Theme.border)
 
-        draw.SimpleText(self.currentLang, "NaiFont_Small", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        -- Draw flag icon next to language code
+        local flagIcon = "icon16/flag_" .. (self.currentLang == "EN" and "gb" or self.currentLang == "RU" and "ru" or "cn") .. ".png"
+        surface.SetDrawColor(Theme.textBright)
+        surface.SetMaterial(Material(flagIcon))
+        surface.DrawTexturedRect(3, (h - 10) / 2, 12, 10)
+
+        draw.SimpleText(self.currentLang, "NaiFont_Small", w/2 + 6, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 
     -- Language dropdown menu
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
-        menu:AddOption("🇬🇧 English", function()
+        menu:AddOption("English", function()
             self.currentLang = "EN"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Panel will refresh automatically.")
 
@@ -1726,9 +1732,9 @@ local function OpenSettingsPanel()
                     end
                 end)
             end)
-        end):SetIcon("icon16/world.png")
+        end):SetIcon("icon16/globe.png")
 
-        menu:AddOption("🇷🇺 Русский", function()
+        menu:AddOption("Русский", function()
             self.currentLang = "RU"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Панель обновится автоматически.")
 
@@ -1745,9 +1751,9 @@ local function OpenSettingsPanel()
                     end
                 end)
             end)
-        end):SetIcon("icon16/world.png")
+        end):SetIcon("icon16/globe.png")
 
-        menu:AddOption("🇨🇳 中文", function()
+        menu:AddOption("中文", function()
             self.currentLang = "ZH"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。面板将自动刷新。")
 
@@ -1764,7 +1770,7 @@ local function OpenSettingsPanel()
                     end
                 end)
             end)
-        end):SetIcon("icon16/world.png")
+        end):SetIcon("icon16/globe.png")
 
         menu:Open()
     end
