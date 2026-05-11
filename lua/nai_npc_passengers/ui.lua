@@ -1872,7 +1872,7 @@ local function OpenSettingsPanel()
         ClearSearchSuggestions()
 
         if IsValid(searchStatus) then
-            searchStatus:SetText("Ctrl+F to focus search")
+            searchStatus:SetText(L("npcpassengers.status.ctrl_f_search"))
             searchStatus:SetTextColor(Theme.textDim)
             searchStatus:SizeToContents()
         end
@@ -2278,13 +2278,13 @@ local function OpenSettingsPanel()
 
         if IsValid(searchStatus) then
             if NormalizeSearchText(rawQuery) == "" then
-                searchStatus:SetText("Ctrl+F to focus search")
+                searchStatus:SetText(L("npcpassengers.status.ctrl_f_search"))
                 searchStatus:SetTextColor(Theme.textDim)
             elseif totalMatches == 0 then
-                searchStatus:SetText("No matching settings")
+                searchStatus:SetText(L("npcpassengers.status.no_matches"))
                 searchStatus:SetTextColor(Theme.textDim)
             else
-                searchStatus:SetText(string.format("Showing top %d of %d matches", math.min(totalMatches, SEARCH_SUGGESTION_LIMIT), totalMatches))
+                searchStatus:SetText(string.format(L("npcpassengers.status.showing_matches"), math.min(totalMatches, SEARCH_SUGGESTION_LIMIT), totalMatches))
                 searchStatus:SetTextColor(Theme.textDim)
             end
             searchStatus:SizeToContents()
@@ -2311,7 +2311,7 @@ local function OpenSettingsPanel()
             emptyState:Dock(TOP)
             emptyState.Paint = function(self, w, h)
                 DrawRoundedSurface(0, 0, w, h, 8, Theme.bgDark, Theme.border)
-                draw.SimpleText("No matching settings", "NaiFont_Small", 12, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+                draw.SimpleText(L("npcpassengers.status.no_matches"), "NaiFont_Small", 12, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
             end
 
             searchSuggestions:SetVisible(true)
@@ -2385,7 +2385,7 @@ local function OpenSettingsPanel()
     end
 
     searchStatus = vgui.Create("DLabel", sidebar)
-    searchStatus:SetText("Ctrl+F to focus search")
+    searchStatus:SetText(L("npcpassengers.status.ctrl_f_search"))
     searchStatus:SetFont("NaiFont_Small")
     searchStatus:SetTextColor(Theme.textDim)
     searchStatus:Dock(TOP)
@@ -2758,7 +2758,7 @@ local function OpenSettingsPanel()
         passengerOverviewPanel.drowsyPassengers = 0
         passengerOverviewPanel.deadPassengers = 0
         passengerOverviewPanel.hiddenPassengers = 0
-        passengerOverviewPanel.filterSummary = passengerFilterQuery ~= "" and passengerFilterQuery or (passengersCurrentVehicleOnly and "Current vehicle only" or "All passengers")
+        passengerOverviewPanel.filterSummary = passengerFilterQuery ~= "" and passengerFilterQuery or (passengersCurrentVehicleOnly and L("npcpassengers.status.current_vehicle_only") or L("npcpassengers.status.all_passengers"))
         passengerOverviewPanel.sortSummary = passengerSortLabels[passengerSortMode] or passengerSortLabels.vehicle
         passengerOverviewPanel.autoRefreshEnabled = passengerAutoRefreshEnabled
 
@@ -2828,13 +2828,13 @@ local function OpenSettingsPanel()
             noPassengers:SetAutoStretchVertical(true)
 
             if passengersCurrentVehicleOnly and not IsValid(currentVehicle) then
-                noPassengers:SetText("No current vehicle detected. Sit in a vehicle or disable the current-vehicle filter.")
+                noPassengers:SetText(L("npcpassengers.status.no_vehicle"))
             elseif passengerFilterQuery ~= "" then
-                noPassengers:SetText("No passengers matched your filter. Try a name, class, seat number, status, or vehicle class.")
+                noPassengers:SetText(L("npcpassengers.status.no_match_filter"))
             elseif passengersCurrentVehicleOnly then
-                noPassengers:SetText("No passengers found in your current vehicle.")
+                noPassengers:SetText(L("npcpassengers.status.no_passengers_vehicle"))
             else
-                noPassengers:SetText("No passengers found. NPCs need to be riding in a vehicle before they can be managed here.")
+                noPassengers:SetText(L("npcpassengers.status.no_passengers"))
             end
 
             return
@@ -2913,7 +2913,7 @@ local function OpenSettingsPanel()
             local assignBtn = vgui.Create("DButton", npcPanel)
             assignBtn:SetFont("NaiFont_Normal")
             assignBtn:SetTextColor(TransparentColor)
-            assignBtn:SetText("Assign Seat")
+            assignBtn:SetText(L("npcpassengers.btn.assign_seat"))
             assignBtn.hoverAnim = 0
             assignBtn.pressAnim = 0
             assignBtn.Paint = function(self, w, h)
@@ -2955,7 +2955,7 @@ local function OpenSettingsPanel()
             local detachBtn = vgui.Create("DButton", npcPanel)
             detachBtn:SetFont("NaiFont_Normal")
             detachBtn:SetTextColor(TransparentColor)
-            detachBtn:SetText("Detach")
+            detachBtn:SetText(L("npcpassengers.btn.detach"))
             detachBtn.hoverAnim = 0
             detachBtn.pressAnim = 0
             detachBtn.Paint = function(self, w, h)
@@ -2984,7 +2984,7 @@ local function OpenSettingsPanel()
             local summaryBtn = vgui.Create("DButton", npcPanel)
             summaryBtn:SetFont("NaiFont_Normal")
             summaryBtn:SetTextColor(TransparentColor)
-            summaryBtn:SetText("Copy Summary")
+            summaryBtn:SetText(L("npcpassengers.btn.copy_summary"))
             summaryBtn.hoverAnim = 0
             summaryBtn.pressAnim = 0
             summaryBtn.Paint = function(self, w, h)
@@ -3008,7 +3008,7 @@ local function OpenSettingsPanel()
             local debugBtn = vgui.Create("DButton", npcPanel)
             debugBtn:SetFont("NaiFont_Normal")
             debugBtn:SetTextColor(TransparentColor)
-            debugBtn:SetText("Copy Debug")
+            debugBtn:SetText(L("npcpassengers.btn.copy_debug"))
             debugBtn.hoverAnim = 0
             debugBtn.pressAnim = 0
             debugBtn.Paint = function(self, w, h)
@@ -3076,7 +3076,7 @@ local function OpenSettingsPanel()
     passengerOverviewPanel.deadPassengers = 0
     passengerOverviewPanel.hiddenPassengers = 0
     passengerOverviewPanel.Paint = function(self, w, h)
-        local filterSummary = self.filterSummary or "All passengers"
+        local filterSummary = self.filterSummary or L("npcpassengers.status.all_passengers")
         if string.len(filterSummary) > 44 then
             filterSummary = string.sub(filterSummary, 1, 41) .. "..."
         end
@@ -3195,16 +3195,16 @@ local function OpenSettingsPanel()
         RefreshPassengersControlList(true)
     end)
 
-    currentVehicleOnlyBtn = CreateButton(passengersPanel, "Show Current Vehicle Only: OFF", function()
+    currentVehicleOnlyBtn = CreateButton(passengersPanel, L("npcpassengers.btn.show_current_vehicle") .. ": " .. L("npcpassengers.state.off"), function()
         passengersCurrentVehicleOnly = not passengersCurrentVehicleOnly
-        currentVehicleOnlyBtn:SetText("Show Current Vehicle Only: " .. (passengersCurrentVehicleOnly and "ON" or "OFF"))
+        currentVehicleOnlyBtn:SetText(L("npcpassengers.btn.show_current_vehicle") .. ": " .. (passengersCurrentVehicleOnly and L("npcpassengers.state.on") or L("npcpassengers.state.off")))
         RefreshPassengersControlList()
     end)
 
-    passengerAutoRefreshBtn = CreateButton(passengersPanel, "Auto Refresh Visible List: OFF", function()
+    passengerAutoRefreshBtn = CreateButton(passengersPanel, L("npcpassengers.btn.auto_refresh") .. ": " .. L("npcpassengers.state.off"), function()
         passengerAutoRefreshEnabled = not passengerAutoRefreshEnabled
         nextPassengerAutoRefresh = 0
-        passengerAutoRefreshBtn:SetText("Auto Refresh Visible List: " .. (passengerAutoRefreshEnabled and "ON" or "OFF"))
+        passengerAutoRefreshBtn:SetText(L("npcpassengers.btn.auto_refresh") .. ": " .. (passengerAutoRefreshEnabled and L("npcpassengers.state.on") or L("npcpassengers.state.off")))
         RefreshPassengersControlList()
     end)
 
@@ -3315,7 +3315,7 @@ local function OpenSettingsPanel()
     local enableAllBtn = vgui.Create("DButton", speechBtnContainer)
     enableAllBtn:SetPos(0, 0)
     enableAllBtn:SetSize(140, 28)
-    enableAllBtn:SetText("Enable All Speech")
+    enableAllBtn:SetText(L("npcpassengers.btn.enable_all_speech"))
     enableAllBtn:SetFont("NaiFont_Normal")
     enableAllBtn:SetTextColor(Theme.textBright)
     enableAllBtn.Paint = function(self, w, h)
@@ -3344,7 +3344,7 @@ local function OpenSettingsPanel()
     local disableAllBtn = vgui.Create("DButton", speechBtnContainer)
     disableAllBtn:SetPos(150, 0)
     disableAllBtn:SetSize(140, 28)
-    disableAllBtn:SetText("Disable All Speech")
+    disableAllBtn:SetText(L("npcpassengers.btn.disable_all_speech"))
     disableAllBtn:SetFont("NaiFont_Normal")
     disableAllBtn:SetTextColor(Theme.textBright)
     disableAllBtn.Paint = function(self, w, h)
@@ -4783,13 +4783,13 @@ end)
 hook.Add("PopulateMenuBar", "NPCPassengersMenuBar", function(menubar)
     local m = menubar:AddOrGetMenu(ADDON_DISPLAY_NAME)
 
-    m:AddOption("Open Settings", function()
+    m:AddOption(L("npcpassengers.menu.open_settings"), function()
         OpenSettingsPanel()
     end):SetIcon("icon16/cog.png")
 
     m:AddSpacer()
 
-    m:AddOption("Reset All Settings", function()
+    m:AddOption(L("npcpassengers.menu.reset_all"), function()
         RunConsoleCommand("nai_npc_reset")
     end):SetIcon("icon16/arrow_refresh.png")
 end)
@@ -5117,7 +5117,7 @@ function ShowWelcomePanel(forceShow)
     
     -- Settings button
     local settingsBtn = vgui.Create("DButton", content)
-    settingsBtn:SetText("Open Settings")
+    settingsBtn:SetText(L("npcpassengers.menu.open_settings"))
     settingsBtn:SetFont("NaiFont_Medium")
     settingsBtn:SetTall(38)
     settingsBtn:Dock(TOP)

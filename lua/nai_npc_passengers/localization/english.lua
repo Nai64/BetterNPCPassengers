@@ -173,6 +173,35 @@ language.Add("npcpassengers.section.performance", "Performance & Technical")
 language.Add("npcpassengers.section.simulation", "Simulation System")
 language.Add("npcpassengers.section.modules", "Modules System")
 
+-- Button labels
+language.Add("npcpassengers.btn.assign_seat", "Assign Seat")
+language.Add("npcpassengers.btn.detach", "Detach")
+language.Add("npcpassengers.btn.copy_summary", "Copy Summary")
+language.Add("npcpassengers.btn.copy_debug", "Copy Debug")
+language.Add("npcpassengers.btn.enable_all_speech", "Enable All Speech")
+language.Add("npcpassengers.btn.disable_all_speech", "Disable All Speech")
+language.Add("npcpassengers.btn.show_current_vehicle", "Show Current Vehicle Only")
+language.Add("npcpassengers.btn.auto_refresh", "Auto Refresh Visible List")
+
+-- Status messages
+language.Add("npcpassengers.status.no_vehicle", "No current vehicle detected. Sit in a vehicle or disable the current-vehicle filter.")
+language.Add("npcpassengers.status.no_match_filter", "No passengers matched your filter. Try a name, class, seat number, status, or vehicle class.")
+language.Add("npcpassengers.status.no_passengers_vehicle", "No passengers found in your current vehicle.")
+language.Add("npcpassengers.status.no_passengers", "No passengers found. NPCs need to be riding in a vehicle before they can be managed here.")
+language.Add("npcpassengers.status.all_passengers", "All passengers")
+language.Add("npcpassengers.status.current_vehicle_only", "Current vehicle only")
+language.Add("npcpassengers.status.ctrl_f_search", "Ctrl+F to focus search")
+language.Add("npcpassengers.status.no_matches", "No matching settings")
+language.Add("npcpassengers.status.showing_matches", "Showing top %d of %d matches")
+
+-- Menu options
+language.Add("npcpassengers.menu.open_settings", "Open Settings")
+language.Add("npcpassengers.menu.reset_all", "Reset All Settings")
+
+-- Button states
+language.Add("npcpassengers.state.on", "ON")
+language.Add("npcpassengers.state.off", "OFF")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")
