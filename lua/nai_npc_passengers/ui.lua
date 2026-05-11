@@ -1602,7 +1602,7 @@ local function OpenSettingsPanel()
     settingsFrame.originalHeight = settingsFrame:GetTall()
 
     local minimizeBtn = vgui.Create("DButton", settingsFrame)
-    minimizeBtn:SetPos(settingsFrame:GetWide() - 126, 12)
+    minimizeBtn:SetPos(settingsFrame:GetWide() - 71, 12)
     minimizeBtn:SetSize(28, 28)
     minimizeBtn:SetText("")
     minimizeBtn.hoverAnim = 0
@@ -1670,7 +1670,7 @@ local function OpenSettingsPanel()
 
     -- Language selector dropdown (compact)
     local langBtn = vgui.Create("DButton", settingsFrame)
-    langBtn:SetPos(settingsFrame:GetWide() - 71, 12)
+    langBtn:SetPos(settingsFrame:GetWide() - 104, 12)
     langBtn:SetSize(50, 28)
     langBtn:SetText("")
     langBtn.hoverAnim = 0
