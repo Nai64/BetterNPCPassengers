@@ -1676,21 +1676,15 @@ local function OpenSettingsPanel()
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
         menu:AddOption("English", function()
-            RunConsoleCommand("gmod_language", "english")
-            self.currentLang = "EN"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Restart GMod to apply.")
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "To use English: Open GMod Options → Language → English, then restart GMod.")
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("Русский", function()
-            RunConsoleCommand("gmod_language", "russian")
-            self.currentLang = "RU"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Перезапустите GMod для применения.")
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Для русского языка: Откройте GMod Настройки → Язык → Русский, затем перезапустите GMod.")
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("中文", function()
-            RunConsoleCommand("gmod_language", "schinese")
-            self.currentLang = "ZH"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。重启 GMod 以应用。")
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "使用中文：打开 GMod 选项 → 语言 → 简体中文，然后重启 GMod。")
         end):SetIcon("icon16/world.png")
 
         menu:Open()
