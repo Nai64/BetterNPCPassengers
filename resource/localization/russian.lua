@@ -156,4 +156,9 @@ language.Add("npcpassengers.error.no_npc", "NPC поблизости нет")
 language.Add("npcpassengers.error.vehicle_full", "Транспорт полон")
 language.Add("npcpassengers.error.too_far", "NPC слишком далеко от транспорта")
 
+-- UI tooltips
+language.Add("npcpassengers.tooltip.changelang", "Изменить язык")
+language.Add("npcpassengers.tooltip.minimize", "Свернуть панель")
+language.Add("npcpassengers.tooltip.expand", "Развернуть панель")
+
 print("[Better NPC Passengers] Russian localization loaded!")

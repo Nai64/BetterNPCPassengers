@@ -1631,9 +1631,71 @@ local function OpenSettingsPanel()
             end
         end
 
-        minimizeBtn:SetTooltip(settingsFrame.isMinimized and "Expand panel" or "Minimize panel")
+        minimizeBtn:SetTooltip(settingsFrame.isMinimized and L("npcpassengers.tooltip.expand") or L("npcpassengers.tooltip.minimize"))
     end
-    minimizeBtn:SetTooltip("Minimize panel")
+    minimizeBtn:SetTooltip(L("npcpassengers.tooltip.minimize"))
+
+    -- Language selector dropdown (compact)
+    local langBtn = vgui.Create("DButton", settingsFrame)
+    langBtn:SetPos(settingsFrame:GetWide() - 105, 12)
+    langBtn:SetSize(26, 28)
+    langBtn:SetText("")
+    langBtn.hoverAnim = 0
+    langBtn.currentLang = "EN"
+
+    -- Get current language
+    local currentLangCode = GetConVar("gmod_language") and GetConVar("gmod_language"):GetString() or "english"
+    if currentLangCode == "russian" or currentLangCode == "ru" then
+        langBtn.currentLang = "RU"
+    elseif currentLangCode == "schinese" or currentLangCode == "tchinese" or currentLangCode == "zh" then
+        langBtn.currentLang = "ZH"
+    else
+        langBtn.currentLang = "EN"
+    end
+
+    langBtn.Paint = function(self, w, h)
+        AnimateButtonVisualState(self, 8, 10, 18, 12)
+
+        local scale = 1 + (self.hoverAnim or 0) * 0.05
+        local scaledW = w * scale
+        local scaledH = h * scale
+        local offsetX = (w - scaledW) / 2
+        local offsetY = (h - scaledH) / 2
+
+        local baseColor = Theme.bgDark
+        local hoverColor = Theme.bgLight
+        local col = LerpColor(self.hoverAnim, baseColor, hoverColor)
+
+        draw.RoundedBox(4, offsetX, offsetY, scaledW, scaledH, col)
+        draw.RoundedBox(3, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Theme.border)
+
+        draw.SimpleText(self.currentLang, "NaiFont_Small", w/2, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+
+    -- Language dropdown menu
+    langBtn.DoClick = function(self)
+        local menu = DermaMenu()
+        menu:AddOption("English", function()
+            RunConsoleCommand("gmod_language", "english")
+            self.currentLang = "EN"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Restart GMod to apply.")
+        end):SetIcon("icon16/world.png")
+
+        menu:AddOption("Русский", function()
+            RunConsoleCommand("gmod_language", "russian")
+            self.currentLang = "RU"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Перезапустите GMod для применения.")
+        end):SetIcon("icon16/world.png")
+
+        menu:AddOption("中文", function()
+            RunConsoleCommand("gmod_language", "schinese")
+            self.currentLang = "ZH"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。重启 GMod 以应用。")
+        end):SetIcon("icon16/world.png")
+
+        menu:Open()
+    end
+    langBtn:SetTooltip(L("npcpassengers.tooltip.changelang"))
 
     local closeBtn = vgui.Create("DButton", settingsFrame)
     closeBtn:SetPos(settingsFrame:GetWide() - 38, 12)
