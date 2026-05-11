@@ -18,3 +18,4 @@ DEVELOPER.md
 nul
 check_syntax.py
 check_syntax.lua
+*.bat

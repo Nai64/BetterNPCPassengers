@@ -4486,7 +4486,10 @@ local function OpenSettingsPanel()
     
     CreateFAQ(helpPanel, "icon16/server.png", "Does this work in multiplayer?",
         "Yes! The addon works on both singleplayer and multiplayer servers. Each player controls their own passengers.")
-    
+
+    CreateFAQ(helpPanel, "icon16/steering_wheel.png", "Does this work with LVS vehicles?",
+        "Yes! The addon has full support for LVS (Lua Vehicle System) vehicles. NPCs can ride as passengers and can even drive LVS vehicles if NPC Driver mode is enabled.")
+
     CreateSpacer(helpPanel, 10)
     CreateSectionHeader(helpPanel, "Still Need Help?")
     
