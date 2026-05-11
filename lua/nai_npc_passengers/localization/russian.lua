@@ -141,6 +141,16 @@ language.Add("npcpassengers.nav.modules", "Модули")
 language.Add("npcpassengers.nav.about", "О программе")
 language.Add("npcpassengers.search.placeholder", "Поиск настроек...")
 
+-- About page
+language.Add("npcpassengers.about.description", "Продвинутая система пассажиров с эмоциональным ИИ и реалистичной физикой")
+language.Add("npcpassengers.about.feature_status", "Система статусов: СПОКОЕН / ТРЕВОГА / ИСПУГАН / СОННЫЙ / МЕРТВ")
+language.Add("npcpassengers.about.feature_performance", "Производительность: кэширование мест, ограниченные таймеры, оптимизированные клиентские хуки")
+language.Add("npcpassengers.about.feature_filtering", "Фильтрация транспорта, перезарядка повторных попыток посадки, авто-посадка только для отрядов")
+language.Add("npcpassengers.about.actions", "Действия")
+language.Add("npcpassengers.about.show_welcome", "Показать приветственный экран")
+language.Add("npcpassengers.about.open_github", "Открыть страницу GitHub")
+language.Add("npcpassengers.about.reset_settings", "Сбросить ВСЕ настройки по умолчанию")
+
 -- Status messages
 language.Add("npcpassengers.status.calm", "СПОКОЕН")
 language.Add("npcpassengers.status.alert", "ТРЕВОГА")

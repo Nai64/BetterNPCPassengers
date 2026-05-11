@@ -4703,14 +4703,14 @@ local function OpenSettingsPanel()
         local y = 20
         draw.SimpleText(ADDON_DISPLAY_NAME, "NaiFont_Title", w/2, y, Theme.accent, TEXT_ALIGN_CENTER)
         y = y + 32
-        draw.SimpleText("Advanced passenger system with emotional AI and realistic physics", "NaiFont_Normal", w/2, y, Theme.text, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.about.description"), "NaiFont_Normal", w/2, y, Theme.text, TEXT_ALIGN_CENTER)
         y = y + 30
         
         -- Feature highlights
         local features = {
-            "Status System: CALM / ALERT / SCARED / DROWSY / DEAD",
-            "Performance: seat caching, throttled timers, optimized client hooks",
-            "Vehicle filtering, boarding retry cooldown, squad-only auto-join"
+            L("npcpassengers.about.feature_status"),
+            L("npcpassengers.about.feature_performance"),
+            L("npcpassengers.about.feature_filtering")
         }
         
         for _, feature in ipairs(features) do
@@ -4720,18 +4720,18 @@ local function OpenSettingsPanel()
     end
     
     CreateSpacer(aboutPanel, 10)
-    CreateSectionHeader(aboutPanel, "Actions")
+    CreateSectionHeader(aboutPanel, L("npcpassengers.about.actions"))
     
-    CreateButton(aboutPanel, "Show Welcome Screen", function()
+    CreateButton(aboutPanel, L("npcpassengers.about.show_welcome"), function()
         settingsFrame:Close()
         timer.Simple(0.1, function() ShowWelcomePanel(true) end)
     end)
 
-    CreateButton(aboutPanel, "Open GitHub Page", function()
+    CreateButton(aboutPanel, L("npcpassengers.about.open_github"), function()
         gui.OpenURL("https://github.com/Nai64/BetterNPCPassengers")
     end)
     
-    CreateButton(aboutPanel, "Reset ALL Settings to Defaults", function()
+    CreateButton(aboutPanel, L("npcpassengers.about.reset_settings"), function()
         RunConsoleCommand("nai_npc_reset")
         settingsFrame:Close()
         timer.Simple(0.1, OpenSettingsPanel)

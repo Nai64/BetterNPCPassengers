@@ -142,6 +142,16 @@ language.Add("npcpassengers.nav.modules", "Modules")
 language.Add("npcpassengers.nav.about", "About")
 language.Add("npcpassengers.search.placeholder", "Search settings...")
 
+-- About page
+language.Add("npcpassengers.about.description", "Advanced passenger system with emotional AI and realistic physics")
+language.Add("npcpassengers.about.feature_status", "Status System: CALM / ALERT / SCARED / DROWSY / DEAD")
+language.Add("npcpassengers.about.feature_performance", "Performance: seat caching, throttled timers, optimized client hooks")
+language.Add("npcpassengers.about.feature_filtering", "Vehicle filtering, boarding retry cooldown, squad-only auto-join")
+language.Add("npcpassengers.about.actions", "Actions")
+language.Add("npcpassengers.about.show_welcome", "Show Welcome Screen")
+language.Add("npcpassengers.about.open_github", "Open GitHub Page")
+language.Add("npcpassengers.about.reset_settings", "Reset ALL Settings to Defaults")
+
 -- Status messages
 language.Add("npcpassengers.status.calm", "CALM")
 language.Add("npcpassengers.status.alert", "ALERT")
