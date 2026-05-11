@@ -3383,7 +3383,7 @@ local function OpenSettingsPanel()
     CreateHelpText(speechPanel, L("npcpassengers.crash_cooldown.help"))
     
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Idle Chatter")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.idle_chatter"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.speech_idle"), "nai_npc_speech_idle")
     CreateHelpText(speechPanel, L("npcpassengers.speech_idle.help"))
@@ -3453,7 +3453,7 @@ local function OpenSettingsPanel()
     CreateHelpText(speechPanel, L("npcpassengers.crash_threshold_flinch.help"))
     
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Body Physics")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.body_physics"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.body_sway"), "nai_npc_body_sway")
     CreateHelpText(speechPanel, L("npcpassengers.body_sway.help"))
@@ -3531,7 +3531,7 @@ local function OpenSettingsPanel()
     CreateHelpText(tankPanel, L("npcpassengers.die_with_vehicle.help"))
 
     CreateSpacer(tankPanel, 10)
-    CreateSubHeader(tankPanel, "NPC Auto-Driver")
+    CreateSubHeader(tankPanel, L("npcpassengers.section.npc_auto_driver"))
     
     CreateCheckbox(tankPanel, L("npcpassengers.driver_enabled"), "nai_npc_driver_enabled")
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver.help"))

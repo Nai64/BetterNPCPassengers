@@ -422,6 +422,9 @@ language.Add("npcpassengers.section.threat_awareness", "Threat Awareness")
 language.Add("npcpassengers.section.emotional_states", "Emotional States")
 language.Add("npcpassengers.section.turret_control", "Turret Control (Experimental)")
 language.Add("npcpassengers.section.turret_blacklist", "Turret NPC Blacklist")
+language.Add("npcpassengers.section.idle_chatter", "Idle Chatter")
+language.Add("npcpassengers.section.body_physics", "Body Physics")
+language.Add("npcpassengers.section.npc_auto_driver", "NPC Auto-Driver")
 
 -- HUD positions
 language.Add("npcpassengers.hud.bottom_left", "Bottom Left")

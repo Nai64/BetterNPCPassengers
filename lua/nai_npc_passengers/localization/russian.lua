@@ -575,6 +575,9 @@ language.Add("npcpassengers.section.threat_awareness", "Осознание уг�
 language.Add("npcpassengers.section.emotional_states", "Эмоциональные состояния")
 language.Add("npcpassengers.section.turret_control", "Управление турелью (Экспериментально)")
 language.Add("npcpassengers.section.turret_blacklist", "Черный список турелей NPC")
+language.Add("npcpassengers.section.idle_chatter", "Болтовня в покое")
+language.Add("npcpassengers.section.body_physics", "Физика тела")
+language.Add("npcpassengers.section.npc_auto_driver", "NPC автопилот")
 
 -- HUD positions
 language.Add("npcpassengers.hud.bottom_left", "Слева снизу")
