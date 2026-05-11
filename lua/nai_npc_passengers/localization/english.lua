@@ -457,6 +457,13 @@ language.Add("npcpassengers.role.medic", "Medic")
 language.Add("npcpassengers.role.rebel", "Rebel")
 language.Add("npcpassengers.role.passenger", "Passenger")
 
+-- Final checkbox labels
+language.Add("npcpassengers.hud.only_when_in_vehicle", "Only Show When In Vehicle")
+language.Add("npcpassengers.hud.show_calm", "Show Calm Passengers")
+language.Add("npcpassengers.hud.show_hints", "Show Context Hints")
+language.Add("npcpassengers.hud.show_target_debug", "Show Target Debug")
+language.Add("npcpassengers.hud.play_cues", "Play Success/Fail Cues")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")

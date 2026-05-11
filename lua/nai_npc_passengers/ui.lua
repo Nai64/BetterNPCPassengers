@@ -2585,7 +2585,7 @@ local function OpenSettingsPanel()
     end
 
     local function GetPassengerCardDisplayName(npc)
-        if not IsValid(npc) then return "Unknown" end
+        if not IsValid(npc) then return L("npcpassengers.status.unknown") end
 
         local targetName = npc:GetNWString("targetname", "")
         if targetName == "" and npc.GetInternalVariable then
@@ -2879,7 +2879,7 @@ local function OpenSettingsPanel()
                 end
 
                 draw.SimpleText((npc:GetClass() or "npc") .. "  |  #" .. npc:EntIndex(), "NaiFont_Small", 76, 38, Theme.textDim)
-                draw.SimpleText(IsValid(passengerVehicle) and ("Vehicle: " .. passengerVehicle:GetClass()) or L("npcpassengers.ui.vehicle_unknown"), "NaiFont_Small", 76, 58, Theme.text)
+                draw.SimpleText(IsValid(passengerVehicle) and (L("npcpassengers.hud.vehicle_prefix") .. passengerVehicle:GetClass()) or L("npcpassengers.ui.vehicle_unknown"), "NaiFont_Small", 76, 58, Theme.text)
 
                 DrawInfoPill(76, 82, 92, 22, L("npcpassengers.ui.seat_prefix") .. currentSeat, Color(30, 36, 44, 240), Theme.textBright)
                 DrawInfoPill(176, 82, 96, 22, statusLabel, Color(statusColor.r, statusColor.g, statusColor.b, 220), Theme.bgDark)
@@ -3612,11 +3612,11 @@ local function OpenSettingsPanel()
     CreateCheckbox(hudPanel, L("npcpassengers.ui.enable_hud"), "nai_npc_hud_enabled")
     CreateHelpText(hudPanel, L("npcpassengers.panel.hud.desc"))
     
-    CreateCheckbox(hudPanel, "Only Show When In Vehicle", "nai_npc_hud_only_vehicle")
-    CreateCheckbox(hudPanel, "Show Calm Passengers", "nai_npc_hud_show_calm")
-    CreateCheckbox(hudPanel, "Show Context Hints", "nai_npc_hud_hints")
-    CreateCheckbox(hudPanel, "Show Target Debug", "nai_npc_hud_target_debug")
-    CreateCheckbox(hudPanel, "Play Success/Fail Cues", "nai_npc_client_cues")
+    CreateCheckbox(hudPanel, L("npcpassengers.hud.only_when_in_vehicle"), "nai_npc_hud_only_vehicle")
+    CreateCheckbox(hudPanel, L("npcpassengers.hud.show_calm"), "nai_npc_hud_show_calm")
+    CreateCheckbox(hudPanel, L("npcpassengers.hud.show_hints"), "nai_npc_hud_hints")
+    CreateCheckbox(hudPanel, L("npcpassengers.hud.show_target_debug"), "nai_npc_hud_target_debug")
+    CreateCheckbox(hudPanel, L("npcpassengers.hud.play_cues"), "nai_npc_client_cues")
     CreateHelpText(hudPanel, L("npcpassengers.hud_show_calm.help"))
     
     CreateSpacer(hudPanel, 10)

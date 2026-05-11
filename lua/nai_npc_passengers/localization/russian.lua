@@ -610,6 +610,13 @@ language.Add("npcpassengers.role.medic", "Медик")
 language.Add("npcpassengers.role.rebel", "Бунтарь")
 language.Add("npcpassengers.role.passenger", "Пассажир")
 
+-- Final checkbox labels
+language.Add("npcpassengers.hud.only_when_in_vehicle", "Показывать только когда в транспорте")
+language.Add("npcpassengers.hud.show_calm", "Показывать спокойных пассажиров")
+language.Add("npcpassengers.hud.show_hints", "Показывать контекстные подсказки")
+language.Add("npcpassengers.hud.show_target_debug", "Показывать отладку цели")
+language.Add("npcpassengers.hud.play_cues", "Воспроизводить звуковые сигналы успеха/неудачи")
+
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")
 language.Add("npcpassengers.keybinds_hud.desc", "Быстрые элементы управления HUD для показа, перемещения и отладки оверлея пассажиров.")
