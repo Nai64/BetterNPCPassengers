@@ -75,7 +75,7 @@ LoadLocalization()
 
 local ADDON_DISPLAY_NAME = L("npcpassengers.name")
 local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
-local DEFAULT_FONT_NAME = "Tahoma"
+local DEFAULT_FONT_NAME = "Open Sans"
 local HUD_POSITION_NAMES = {
     [0] = L("npcpassengers.hud.position.topleft"),
     [1] = L("npcpassengers.hud.position.topright"),
