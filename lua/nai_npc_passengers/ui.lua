@@ -4357,7 +4357,7 @@ local function OpenSettingsPanel()
         end
     end
 
-    local _, heightSlider = CreateSlider(interfacePanel, "Panel Height", "nai_npc_ui_panel_height", 600, 900, 0)
+    local _, heightSlider = CreateSlider(interfacePanel, "Panel Height", "nai_npc_ui_panel_height", 600, 1100, 0)
     CreateHelpText(interfacePanel, L("npcpassengers.ui_panel_height.help"))
     heightSlider.OnValueChanged = function(_, val)
         if IsValid(settingsFrame) then
