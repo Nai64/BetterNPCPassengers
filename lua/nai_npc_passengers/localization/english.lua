@@ -366,6 +366,54 @@ language.Add("npcpassengers.hud.dead_prefix", "Dead: ")
 language.Add("npcpassengers.hud.scared_prefix", "Scared: ")
 language.Add("npcpassengers.hud.drowsy_prefix", "Drowsy: ")
 
+-- Status labels
+language.Add("npcpassengers.status.calm", "Calm")
+language.Add("npcpassengers.status.alert", "Alert")
+language.Add("npcpassengers.status.scared", "Scared")
+language.Add("npcpassengers.status.drowsy", "Drowsy")
+language.Add("npcpassengers.status.dead", "Dead")
+language.Add("npcpassengers.status.unknown", "Unknown")
+
+-- NPC display names
+language.Add("npcpassengers.npc.citizen", "Citizen")
+language.Add("npcpassengers.npc.alyx", "Alyx")
+language.Add("npcpassengers.npc.barney", "Barney")
+language.Add("npcpassengers.npc.monk", "Father Grigori")
+language.Add("npcpassengers.npc.vortigaunt", "Vortigaunt")
+language.Add("npcpassengers.npc.eli", "Eli")
+language.Add("npcpassengers.npc.kleiner", "Dr. Kleiner")
+language.Add("npcpassengers.npc.mossman", "Dr. Mossman")
+language.Add("npcpassengers.npc.breen", "Dr. Breen")
+language.Add("npcpassengers.npc.dog", "Dog")
+
+-- Sort labels
+language.Add("npcpassengers.sort.vehicle", "Vehicle")
+language.Add("npcpassengers.sort.name", "Name")
+language.Add("npcpassengers.sort.seat", "Seat")
+language.Add("npcpassengers.sort.health", "Health")
+language.Add("npcpassengers.sort.status", "Status")
+
+-- Sort options
+language.Add("npcpassengers.sort.vehicle_first", "Vehicle First")
+language.Add("npcpassengers.sort.name_az", "Name A-Z")
+language.Add("npcpassengers.sort.seat_number", "Seat Number")
+language.Add("npcpassengers.sort.highest_health", "Highest Health")
+language.Add("npcpassengers.sort.status_priority", "Status Priority")
+
+-- Additional UI strings
+language.Add("npcpassengers.ui.vehicle_unknown", "Vehicle: Unknown")
+language.Add("npcpassengers.ui.seat_prefix", "Seat ")
+language.Add("npcpassengers.ui.same_vehicle", "Same Vehicle")
+language.Add("npcpassengers.ui.other_vehicle", "Other Vehicle")
+language.Add("npcpassengers.ui.hidden", "Hidden")
+language.Add("npcpassengers.ui.visible", "Visible")
+language.Add("npcpassengers.ui.health_format", "Health %d / %d")
+language.Add("npcpassengers.ui.refresh_list", "Refresh Passenger List")
+language.Add("npcpassengers.ui.copy_list", "Copy Visible Passenger List")
+language.Add("npcpassengers.ui.make_exit", "Make Current Vehicle Passengers Exit")
+language.Add("npcpassengers.ui.reset_pos", "Reset Position & Angles")
+language.Add("npcpassengers.ui.crash_reactions", "Crash Reactions")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")

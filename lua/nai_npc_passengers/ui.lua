@@ -2529,12 +2529,12 @@ local function OpenSettingsPanel()
     }
 
     local passengerStatusLabels = {
-        calm = "Calm",
-        alert = "Alert",
-        scared = "Scared",
-        drowsy = "Drowsy",
-        dead = "Dead",
-        default = "Unknown",
+        calm = L("npcpassengers.status.calm"),
+        alert = L("npcpassengers.status.alert"),
+        scared = L("npcpassengers.status.scared"),
+        drowsy = L("npcpassengers.status.drowsy"),
+        dead = L("npcpassengers.status.dead"),
+        default = L("npcpassengers.status.unknown"),
     }
 
     local function LoadPassengerCardIcons()
@@ -2594,16 +2594,16 @@ local function OpenSettingsPanel()
         if targetName and targetName ~= "" then return targetName end
 
         local classNames = {
-            ["npc_citizen"] = "Citizen",
-            ["npc_alyx"] = "Alyx",
-            ["npc_barney"] = "Barney",
-            ["npc_monk"] = "Father Grigori",
-            ["npc_eli"] = "Eli",
-            ["npc_kleiner"] = "Dr. Kleiner",
-            ["npc_mossman"] = "Dr. Mossman",
-            ["npc_breen"] = "Dr. Breen",
-            ["npc_vortigaunt"] = "Vortigaunt",
-            ["npc_dog"] = "Dog",
+            ["npc_citizen"] = L("npcpassengers.npc.citizen"),
+            ["npc_alyx"] = L("npcpassengers.npc.alyx"),
+            ["npc_barney"] = L("npcpassengers.npc.barney"),
+            ["npc_monk"] = L("npcpassengers.npc.monk"),
+            ["npc_eli"] = L("npcpassengers.npc.eli"),
+            ["npc_kleiner"] = L("npcpassengers.npc.kleiner"),
+            ["npc_mossman"] = L("npcpassengers.npc.mossman"),
+            ["npc_breen"] = L("npcpassengers.npc.breen"),
+            ["npc_vortigaunt"] = L("npcpassengers.npc.vortigaunt"),
+            ["npc_dog"] = L("npcpassengers.npc.dog"),
         }
 
         return classNames[npc:GetClass() or ""] or string.upper(string.Replace(npc:GetClass() or "unknown", "npc_", ""))
@@ -2615,11 +2615,11 @@ local function OpenSettingsPanel()
     end
 
     local passengerSortLabels = {
-        vehicle = "Vehicle",
-        name = "Name",
-        seat = "Seat",
-        health = "Health",
-        status = "Status",
+        vehicle = L("npcpassengers.sort.vehicle"),
+        name = L("npcpassengers.sort.name"),
+        seat = L("npcpassengers.sort.seat"),
+        health = L("npcpassengers.sort.health"),
+        status = L("npcpassengers.sort.status"),
     }
 
     local passengerStatusOrder = {
@@ -2879,19 +2879,19 @@ local function OpenSettingsPanel()
                 end
 
                 draw.SimpleText((npc:GetClass() or "npc") .. "  |  #" .. npc:EntIndex(), "NaiFont_Small", 76, 38, Theme.textDim)
-                draw.SimpleText(IsValid(passengerVehicle) and ("Vehicle: " .. passengerVehicle:GetClass()) or "Vehicle: Unknown", "NaiFont_Small", 76, 58, Theme.text)
+                draw.SimpleText(IsValid(passengerVehicle) and ("Vehicle: " .. passengerVehicle:GetClass()) or L("npcpassengers.ui.vehicle_unknown"), "NaiFont_Small", 76, 58, Theme.text)
 
-                DrawInfoPill(76, 82, 92, 22, "Seat " .. currentSeat, Color(30, 36, 44, 240), Theme.textBright)
+                DrawInfoPill(76, 82, 92, 22, L("npcpassengers.ui.seat_prefix") .. currentSeat, Color(30, 36, 44, 240), Theme.textBright)
                 DrawInfoPill(176, 82, 96, 22, statusLabel, Color(statusColor.r, statusColor.g, statusColor.b, 220), Theme.bgDark)
-                DrawInfoPill(280, 82, 118, 22, matchingVehicle and "Same Vehicle" or "Other Vehicle", matchingVehicle and Color(46, 78, 62, 230) or Color(54, 58, 68, 230), matchingVehicle and Theme.success or Theme.textDim)
-                DrawInfoPill(406, 82, 86, 22, npc:GetNWBool("NPCPassengerHidden", false) and "Hidden" or "Visible", Color(30, 36, 44, 230), Theme.textBright)
+                DrawInfoPill(280, 82, 118, 22, matchingVehicle and L("npcpassengers.ui.same_vehicle") or L("npcpassengers.ui.other_vehicle"), matchingVehicle and Color(46, 78, 62, 230) or Color(54, 58, 68, 230), matchingVehicle and Theme.success or Theme.textDim)
+                DrawInfoPill(406, 82, 86, 22, npc:GetNWBool("NPCPassengerHidden", false) and L("npcpassengers.ui.hidden") or L("npcpassengers.ui.visible"), Color(30, 36, 44, 230), Theme.textBright)
 
                 local healthBarX = 76
                 local healthBarY = 114
                 local healthBarW = w - 100
                 draw.RoundedBox(6, healthBarX, healthBarY, healthBarW, 14, Theme.bgDark)
                 draw.RoundedBox(6, healthBarX, healthBarY, math.max(healthBarW * healthFrac, 10), 14, Color(112, 214, 136))
-                draw.SimpleText(string.format("Health %d / %d", healthValue, maxHealth), "NaiFont_Small", healthBarX + 10, healthBarY + 7, Theme.bgDark, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+                draw.SimpleText(string.format(L("npcpassengers.ui.health_format"), healthValue, maxHealth), "NaiFont_Small", healthBarX + 10, healthBarY + 7, Theme.bgDark, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
 
                 local intensityBarX = 76
                 local intensityBarY = 138
@@ -2905,10 +2905,10 @@ local function OpenSettingsPanel()
             seatCombo:SetFont("NaiFont_Small")
             seatCombo:SetSortItems(false)
             for seatNumber = 1, seatChoices do
-                seatCombo:AddChoice("Seat " .. seatNumber, seatNumber)
+                seatCombo:AddChoice(L("npcpassengers.ui.seat_prefix") .. seatNumber, seatNumber)
             end
             seatCombo:ChooseOptionID(currentSeat)
-            seatCombo:SetValue("Seat " .. currentSeat)
+            seatCombo:SetValue(L("npcpassengers.ui.seat_prefix") .. currentSeat)
 
             local assignBtn = vgui.Create("DButton", npcPanel)
             assignBtn:SetFont("NaiFont_Normal")
@@ -3123,12 +3123,12 @@ local function OpenSettingsPanel()
         surface.DrawOutlinedRect(0, 0, w, h, 1)
         draw.SimpleText("v", "NaiFont_Small", w - 14, h / 2, Theme.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
-    passengerSortCombo:AddChoice("Vehicle First", "vehicle")
-    passengerSortCombo:AddChoice("Name A-Z", "name")
-    passengerSortCombo:AddChoice("Seat Number", "seat")
-    passengerSortCombo:AddChoice("Highest Health", "health")
-    passengerSortCombo:AddChoice("Status Priority", "status")
-    passengerSortCombo:SetValue("Vehicle First")
+    passengerSortCombo:AddChoice(L("npcpassengers.sort.vehicle_first"), "vehicle")
+    passengerSortCombo:AddChoice(L("npcpassengers.sort.name_az"), "name")
+    passengerSortCombo:AddChoice(L("npcpassengers.sort.seat_number"), "seat")
+    passengerSortCombo:AddChoice(L("npcpassengers.sort.highest_health"), "health")
+    passengerSortCombo:AddChoice(L("npcpassengers.sort.status_priority"), "status")
+    passengerSortCombo:SetValue(L("npcpassengers.sort.vehicle_first"))
     passengerSortCombo.OnSelect = function(self, index, value, data)
         passengerSortMode = data or "vehicle"
         RefreshPassengersControlList()
@@ -3191,7 +3191,7 @@ local function OpenSettingsPanel()
         passengerFilterEntry:SetSize(math.max(w - sortWidth - clearWidth - 44, 120), 24)
     end
 
-    CreateButton(passengersPanel, "Refresh Passenger List", function()
+    CreateButton(passengersPanel, L("npcpassengers.ui.refresh_list"), function()
         RefreshPassengersControlList(true)
     end)
 
@@ -3208,7 +3208,7 @@ local function OpenSettingsPanel()
         RefreshPassengersControlList()
     end)
 
-    CreateButton(passengersPanel, "Copy Visible Passenger List", function()
+    CreateButton(passengersPanel, L("npcpassengers.ui.copy_list"), function()
         if #passengerVisiblePassengers == 0 then
             chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.no_visible_passengers"))
             return
@@ -3227,7 +3227,7 @@ local function OpenSettingsPanel()
         CopyPassengerText(table.concat(lines, "\n"), #lines .. " passenger summaries copied.")
     end)
 
-    CreateButton(passengersPanel, "Make Current Vehicle Passengers Exit", function()
+    CreateButton(passengersPanel, L("npcpassengers.ui.make_exit"), function()
         if not LocalPlayer():InVehicle() then
             chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.need_vehicle"))
             return
@@ -3273,7 +3273,7 @@ local function OpenSettingsPanel()
     CreateSlider(posPanel, L("npcpassengers.roll_offset"), "nai_npc_roll_offset", -45, 45, 0)
     
     CreateSpacer(posPanel, 15)
-    CreateButton(posPanel, "Reset Position & Angles", function()
+    CreateButton(posPanel, L("npcpassengers.ui.reset_pos"), function()
         RunConsoleCommand("nai_npc_height_offset", "-3")
         RunConsoleCommand("nai_npc_forward_offset", "0")
         RunConsoleCommand("nai_npc_right_offset", "0")
@@ -3371,7 +3371,7 @@ local function OpenSettingsPanel()
     end
 
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Crash Reactions")
+    CreateSubHeader(speechPanel, L("npcpassengers.ui.crash_reactions"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.crash_enable"), "nai_npc_speech_crash")
     CreateHelpText(speechPanel, L("npcpassengers.crash_enable.help"))
@@ -4076,7 +4076,7 @@ local function OpenSettingsPanel()
         end
     end
     
-    local refreshBtn = CreateButton(debugPanel, "Refresh Passenger List", RefreshPassengerList)
+    local refreshBtn = CreateButton(debugPanel, L("npcpassengers.ui.refresh_list"), RefreshPassengerList)
     
     CreateSpacer(debugPanel, 15)
     CreateSectionHeader(debugPanel, L("npcpassengers.section.quick_test"))
@@ -5335,12 +5335,12 @@ local function GetNPCDisplayName(npc)
         ["npc_alyx"] = "Alyx",
         ["npc_barney"] = "Barney",
         ["npc_monk"] = "Father Grigori",
-        ["npc_eli"] = "Eli",
-        ["npc_kleiner"] = "Dr. Kleiner",
-        ["npc_mossman"] = "Dr. Mossman",
-        ["npc_breen"] = "Dr. Breen",
+        ["npc_eli"] = L("npcpassengers.npc.eli"),
+        ["npc_kleiner"] = L("npcpassengers.npc.kleiner"),
+        ["npc_mossman"] = L("npcpassengers.npc.mossman"),
+        ["npc_breen"] = L("npcpassengers.npc.breen"),
         ["npc_vortigaunt"] = "Vortigaunt",
-        ["npc_dog"] = "Dog",
+        ["npc_dog"] = L("npcpassengers.npc.dog"),
     }
     
     if classNames[class] then return classNames[class] end

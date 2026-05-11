@@ -519,6 +519,54 @@ language.Add("npcpassengers.hud.dead_prefix", "Мертвых: ")
 language.Add("npcpassengers.hud.scared_prefix", "Испуганных: ")
 language.Add("npcpassengers.hud.drowsy_prefix", "Сонных: ")
 
+-- Status labels
+language.Add("npcpassengers.status.calm", "Спокоен")
+language.Add("npcpassengers.status.alert", "Тревога")
+language.Add("npcpassengers.status.scared", "Испуган")
+language.Add("npcpassengers.status.drowsy", "Сонный")
+language.Add("npcpassengers.status.dead", "Мертв")
+language.Add("npcpassengers.status.unknown", "Неизвестно")
+
+-- NPC display names
+language.Add("npcpassengers.npc.citizen", "Гражданский")
+language.Add("npcpassengers.npc.alyx", "Аликс")
+language.Add("npcpassengers.npc.barney", "Барни")
+language.Add("npcpassengers.npc.monk", "Отец Григорий")
+language.Add("npcpassengers.npc.vortigaunt", "Вортигонт")
+language.Add("npcpassengers.npc.eli", "Эли")
+language.Add("npcpassengers.npc.kleiner", "Доктор Кляйнер")
+language.Add("npcpassengers.npc.mossman", "Доктор Моссман")
+language.Add("npcpassengers.npc.breen", "Доктор Брин")
+language.Add("npcpassengers.npc.dog", "Пёс")
+
+-- Sort labels
+language.Add("npcpassengers.sort.vehicle", "Транспорт")
+language.Add("npcpassengers.sort.name", "Имя")
+language.Add("npcpassengers.sort.seat", "Место")
+language.Add("npcpassengers.sort.health", "Здоровье")
+language.Add("npcpassengers.sort.status", "Статус")
+
+-- Sort options
+language.Add("npcpassengers.sort.vehicle_first", "Сначала транспорт")
+language.Add("npcpassengers.sort.name_az", "Имя А-Я")
+language.Add("npcpassengers.sort.seat_number", "Номер места")
+language.Add("npcpassengers.sort.highest_health", "Наибольшее здоровье")
+language.Add("npcpassengers.sort.status_priority", "Приоритет статуса")
+
+-- Additional UI strings
+language.Add("npcpassengers.ui.vehicle_unknown", "Транспорт: Неизвестно")
+language.Add("npcpassengers.ui.seat_prefix", "Место ")
+language.Add("npcpassengers.ui.same_vehicle", "Тот же транспорт")
+language.Add("npcpassengers.ui.other_vehicle", "Другой транспорт")
+language.Add("npcpassengers.ui.hidden", "Скрыт")
+language.Add("npcpassengers.ui.visible", "Видимый")
+language.Add("npcpassengers.ui.health_format", "Здоровье %d / %d")
+language.Add("npcpassengers.ui.refresh_list", "Обновить список пассажиров")
+language.Add("npcpassengers.ui.copy_list", "Копировать видимый список пассажиров")
+language.Add("npcpassengers.ui.make_exit", "Заставить пассажиров текущего транспорта выйти")
+language.Add("npcpassengers.ui.reset_pos", "Сбросить позицию и углы")
+language.Add("npcpassengers.ui.crash_reactions", "Реакции на аварии")
+
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")
 language.Add("npcpassengers.keybinds_hud.desc", "Быстрые элементы управления HUD для показа, перемещения и отладки оверлея пассажиров.")
