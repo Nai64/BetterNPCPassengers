@@ -2481,23 +2481,23 @@ local function OpenSettingsPanel()
     local autoJoinBtn = CreateNavButton(L("npcpassengers.nav.autojoin"), "icon16/group.png")
     autoJoinPanel.SearchNavButton = autoJoinBtn
     autoJoinBtn.DoClick = function() SwitchToPanel(autoJoinPanel, autoJoinBtn) end
-    
-    CreateSectionHeader(autoJoinPanel, "Auto-Join (Squad Behavior)")
-    CreateHelpText(autoJoinPanel, "Friendly NPCs will automatically board your vehicle when you enter it - just like squad mechanics in Half-Life 2!")
-    
+
+    CreateSectionHeader(autoJoinPanel, L("npcpassengers.autojoin.header"))
+    CreateHelpText(autoJoinPanel, L("npcpassengers.panel.autojoin.desc"))
+
     CreateSpacer(autoJoinPanel, 5)
-    
-    CreateCheckbox(autoJoinPanel, "Enable Auto-Join", "nai_npc_auto_join")
-    CreateHelpText(autoJoinPanel, "Nearby friendly NPCs will automatically join when you enter a vehicle.")
-    
-    CreateSlider(autoJoinPanel, "Auto-Join Range", "nai_npc_auto_join_range", 100, 2000, 0)
-    CreateHelpText(autoJoinPanel, "Maximum distance to find NPCs for auto-joining.")
-    
-    CreateSlider(autoJoinPanel, "Max Auto-Join NPCs", "nai_npc_auto_join_max", 1, 10, 0)
-    CreateHelpText(autoJoinPanel, "Maximum number of NPCs that can auto-join at once.")
-    
-    CreateCheckbox(autoJoinPanel, "Squad Members Only", "nai_npc_auto_join_squad_only")
-    CreateHelpText(autoJoinPanel, "Only NPCs with a squad name will auto-join (for HL2-style squads).")
+
+    CreateCheckbox(autoJoinPanel, L("npcpassengers.autojoin.enable"), "nai_npc_auto_join")
+    CreateHelpText(autoJoinPanel, L("npcpassengers.autojoin.enable.help"))
+
+    CreateSlider(autoJoinPanel, L("npcpassengers.autojoin.range"), "nai_npc_auto_join_range", 100, 2000, 0)
+    CreateHelpText(autoJoinPanel, L("npcpassengers.autojoin.range.help"))
+
+    CreateSlider(autoJoinPanel, L("npcpassengers.autojoin.max"), "nai_npc_auto_join_max", 1, 10, 0)
+    CreateHelpText(autoJoinPanel, L("npcpassengers.autojoin.max.help"))
+
+    CreateCheckbox(autoJoinPanel, L("npcpassengers.autojoin.squad_only"), "nai_npc_auto_join_squad_only")
+    CreateHelpText(autoJoinPanel, L("npcpassengers.autojoin.squad_only.help"))
 
     -- Passengers Tab
     local passengersPanel = CreateContentPanel()
@@ -3061,8 +3061,8 @@ local function OpenSettingsPanel()
         RefreshPassengersControlList()
     end
 
-    CreateSectionHeader(passengersPanel, "Passenger Controls")
-    CreateHelpText(passengersPanel, "Manage active passengers, filter by name/class/status, copy debug info, reassign seats, and detach riders without leaving the settings panel.")
+    CreateSectionHeader(passengersPanel, L("npcpassengers.panel.passengers.header"))
+    CreateHelpText(passengersPanel, L("npcpassengers.panel.passengers.desc"))
 
     passengerOverviewPanel = vgui.Create("DPanel", passengersPanel)
     passengerOverviewPanel:SetTall(140)
@@ -3257,16 +3257,16 @@ local function OpenSettingsPanel()
     posPanel.SearchNavButton = posBtn
     posBtn.DoClick = function() SwitchToPanel(posPanel, posBtn) end
     
-    CreateSectionHeader(posPanel, "Position Offsets")
-    CreateHelpText(posPanel, "Fine-tune NPC positioning in vehicles. Use these to fix floating or clipping issues.")
+    CreateSectionHeader(posPanel, L("npcpassengers.position.header"))
+    CreateHelpText(posPanel, L("npcpassengers.panel.position.desc"))
     
     CreateSlider(posPanel, "Height Offset", "nai_npc_height_offset", -50, 50, 0)
     CreateSlider(posPanel, "Forward Offset", "nai_npc_forward_offset", -50, 50, 0)
     CreateSlider(posPanel, "Right Offset", "nai_npc_right_offset", -50, 50, 0)
     
     CreateSpacer(posPanel, 10)
-    CreateSectionHeader(posPanel, "Angle Offsets")
-    CreateHelpText(posPanel, "Adjust NPC rotation in vehicles.")
+    CreateSectionHeader(posPanel, L("npcpassengers.angle.header"))
+    CreateHelpText(posPanel, L("npcpassengers.panel.angle.desc"))
     
     CreateSlider(posPanel, "Yaw (Rotation)", "nai_npc_yaw_offset", -180, 180, 0)
     CreateSlider(posPanel, "Pitch (Tilt Forward)", "nai_npc_pitch_offset", -45, 45, 0)
@@ -3291,19 +3291,19 @@ local function OpenSettingsPanel()
     speechPanel.SearchNavButton = speechBtn
     speechBtn.DoClick = function() SwitchToPanel(speechPanel, speechBtn) end
     
-    CreateSectionHeader(speechPanel, "NPC Speech (Advanced)")
-    CreateHelpText(speechPanel, "Configure how NPCs vocalize while riding in vehicles. HL2-style citizen voices!")
+    CreateSectionHeader(speechPanel, L("npcpassengers.behaviour.header"))
+    CreateHelpText(speechPanel, L("npcpassengers.panel.speech.desc"))
     
     CreateSpacer(speechPanel, 5)
     
     CreateCheckbox(speechPanel, "Enable NPC Speech", "nai_npc_speech_enabled")
-    CreateHelpText(speechPanel, "Master toggle for all NPC speech. Disable to silence passengers completely.")
+    CreateHelpText(speechPanel, L("npcpassengers.speech_enable.help"))
     
     CreateSlider(speechPanel, "Speech Volume", "nai_npc_speech_volume", 0, 100, 0)
-    CreateHelpText(speechPanel, "How loud NPC voices are (0 = silent, 100 = full volume).")
+    CreateHelpText(speechPanel, L("npcpassengers.speech_volume.help"))
     
     CreateSlider(speechPanel, "Pitch Variation (+/-)", "nai_npc_speech_pitch_var", 0, 20, 0)
-    CreateHelpText(speechPanel, "Random pitch variation for more natural voices. 0 = monotone, higher = more variety.")
+    CreateHelpText(speechPanel, L("npcpassengers.pitch_variation.help"))
 
     -- QoL: Quick Enable All / Disable All buttons for speech settings
     local speechBtnContainer = vgui.Create("DPanel", speechPanel)
@@ -3374,134 +3374,134 @@ local function OpenSettingsPanel()
     CreateSubHeader(speechPanel, "Crash Reactions")
     
     CreateCheckbox(speechPanel, "Enable Crash Sounds", "nai_npc_speech_crash")
-    CreateHelpText(speechPanel, "NPCs grunt/yelp when vehicle decelerates sharply (crashes, hard braking).")
+    CreateHelpText(speechPanel, L("npcpassengers.crash_enable.help"))
     
     CreateSlider(speechPanel, "Crash Sensitivity", "nai_npc_speech_crash_threshold", 100, 1000, 0)
-    CreateHelpText(speechPanel, "Deceleration needed to trigger crash sounds. Lower = more sensitive.")
+    CreateHelpText(speechPanel, L("npcpassengers.crash_threshold.help"))
     
     CreateSlider(speechPanel, "Crash Sound Cooldown", "nai_npc_speech_crash_cooldown", 0.5, 5, 1)
-    CreateHelpText(speechPanel, "Minimum seconds between crash sounds per NPC.")
+    CreateHelpText(speechPanel, L("npcpassengers.crash_cooldown.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Idle Chatter")
     
     CreateCheckbox(speechPanel, "Enable Idle Chatter", "nai_npc_speech_idle")
-    CreateHelpText(speechPanel, "NPCs occasionally speak while riding - comments, questions, observations.")
+    CreateHelpText(speechPanel, L("npcpassengers.speech_idle.help"))
     
     CreateSlider(speechPanel, "Chatter Chance", "nai_npc_speech_idle_chance", 0, 1, 2)
-    CreateHelpText(speechPanel, "Probability of chatter per check. 0 = never, 1 = always tries to speak.")
+    CreateHelpText(speechPanel, L("npcpassengers.speech_idle_chance.help"))
     
     CreateSlider(speechPanel, "Chatter Interval", "nai_npc_speech_idle_interval", 5, 60, 0)
-    CreateHelpText(speechPanel, "Minimum seconds between idle chatter attempts.")
+    CreateHelpText(speechPanel, L("npcpassengers.speech_idle_interval.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Board/Exit Sounds")
     
     CreateCheckbox(speechPanel, "Enable Board/Exit Sounds", "nai_npc_speech_board")
-    CreateHelpText(speechPanel, "NPCs speak when entering and exiting vehicles.")
+    CreateHelpText(speechPanel, L("npcpassengers.speech_board.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Ambient Sounds")
     
     CreateCheckbox(speechPanel, "Enable Ambient Sounds", "nai_npc_ambient_sounds")
-    CreateHelpText(speechPanel, "Occasional coughs, sighs, hums - background life sounds.")
+    CreateHelpText(speechPanel, L("npcpassengers.ambient_sounds.help"))
     
     CreateSlider(speechPanel, "Ambient Sound Interval", "nai_npc_ambient_interval", 10, 120, 0)
-    CreateHelpText(speechPanel, "Average seconds between ambient sounds.")
+    CreateHelpText(speechPanel, L("npcpassengers.ambient_interval.help"))
     
     CreateSpacer(speechPanel, 15)
     CreateSectionHeader(speechPanel, "Animation & Behavior")
-    CreateHelpText(speechPanel, "Fine-tune NPC animations and head movement.")
+    CreateHelpText(speechPanel, L("npcpassengers.animation.help"))
     
     CreateSpacer(speechPanel, 5)
     
     CreateCheckbox(speechPanel, "Enable Head/Eye Looking", "nai_npc_head_look")
-    CreateHelpText(speechPanel, "NPCs naturally look around, at the player, out windows, etc.")
+    CreateHelpText(speechPanel, L("npcpassengers.head_look.help"))
     
     CreateSlider(speechPanel, "Head Smoothness", "nai_npc_head_smooth", 0.1, 1, 2)
-    CreateHelpText(speechPanel, "How smoothly the head moves. Lower = snappier, higher = floaty.")
+    CreateHelpText(speechPanel, L("npcpassengers.head_smooth.help"))
     
     CreateCheckbox(speechPanel, "Enable Blinking", "nai_npc_blink")
-    CreateHelpText(speechPanel, "NPCs blink realistically while sitting.")
+    CreateHelpText(speechPanel, L("npcpassengers.blink.help"))
     
     CreateCheckbox(speechPanel, "Enable Breathing", "nai_npc_breathing")
-    CreateHelpText(speechPanel, "Subtle breathing animation on NPC heads.")
+    CreateHelpText(speechPanel, L("npcpassengers.breathing.help"))
     
     CreateSlider(speechPanel, "Walk Timeout", "nai_npc_walk_timeout", 1, 15, 0)
-    CreateHelpText(speechPanel, "Seconds before NPC gives up walking to vehicle.")
+    CreateHelpText(speechPanel, L("npcpassengers.walk_timeout.help"))
     
     CreateSpacer(speechPanel, 15)
     CreateSectionHeader(speechPanel, "Advanced Realism")
-    CreateHelpText(speechPanel, "Physics-based reactions and awareness systems for ultimate immersion.")
+    CreateHelpText(speechPanel, L("npcpassengers.realism.help"))
     
     CreateSpacer(speechPanel, 5)
     CreateSubHeader(speechPanel, "Gesture Animations")
     
     CreateCheckbox(speechPanel, "Enable Talking Gestures", "nai_npc_talking_gestures")
-    CreateHelpText(speechPanel, "NPCs randomly play hand gestures and body animations while riding.")
+    CreateHelpText(speechPanel, L("npcpassengers.talking_gestures.help"))
     
     CreateSlider(speechPanel, "Gesture Chance (%)", "nai_npc_gesture_chance", 1, 50, 0)
-    CreateHelpText(speechPanel, "Percent chance to play a gesture each interval.")
+    CreateHelpText(speechPanel, L("npcpassengers.gesture_chance.help"))
     
     CreateSlider(speechPanel, "Gesture Interval", "nai_npc_gesture_interval", 3, 30, 0)
-    CreateHelpText(speechPanel, "Seconds between gesture opportunity checks.")
+    CreateHelpText(speechPanel, L("npcpassengers.gesture_interval.help"))
     
     CreateCheckbox(speechPanel, "Enable Crash Flinch", "nai_npc_crash_flinch")
-    CreateHelpText(speechPanel, "NPCs flinch and lurch forward when vehicle crashes or brakes hard.")
+    CreateHelpText(speechPanel, L("npcpassengers.crash_flinch.help"))
     
     CreateSlider(speechPanel, "Crash Sensitivity", "nai_npc_crash_threshold", 200, 800, 0)
-    CreateHelpText(speechPanel, "Velocity change needed to trigger flinch (lower = more sensitive).")
+    CreateHelpText(speechPanel, L("npcpassengers.crash_threshold_flinch.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Body Physics")
     
     CreateCheckbox(speechPanel, "Enable Body Sway", "nai_npc_body_sway")
-    CreateHelpText(speechPanel, "NPCs lean into turns, brace during acceleration/braking.")
+    CreateHelpText(speechPanel, L("npcpassengers.body_sway.help"))
     
     CreateSlider(speechPanel, "Sway Intensity", "nai_npc_body_sway_amount", 0.1, 3, 1)
-    CreateHelpText(speechPanel, "How much NPCs sway with vehicle movement.")
+    CreateHelpText(speechPanel, L("npcpassengers.body_sway_amount.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Threat Awareness")
     
     CreateCheckbox(speechPanel, "Enable Threat Awareness", "nai_npc_threat_awareness")
-    CreateHelpText(speechPanel, "NPCs automatically look toward nearby enemies.")
+    CreateHelpText(speechPanel, L("npcpassengers.threat_awareness.help"))
     
     CreateSlider(speechPanel, "Threat Detection Range", "nai_npc_threat_range", 500, 5000, 0)
-    CreateHelpText(speechPanel, "How far NPCs can detect threats for head tracking.")
+    CreateHelpText(speechPanel, L("npcpassengers.threat_range.help"))
     
     CreateCheckbox(speechPanel, "Combat Alertness", "nai_npc_combat_alert")
-    CreateHelpText(speechPanel, "NPCs become tense and reactive when enemies are near.")
+    CreateHelpText(speechPanel, L("npcpassengers.combat_alert.help"))
 
     CreateCheckbox(speechPanel, "NPCs shoot from vehicles (Experimental)", "nai_npc_passenger_combat")
-    CreateHelpText(speechPanel, "Disabled by default. Enable this to let armed passengers fire from inside vehicles.")
+    CreateHelpText(speechPanel, L("npcpassengers.passenger_combat.help"))
 
     CreateSlider(speechPanel, "Passenger Combat Range", "nai_npc_passenger_combat_range", 500, 5000, 0)
-    CreateHelpText(speechPanel, "How far armed passengers can acquire targets.")
+    CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_range.help"))
 
     CreateSlider(speechPanel, "Passenger Accuracy", "nai_npc_passenger_combat_accuracy", 0.1, 1, 2)
-    CreateHelpText(speechPanel, "Higher values tighten shot spread for armed passengers.")
+    CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_accuracy.help"))
 
     CreateSlider(speechPanel, "Passenger Damage Multiplier", "nai_npc_passenger_combat_damage", 0.25, 3, 2)
-    CreateHelpText(speechPanel, "Scales the damage dealt by passenger-fired shots.")
+    CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_damage.help"))
     
     CreateCheckbox(speechPanel, "Passenger Interaction", "nai_npc_passenger_interaction")
-    CreateHelpText(speechPanel, "Multiple passengers look at and occasionally chat with each other.")
+    CreateHelpText(speechPanel, L("npcpassengers.passenger_interaction.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Emotional States")
     
     CreateCheckbox(speechPanel, "Enable Fear Reactions", "nai_npc_fear_reactions")
-    CreateHelpText(speechPanel, "NPCs get scared by dangerous driving - wide eyes, panicked sounds.")
+    CreateHelpText(speechPanel, L("npcpassengers.fear_reactions.help"))
     
     CreateSlider(speechPanel, "Fear Speed Threshold", "nai_npc_fear_speed", 400, 2000, 0)
-    CreateHelpText(speechPanel, "Speed (units/sec) at which NPCs start getting nervous.")
+    CreateHelpText(speechPanel, L("npcpassengers.fear_speed_threshold.help"))
     
     CreateCheckbox(speechPanel, "Enable Drowsiness", "nai_npc_drowsiness")
-    CreateHelpText(speechPanel, "NPCs get sleepy on long, calm rides - slow blinks, head nods.")
+    CreateHelpText(speechPanel, L("npcpassengers.drowsiness.help"))
     
     CreateSlider(speechPanel, "Drowsy Time", "nai_npc_drowsy_time", 20, 180, 0)
-    CreateHelpText(speechPanel, "Seconds of calm riding before drowsiness kicks in.")
+    CreateHelpText(speechPanel, L("npcpassengers.drowsy_time.help"))
     
     -- Tank/LVS Tab
     local tankPanel = CreateContentPanel()
@@ -3510,49 +3510,49 @@ local function OpenSettingsPanel()
     tankPanel.SearchNavButton = tankBtn
     tankBtn.DoClick = function() SwitchToPanel(tankPanel, tankBtn) end
     
-    CreateSectionHeader(tankPanel, "Tank / LVS Vehicle Settings")
-    CreateHelpText(tankPanel, "Settings for tanks, APCs, and LVS vehicles.")
+    CreateSectionHeader(tankPanel, L("npcpassengers.nav.tank"))
+    CreateHelpText(tankPanel, L("npcpassengers.panel.tank.desc"))
     
     CreateSpacer(tankPanel, 5)
     
     CreateCheckbox(tankPanel, "Hide NPCs in Enclosed Vehicles", "nai_npc_hide_in_tanks")
-    CreateHelpText(tankPanel, "Make NPC passengers invisible when inside tanks and APCs.")
+    CreateHelpText(tankPanel, L("npcpassengers.hide_in_tanks.help"))
 
     CreateCheckbox(tankPanel, "Auto-Eject Stuck NPCs", "nai_npc_eject_stuck_check")
-    CreateHelpText(tankPanel, "Automatically push NPCs out of vehicles when they get stuck during ejection. Prevents NPCs from clipping into vehicles when exiting.")
+    CreateHelpText(tankPanel, L("npcpassengers.eject_stuck_check.help"))
 
     CreateCheckbox(tankPanel, "No-Collide With Vehicle After Detach", "nai_npc_detach_no_collide")
-    CreateHelpText(tankPanel, "After detaching, NPCs temporarily pass through the vehicle so they can walk away without clipping or getting stuck.")
+    CreateHelpText(tankPanel, L("npcpassengers.detach_no_collide.help"))
 
     CreateSlider(tankPanel, "No-Collide Duration (seconds)", "nai_npc_detach_no_collide_duration", 1, 15, 1)
-    CreateHelpText(tankPanel, "How long NPCs ignore the vehicle's collision after detaching.")
+    CreateHelpText(tankPanel, L("npcpassengers.detach_no_collide_duration.help"))
 
     CreateCheckbox(tankPanel, "Kill Passengers When Vehicle Explodes", "nai_npc_die_with_vehicle")
-    CreateHelpText(tankPanel, "NPC passengers die when their vehicle is destroyed by explosion or fire (more immersive than them walking out of a wreck unharmed).")
+    CreateHelpText(tankPanel, L("npcpassengers.die_with_vehicle.help"))
 
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "NPC Auto-Driver")
     
     CreateCheckbox(tankPanel, "Enable Auto-Drive", "nai_npc_driver_enabled")
-    CreateHelpText(tankPanel, "Allow NPCs in driver seat to automatically drive toward enemies.")
+    CreateHelpText(tankPanel, L("npcpassengers.tank_driver.help"))
     
     CreateSlider(tankPanel, "Detection Range", "nai_npc_driver_range", 500, 10000, 0)
-    CreateHelpText(tankPanel, "Maximum range for driver to detect enemies.")
+    CreateHelpText(tankPanel, L("npcpassengers.tank_driver_range.help"))
     
     CreateSlider(tankPanel, "Engage Distance", "nai_npc_driver_engage_distance", 200, 2000, 0)
-    CreateHelpText(tankPanel, "Distance to maintain from enemies.")
+    CreateHelpText(tankPanel, L("npcpassengers.tank_driver_distance.help"))
     
     CreateSlider(tankPanel, "Drive Speed", "nai_npc_driver_speed", 0.1, 1, 2)
-    CreateHelpText(tankPanel, "Throttle amount (0.1 = slow, 1 = full speed).")
+    CreateHelpText(tankPanel, L("npcpassengers.tank_driver_throttle.help"))
     
     CreateSlider(tankPanel, "Reverse Distance", "nai_npc_driver_reverse_distance", 100, 800, 0)
-    CreateHelpText(tankPanel, "Distance at which to reverse away from enemies.")
+    CreateHelpText(tankPanel, L("npcpassengers.tank_driver_reverse.help"))
     
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "Turret Control (Experimental)")
     
     CreateCheckbox(tankPanel, "Enable Turret Control", "nai_npc_turret_enabled")
-    CreateHelpText(tankPanel, "Allow NPCs to control turrets on LVS vehicles.")
+    CreateHelpText(tankPanel, L("npcpassengers.tank_turret.help"))
     
     CreateSlider(tankPanel, "Target Range", "nai_npc_turret_range", 500, 10000, 0)
     CreateSlider(tankPanel, "Accuracy", "nai_npc_turret_accuracy", 0, 1, 2)
@@ -3607,17 +3607,17 @@ local function OpenSettingsPanel()
     hudPanel.SearchNavButton = hudBtn
     hudBtn.DoClick = function() SwitchToPanel(hudPanel, hudBtn) end
     
-    CreateSectionHeader(hudPanel, "HUD Display")
+    CreateSectionHeader(hudPanel, L("npcpassengers.hud.header"))
     
     CreateCheckbox(hudPanel, "Enable Passenger HUD", "nai_npc_hud_enabled")
-    CreateHelpText(hudPanel, "Shows passenger status (emotions, alertness) on screen while driving.")
+    CreateHelpText(hudPanel, L("npcpassengers.panel.hud.desc"))
     
     CreateCheckbox(hudPanel, "Only Show When In Vehicle", "nai_npc_hud_only_vehicle")
     CreateCheckbox(hudPanel, "Show Calm Passengers", "nai_npc_hud_show_calm")
     CreateCheckbox(hudPanel, "Show Context Hints", "nai_npc_hud_hints")
     CreateCheckbox(hudPanel, "Show Target Debug", "nai_npc_hud_target_debug")
     CreateCheckbox(hudPanel, "Play Success/Fail Cues", "nai_npc_client_cues")
-    CreateHelpText(hudPanel, "When disabled, only shows passengers with non-calm status.")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_show_calm.help"))
     
     CreateSpacer(hudPanel, 10)
     CreateSectionHeader(hudPanel, "HUD Position & Style")
@@ -3660,20 +3660,20 @@ local function OpenSettingsPanel()
     
     CreateSpacer(hudPanel, 10)
     CreateSectionHeader(hudPanel, "Emotion Thresholds")
-    CreateHelpText(hudPanel, "When emotion levels exceed these thresholds, passengers show that status in the HUD.")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_thresholds.desc"))
     
     CreateSlider(hudPanel, "Alert Threshold", "nai_npc_hud_alert_threshold", 0.1, 1, 2)
-    CreateHelpText(hudPanel, "Alert level needed to show 'ALERT' status (threat detected).")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_alert_threshold.help"))
     
     CreateSlider(hudPanel, "Fear Threshold", "nai_npc_hud_fear_threshold", 0.1, 1, 2)
-    CreateHelpText(hudPanel, "Fear level needed to show 'SCARED' status (dangerous driving).")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_fear_threshold.help"))
     
     CreateSlider(hudPanel, "Drowsy Threshold", "nai_npc_hud_drowsy_threshold", 0.3, 1, 2)
-    CreateHelpText(hudPanel, "Calm time ratio needed to show 'DROWSY' status (long calm ride).")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_drowsy_threshold.help"))
     
     CreateSpacer(hudPanel, 15)
     CreateSectionHeader(hudPanel, "Emotion Actions")
-    CreateHelpText(hudPanel, "Choose what action passengers take when experiencing each emotional state.")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_actions.desc"))
     
     -- Action choices table
     local actionChoices = {
@@ -3741,7 +3741,7 @@ local function OpenSettingsPanel()
     CreateActionDropdown(hudPanel, "If Drowsy:", "nai_npc_action_drowsy")
     
     CreateSpacer(hudPanel, 5)
-    CreateHelpText(hudPanel, "Note: Some actions may not be visible depending on NPC model support.")
+    CreateHelpText(hudPanel, L("npcpassengers.hud_actions_note"))
     
     -- Keybinds Tab
     local keybindsPanel = CreateContentPanel()
@@ -3864,8 +3864,8 @@ local function OpenSettingsPanel()
         return container
     end
     
-    CreateSectionHeader(keybindsPanel, "Action Keybinds")
-    CreateHelpText(keybindsPanel, "Set custom keybinds for NPC passenger actions. Click a button and press a key to bind.")
+    CreateSectionHeader(keybindsPanel, L("npcpassengers.keybinds.header"))
+    CreateHelpText(keybindsPanel, L("npcpassengers.panel.keybinds.desc"))
     
     local keybindConvars = {
         {name = "Attach Nearest NPC", cvar = "nai_npc_key_attach", desc = "Attach the nearest friendly NPC to your vehicle"},
@@ -3895,7 +3895,7 @@ local function OpenSettingsPanel()
     
     CreateSpacer(keybindsPanel, 10)
     CreateSectionHeader(keybindsPanel, "HUD Controls")
-    CreateHelpText(keybindsPanel, "Quick HUD controls for showing, moving, and debugging the passenger overlay.")
+    CreateHelpText(keybindsPanel, L("npcpassengers.keybinds_hud.desc"))
 
     local hudKeybinds = {
         {name = "Toggle Passenger HUD", cvar = "nai_npc_key_toggle_hud", desc = "Show or hide the passenger status HUD"},
@@ -3909,7 +3909,7 @@ local function OpenSettingsPanel()
 
     CreateSpacer(keybindsPanel, 10)
     CreateSectionHeader(keybindsPanel, "Debug Controls")
-    CreateHelpText(keybindsPanel, "Debug keybinds only work when Debug Mode is enabled.")
+    CreateHelpText(keybindsPanel, L("npcpassengers.keybinds_debug_note"))
     
     local debugKeybinds = {
         {name = "Test Random Gesture", cvar = "nai_npc_key_test_gesture", desc = "Play a random gesture on nearest passenger"},
@@ -3975,17 +3975,17 @@ local function OpenSettingsPanel()
     debugPanel.SearchNavButton = debugBtn
     debugBtn.DoClick = function() SwitchToPanel(debugPanel, debugBtn) end
     
-    CreateSectionHeader(debugPanel, "Debug Tools")
-    CreateHelpText(debugPanel, "Advanced debugging tools for testing NPC behavior. Enable Debug Mode in settings first.")
+    CreateSectionHeader(debugPanel, L("npcpassengers.nav.debugging"))
+    CreateHelpText(debugPanel, L("npcpassengers.panel.debugging.desc"))
     
     CreateSpacer(debugPanel, 5)
     
     CreateCheckbox(debugPanel, "Enable Debug Mode", "nai_npc_debug_mode")
-    CreateHelpText(debugPanel, "Shows debug test buttons and enables debug commands.")
+    CreateHelpText(debugPanel, L("npcpassengers.debug_mode.help"))
     
     CreateSpacer(debugPanel, 15)
     CreateSectionHeader(debugPanel, "Passenger Status Control")
-    CreateHelpText(debugPanel, "Manually set passenger status for testing. Click 'Refresh List' to see current passengers.")
+    CreateHelpText(debugPanel, L("npcpassengers.debug_status.help"))
     
     local passengerListPanel = vgui.Create("DScrollPanel", debugPanel)
     passengerListPanel:Dock(TOP)
@@ -4135,32 +4135,32 @@ local function OpenSettingsPanel()
     interfaceBtn.DoClick = function() SwitchToPanel(interfacePanel, interfaceBtn) end
     
     CreateSectionHeader(interfacePanel, "UI Sound Settings")
-    CreateHelpText(interfacePanel, "Configure sound effects for buttons, checkboxes, and other UI elements")
+    CreateHelpText(interfacePanel, L("npcpassengers.panel.interface.desc"))
     
     CreateCheckbox(interfacePanel, "Enable UI Sounds", "nai_npc_ui_sounds_enabled")
-    CreateHelpText(interfacePanel, "Master switch for all UI sound effects")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_sounds_enabled.help"))
     
     CreateSlider(interfacePanel, "UI Sounds Volume", "nai_npc_ui_sounds_volume", 0, 2, 1)
-    CreateHelpText(interfacePanel, "Volume multiplier for UI sounds (1.0 = normal, 2.0 = double)")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_sounds_volume.help"))
     
     CreateCheckbox(interfacePanel, "Button Hover Sounds", "nai_npc_ui_hover_enabled")
-    CreateHelpText(interfacePanel, "Play sound when hovering over buttons")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_hover_enabled.help"))
     
     CreateCheckbox(interfacePanel, "Button Click Sounds", "nai_npc_ui_click_enabled")
-    CreateHelpText(interfacePanel, "Play sound when clicking buttons and checkboxes")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_click_enabled.help"))
     
     CreateSpacer(interfacePanel, 10)
     CreateSectionHeader(interfacePanel, "Context Menu Options")
-    CreateHelpText(interfacePanel, "Choose which options appear when right-clicking NPCs")
+    CreateHelpText(interfacePanel, L("npcpassengers.context_menu.desc"))
     
     CreateCheckbox(interfacePanel, "Show 'Make Passenger'", "nai_npc_context_make_passenger")
-    CreateHelpText(interfacePanel, "Add NPC as passenger to your current vehicle")
+    CreateHelpText(interfacePanel, L("npcpassengers.context_make_passenger.help"))
     
     CreateCheckbox(interfacePanel, "Show 'Make Passenger For Vehicle'", "nai_npc_context_make_passenger_vehicle")
-    CreateHelpText(interfacePanel, "Add NPC to a specific vehicle (click NPC, then vehicle)")
+    CreateHelpText(interfacePanel, L("npcpassengers.context_make_passenger_vehicle.help"))
     
     CreateCheckbox(interfacePanel, "Show 'Detach Passenger'", "nai_npc_context_detach")
-    CreateHelpText(interfacePanel, "Remove NPC from vehicle")
+    CreateHelpText(interfacePanel, L("npcpassengers.context_detach.help"))
 
     CreateButton(interfacePanel, "Enable All Context Menu Options", function()
         RunConsoleCommand("nai_npc_context_make_passenger", "1")
@@ -4180,10 +4180,10 @@ local function OpenSettingsPanel()
     CreateSectionHeader(interfacePanel, "Settings Panel Preferences")
     
     CreateCheckbox(interfacePanel, "Show Welcome Screen on Updates", "nai_npc_ui_show_welcome")
-    CreateHelpText(interfacePanel, "Display welcome panel when addon is updated to a new version")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_show_welcome.help"))
 
     local _, defaultFontCheckbox = CreateCheckbox(interfacePanel, "Use Default Font Instead of Metropolis", "nai_npc_ui_use_default_font")
-    CreateHelpText(interfacePanel, "Switch the UI to Garry's Mod default fonts if you prefer cleaner fallback rendering.")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_default_font.help"))
 
     -- Custom font dropdown and text entry will be created below
     -- We'll set up the OnChange handler after they're created
@@ -4234,7 +4234,7 @@ local function OpenSettingsPanel()
         end
     end
 
-    CreateHelpText(interfacePanel, "Select a custom font. Add .ttf files to resource/fonts/ and use the actual font name (e.g., 'Roboto', 'Arial'). Changes apply immediately.")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_custom_font.help"))
 
     -- Custom font name text entry
     local customFontLabel = vgui.Create("DLabel", interfacePanel)
@@ -4306,7 +4306,7 @@ local function OpenSettingsPanel()
 
 
     local _, widthSlider = CreateSlider(interfacePanel, "Panel Width", "nai_npc_ui_panel_width", 800, 1400, 0)
-    CreateHelpText(interfacePanel, "Width of the settings panel")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_panel_width.help"))
     widthSlider.OnValueChanged = function(_, val)
         if IsValid(settingsFrame) then
             settingsFrame:SetSize(math.floor(val), settingsFrame:GetTall())
@@ -4315,7 +4315,7 @@ local function OpenSettingsPanel()
     end
 
     local _, heightSlider = CreateSlider(interfacePanel, "Panel Height", "nai_npc_ui_panel_height", 600, 900, 0)
-    CreateHelpText(interfacePanel, "Height of the settings panel")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_panel_height.help"))
     heightSlider.OnValueChanged = function(_, val)
         if IsValid(settingsFrame) then
             settingsFrame:SetSize(settingsFrame:GetWide(), math.floor(val))
@@ -4366,18 +4366,18 @@ local function OpenSettingsPanel()
     end)
     
     CreateCheckbox(interfacePanel, "Enable UI Animations", "nai_npc_ui_animations")
-    CreateHelpText(interfacePanel, "Smooth transitions and hover effects (may impact performance)")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_animations.help"))
     
     CreateCheckbox(interfacePanel, "Show Tooltips", "nai_npc_ui_tooltips")
-    CreateHelpText(interfacePanel, "Display helpful tooltips when hovering over settings")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_tooltips.help"))
 
     CreateCheckbox(interfacePanel, "Auto-Hide Scrollbar", "nai_npc_ui_scrollbar_autohide")
-    CreateHelpText(interfacePanel, "Only show the scrollbar while you're scrolling or hovering it.")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_scrollbar_autohide.help"))
 
-    CreateHelpText(interfacePanel, "Note: Panel becomes 70% transparent when dragging any slider to see content in background.")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_scroll_smoothness_note"))
 
     local _, scrollSmoothSlider = CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
-    CreateHelpText(interfacePanel, "Lower values = smoother but slower scrolling (0.01-1)")
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_scroll_smoothness.help"))
     
     -- Apply scroll smoothness immediately when changed
     if scrollSmoothSlider and scrollSmoothSlider.OnValueChanged then
@@ -4524,8 +4524,8 @@ local function OpenSettingsPanel()
     helpPanel.SearchNavButton = helpBtn
     helpBtn.DoClick = function() SwitchToPanel(helpPanel, helpBtn) end
     
-    CreateSectionHeader(helpPanel, "Frequently Asked Questions")
-    CreateHelpText(helpPanel, "Quick answers to common questions and troubleshooting.")
+    CreateSectionHeader(helpPanel, L("npcpassengers.help.header"))
+    CreateHelpText(helpPanel, L("npcpassengers.help.desc"))
     
     CreateSpacer(helpPanel, 5)
     
