@@ -795,9 +795,84 @@ end
 -- Theme colors - Modern gradient design (dynamic)
 local Theme = GetTheme()
 
+-- Theme transition system
+local ThemeTransition = {
+    active = false,
+    startTime = 0,
+    duration = 0.3, -- seconds
+    fromTheme = nil,
+    toTheme = nil,
+}
+
+-- Helper function to interpolate between two colors
+local function LerpColor(from, to, t)
+    return Color(
+        from.r + (to.r - from.r) * t,
+        from.g + (to.g - from.g) * t,
+        from.b + (to.b - from.b) * t,
+        from.a + (to.a - from.a) * t
+    )
+end
+
+-- Helper function to deep copy a theme
+local function CopyTheme(theme)
+    local copy = {}
+    for k, v in pairs(theme) do
+        if IsColor(v) then
+            copy[k] = Color(v.r, v.g, v.b, v.a)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
+-- Start theme transition
+local function StartThemeTransition(newThemeName)
+    local newTheme = ThemePresets[newThemeName] or ThemePresets.blue
+    local oldTheme = CopyTheme(Theme)
+
+    ThemeTransition.fromTheme = oldTheme
+    ThemeTransition.toTheme = newTheme
+    ThemeTransition.startTime = CurTime()
+    ThemeTransition.active = true
+end
+
+-- Update theme transition in Think hook
+hook.Add("Think", "NPCPassengers_ThemeTransition", function()
+    if not ThemeTransition.active then return end
+
+    local elapsed = CurTime() - ThemeTransition.startTime
+    local t = math.Clamp(elapsed / ThemeTransition.duration, 0, 1)
+
+    -- Ease out cubic for smoother feel
+    t = 1 - math.pow(1 - t, 3)
+
+    -- Interpolate all color values
+    for k, v in pairs(ThemeTransition.fromTheme) do
+        if IsColor(v) and ThemeTransition.toTheme[k] and IsColor(ThemeTransition.toTheme[k]) then
+            Theme[k] = LerpColor(v, ThemeTransition.toTheme[k], t)
+        end
+    end
+
+    -- Force UI repaint during transition
+    if IsValid(settingsFrame) then
+        settingsFrame:InvalidateLayout(true)
+    end
+
+    -- Transition complete
+    if t >= 1 then
+        ThemeTransition.active = false
+        Theme = CopyTheme(ThemeTransition.toTheme)
+        if IsValid(settingsFrame) then
+            settingsFrame:InvalidateLayout(true)
+        end
+    end
+end)
+
 -- Update theme when ConVar changes
 cvars.AddChangeCallback("nai_npc_ui_color_theme", function(name, old, new)
-    Theme = GetTheme()
+    StartThemeTransition(new)
 end, "npcpassengers_theme_update")
 
 -- Custom fonts (requires metropolis.ttf in resource/fonts/)
@@ -4373,13 +4448,6 @@ local function OpenSettingsPanel()
 
     themeCombo.OnSelect = function(self, index, value, data)
         RunConsoleCommand("nai_npc_ui_color_theme", data)
-        if IsValid(settingsFrame) then
-            settingsFrame:InvalidateLayout(true)
-            -- Force repaint of all children
-            for _, child in ipairs(settingsFrame:GetChildren()) do
-                child:InvalidateLayout(true)
-            end
-        end
     end
 
     CreateHelpText(interfacePanel, L("npcpassengers.ui_color_theme.help"))
