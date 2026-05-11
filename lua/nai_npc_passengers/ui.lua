@@ -3296,7 +3296,7 @@ local function OpenSettingsPanel()
     
     CreateSpacer(speechPanel, 5)
     
-    CreateCheckbox(speechPanel, "Enable NPC Speech", "nai_npc_speech_enabled")
+    CreateCheckbox(speechPanel, L("npcpassengers.speech_enable"), "nai_npc_speech_enabled")
     CreateHelpText(speechPanel, L("npcpassengers.speech_enable.help"))
     
     CreateSlider(speechPanel, "Speech Volume", "nai_npc_speech_volume", 0, 100, 0)
@@ -3373,7 +3373,7 @@ local function OpenSettingsPanel()
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Crash Reactions")
     
-    CreateCheckbox(speechPanel, "Enable Crash Sounds", "nai_npc_speech_crash")
+    CreateCheckbox(speechPanel, L("npcpassengers.crash_enable"), "nai_npc_speech_crash")
     CreateHelpText(speechPanel, L("npcpassengers.crash_enable.help"))
     
     CreateSlider(speechPanel, "Crash Sensitivity", "nai_npc_speech_crash_threshold", 100, 1000, 0)
@@ -3385,7 +3385,7 @@ local function OpenSettingsPanel()
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Idle Chatter")
     
-    CreateCheckbox(speechPanel, "Enable Idle Chatter", "nai_npc_speech_idle")
+    CreateCheckbox(speechPanel, L("npcpassengers.speech_idle"), "nai_npc_speech_idle")
     CreateHelpText(speechPanel, L("npcpassengers.speech_idle.help"))
     
     CreateSlider(speechPanel, "Chatter Chance", "nai_npc_speech_idle_chance", 0, 1, 2)
@@ -3397,13 +3397,13 @@ local function OpenSettingsPanel()
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Board/Exit Sounds")
     
-    CreateCheckbox(speechPanel, "Enable Board/Exit Sounds", "nai_npc_speech_board")
+    CreateCheckbox(speechPanel, L("npcpassengers.speech_board"), "nai_npc_speech_board")
     CreateHelpText(speechPanel, L("npcpassengers.speech_board.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Ambient Sounds")
     
-    CreateCheckbox(speechPanel, "Enable Ambient Sounds", "nai_npc_ambient_sounds")
+    CreateCheckbox(speechPanel, L("npcpassengers.ambient_sounds"), "nai_npc_ambient_sounds")
     CreateHelpText(speechPanel, L("npcpassengers.ambient_sounds.help"))
     
     CreateSlider(speechPanel, "Ambient Sound Interval", "nai_npc_ambient_interval", 10, 120, 0)
@@ -3415,16 +3415,16 @@ local function OpenSettingsPanel()
     
     CreateSpacer(speechPanel, 5)
     
-    CreateCheckbox(speechPanel, "Enable Head/Eye Looking", "nai_npc_head_look")
+    CreateCheckbox(speechPanel, L("npcpassengers.head_look"), "nai_npc_head_look")
     CreateHelpText(speechPanel, L("npcpassengers.head_look.help"))
     
     CreateSlider(speechPanel, "Head Smoothness", "nai_npc_head_smooth", 0.1, 1, 2)
     CreateHelpText(speechPanel, L("npcpassengers.head_smooth.help"))
     
-    CreateCheckbox(speechPanel, "Enable Blinking", "nai_npc_blink")
+    CreateCheckbox(speechPanel, L("npcpassengers.blink"), "nai_npc_blink")
     CreateHelpText(speechPanel, L("npcpassengers.blink.help"))
     
-    CreateCheckbox(speechPanel, "Enable Breathing", "nai_npc_breathing")
+    CreateCheckbox(speechPanel, L("npcpassengers.breathing"), "nai_npc_breathing")
     CreateHelpText(speechPanel, L("npcpassengers.breathing.help"))
     
     CreateSlider(speechPanel, "Walk Timeout", "nai_npc_walk_timeout", 1, 15, 0)
@@ -3437,7 +3437,7 @@ local function OpenSettingsPanel()
     CreateSpacer(speechPanel, 5)
     CreateSubHeader(speechPanel, "Gesture Animations")
     
-    CreateCheckbox(speechPanel, "Enable Talking Gestures", "nai_npc_talking_gestures")
+    CreateCheckbox(speechPanel, L("npcpassengers.talking_gestures"), "nai_npc_talking_gestures")
     CreateHelpText(speechPanel, L("npcpassengers.talking_gestures.help"))
     
     CreateSlider(speechPanel, "Gesture Chance (%)", "nai_npc_gesture_chance", 1, 50, 0)
@@ -3446,7 +3446,7 @@ local function OpenSettingsPanel()
     CreateSlider(speechPanel, "Gesture Interval", "nai_npc_gesture_interval", 3, 30, 0)
     CreateHelpText(speechPanel, L("npcpassengers.gesture_interval.help"))
     
-    CreateCheckbox(speechPanel, "Enable Crash Flinch", "nai_npc_crash_flinch")
+    CreateCheckbox(speechPanel, L("npcpassengers.crash_flinch"), "nai_npc_crash_flinch")
     CreateHelpText(speechPanel, L("npcpassengers.crash_flinch.help"))
     
     CreateSlider(speechPanel, "Crash Sensitivity", "nai_npc_crash_threshold", 200, 800, 0)
@@ -3455,7 +3455,7 @@ local function OpenSettingsPanel()
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Body Physics")
     
-    CreateCheckbox(speechPanel, "Enable Body Sway", "nai_npc_body_sway")
+    CreateCheckbox(speechPanel, L("npcpassengers.body_sway"), "nai_npc_body_sway")
     CreateHelpText(speechPanel, L("npcpassengers.body_sway.help"))
     
     CreateSlider(speechPanel, "Sway Intensity", "nai_npc_body_sway_amount", 0.1, 3, 1)
@@ -3464,16 +3464,16 @@ local function OpenSettingsPanel()
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Threat Awareness")
     
-    CreateCheckbox(speechPanel, "Enable Threat Awareness", "nai_npc_threat_awareness")
+    CreateCheckbox(speechPanel, L("npcpassengers.threat_awareness"), "nai_npc_threat_awareness")
     CreateHelpText(speechPanel, L("npcpassengers.threat_awareness.help"))
     
     CreateSlider(speechPanel, "Threat Detection Range", "nai_npc_threat_range", 500, 5000, 0)
     CreateHelpText(speechPanel, L("npcpassengers.threat_range.help"))
     
-    CreateCheckbox(speechPanel, "Combat Alertness", "nai_npc_combat_alert")
+    CreateCheckbox(speechPanel, L("npcpassengers.combat_alert"), "nai_npc_combat_alert")
     CreateHelpText(speechPanel, L("npcpassengers.combat_alert.help"))
 
-    CreateCheckbox(speechPanel, "NPCs shoot from vehicles (Experimental)", "nai_npc_passenger_combat")
+    CreateCheckbox(speechPanel, L("npcpassengers.passenger_combat"), "nai_npc_passenger_combat")
     CreateHelpText(speechPanel, L("npcpassengers.passenger_combat.help"))
 
     CreateSlider(speechPanel, "Passenger Combat Range", "nai_npc_passenger_combat_range", 500, 5000, 0)
@@ -3485,19 +3485,19 @@ local function OpenSettingsPanel()
     CreateSlider(speechPanel, "Passenger Damage Multiplier", "nai_npc_passenger_combat_damage", 0.25, 3, 2)
     CreateHelpText(speechPanel, L("npcpassengers.passenger_combat_damage.help"))
     
-    CreateCheckbox(speechPanel, "Passenger Interaction", "nai_npc_passenger_interaction")
+    CreateCheckbox(speechPanel, L("npcpassengers.passenger_interaction"), "nai_npc_passenger_interaction")
     CreateHelpText(speechPanel, L("npcpassengers.passenger_interaction.help"))
     
     CreateSpacer(speechPanel, 10)
     CreateSubHeader(speechPanel, "Emotional States")
     
-    CreateCheckbox(speechPanel, "Enable Fear Reactions", "nai_npc_fear_reactions")
+    CreateCheckbox(speechPanel, L("npcpassengers.fear_reactions"), "nai_npc_fear_reactions")
     CreateHelpText(speechPanel, L("npcpassengers.fear_reactions.help"))
     
     CreateSlider(speechPanel, "Fear Speed Threshold", "nai_npc_fear_speed", 400, 2000, 0)
     CreateHelpText(speechPanel, L("npcpassengers.fear_speed_threshold.help"))
     
-    CreateCheckbox(speechPanel, "Enable Drowsiness", "nai_npc_drowsiness")
+    CreateCheckbox(speechPanel, L("npcpassengers.drowsiness"), "nai_npc_drowsiness")
     CreateHelpText(speechPanel, L("npcpassengers.drowsiness.help"))
     
     CreateSlider(speechPanel, "Drowsy Time", "nai_npc_drowsy_time", 20, 180, 0)
@@ -3515,25 +3515,25 @@ local function OpenSettingsPanel()
     
     CreateSpacer(tankPanel, 5)
     
-    CreateCheckbox(tankPanel, "Hide NPCs in Enclosed Vehicles", "nai_npc_hide_in_tanks")
+    CreateCheckbox(tankPanel, L("npcpassengers.hide_in_tanks"), "nai_npc_hide_in_tanks")
     CreateHelpText(tankPanel, L("npcpassengers.hide_in_tanks.help"))
 
-    CreateCheckbox(tankPanel, "Auto-Eject Stuck NPCs", "nai_npc_eject_stuck_check")
+    CreateCheckbox(tankPanel, L("npcpassengers.eject_stuck_check"), "nai_npc_eject_stuck_check")
     CreateHelpText(tankPanel, L("npcpassengers.eject_stuck_check.help"))
 
-    CreateCheckbox(tankPanel, "No-Collide With Vehicle After Detach", "nai_npc_detach_no_collide")
+    CreateCheckbox(tankPanel, L("npcpassengers.detach_no_collide"), "nai_npc_detach_no_collide")
     CreateHelpText(tankPanel, L("npcpassengers.detach_no_collide.help"))
 
     CreateSlider(tankPanel, "No-Collide Duration (seconds)", "nai_npc_detach_no_collide_duration", 1, 15, 1)
     CreateHelpText(tankPanel, L("npcpassengers.detach_no_collide_duration.help"))
 
-    CreateCheckbox(tankPanel, "Kill Passengers When Vehicle Explodes", "nai_npc_die_with_vehicle")
+    CreateCheckbox(tankPanel, L("npcpassengers.die_with_vehicle"), "nai_npc_die_with_vehicle")
     CreateHelpText(tankPanel, L("npcpassengers.die_with_vehicle.help"))
 
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "NPC Auto-Driver")
     
-    CreateCheckbox(tankPanel, "Enable Auto-Drive", "nai_npc_driver_enabled")
+    CreateCheckbox(tankPanel, L("npcpassengers.driver_enabled"), "nai_npc_driver_enabled")
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver.help"))
     
     CreateSlider(tankPanel, "Detection Range", "nai_npc_driver_range", 500, 10000, 0)
@@ -3551,7 +3551,7 @@ local function OpenSettingsPanel()
     CreateSpacer(tankPanel, 10)
     CreateSubHeader(tankPanel, "Turret Control (Experimental)")
     
-    CreateCheckbox(tankPanel, "Enable Turret Control", "nai_npc_turret_enabled")
+    CreateCheckbox(tankPanel, L("npcpassengers.turret_enabled"), "nai_npc_turret_enabled")
     CreateHelpText(tankPanel, L("npcpassengers.tank_turret.help"))
     
     CreateSlider(tankPanel, "Target Range", "nai_npc_turret_range", 500, 10000, 0)
@@ -3560,9 +3560,9 @@ local function OpenSettingsPanel()
     CreateSlider(tankPanel, "Fire Delay", "nai_npc_turret_fire_delay", 0.05, 1, 2)
     CreateSlider(tankPanel, "Aim Speed", "nai_npc_turret_aim_speed", 1, 20, 1)
 
-    CreateCheckbox(tankPanel, "Lead Targets", "nai_npc_turret_lead_targets")
-    CreateCheckbox(tankPanel, "Allow Friendly Fire", "nai_npc_turret_friendly_fire")
-    CreateCheckbox(tankPanel, "Hold Fire (Disable Firing)", "nai_npc_turret_hold_fire")
+    CreateCheckbox(tankPanel, L("npcpassengers.turret_lead_targets"), "nai_npc_turret_lead_targets")
+    CreateCheckbox(tankPanel, L("npcpassengers.turret_friendly_fire"), "nai_npc_turret_friendly_fire")
+    CreateCheckbox(tankPanel, L("npcpassengers.turret_hold_fire"), "nai_npc_turret_hold_fire")
 
     -- QoL: Turret NPC Blacklist
     CreateSpacer(tankPanel, 10)
