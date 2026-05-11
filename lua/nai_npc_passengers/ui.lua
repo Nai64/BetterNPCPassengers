@@ -4365,13 +4365,13 @@ local function OpenSettingsPanel()
         end
     end)
     
-    CreateCheckbox(interfacePanel, "Enable UI Animations", "nai_npc_ui_animations")
+    CreateCheckbox(interfacePanel, L("npcpassengers.ui.enable_animations"), "nai_npc_ui_animations")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_animations.help"))
     
-    CreateCheckbox(interfacePanel, "Show Tooltips", "nai_npc_ui_tooltips")
+    CreateCheckbox(interfacePanel, L("npcpassengers.ui.show_tooltips"), "nai_npc_ui_tooltips")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_tooltips.help"))
 
-    CreateCheckbox(interfacePanel, "Auto-Hide Scrollbar", "nai_npc_ui_scrollbar_autohide")
+    CreateCheckbox(interfacePanel, L("npcpassengers.ui.auto_hide_scrollbar"), "nai_npc_ui_scrollbar_autohide")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_scrollbar_autohide.help"))
 
     CreateHelpText(interfacePanel, L("npcpassengers.ui_scroll_smoothness_note"))
@@ -4892,7 +4892,7 @@ properties.Add("nai_add_selected_to_vehicle", {
 })
 
 properties.Add("nai_cancel_selection", {
-    MenuLabel = "Cancel NPC Selection",
+    MenuLabel = L("npcpassengers.context.cancel_selection"),
     Order = 1503,
     MenuIcon = "icon16/cancel.png",
 
@@ -4912,7 +4912,7 @@ properties.Add("nai_cancel_selection", {
 })
 
 properties.Add("nai_remove_passenger", {
-    MenuLabel = "Remove Passenger",
+    MenuLabel = L("npcpassengers.context.remove_passenger"),
     Order = 1504,
     MenuIcon = "icon16/car_delete.png",
 
@@ -4931,7 +4931,7 @@ properties.Add("nai_remove_passenger", {
 })
 
 properties.Add("nai_blacklist_passenger", {
-    MenuLabel = "Blacklist Passenger",
+    MenuLabel = L("npcpassengers.context.blacklist_passenger"),
     Order = 1505,
     MenuIcon = "icon16/user_go.png",
 
@@ -4950,7 +4950,7 @@ properties.Add("nai_blacklist_passenger", {
 })
 
 properties.Add("nai_whitelist_passenger", {
-    MenuLabel = "Whitelist Passenger",
+    MenuLabel = L("npcpassengers.context.whitelist_passenger"),
     Order = 1506,
     MenuIcon = "icon16/user_add.png",
 

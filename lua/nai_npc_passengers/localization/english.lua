@@ -467,6 +467,15 @@ language.Add("npcpassengers.debug.enable_mode", "Enable Debug Mode")
 language.Add("npcpassengers.ui.enable_sounds", "Enable UI Sounds")
 language.Add("npcpassengers.ui.hover_sounds", "Button Hover Sounds")
 language.Add("npcpassengers.ui.click_sounds", "Button Click Sounds")
+language.Add("npcpassengers.ui.enable_animations", "Enable UI Animations")
+language.Add("npcpassengers.ui.show_tooltips", "Show Tooltips")
+language.Add("npcpassengers.ui.auto_hide_scrollbar", "Auto-Hide Scrollbar")
+
+-- Context menu labels
+language.Add("npcpassengers.context.cancel_selection", "Cancel NPC Selection")
+language.Add("npcpassengers.context.remove_passenger", "Remove Passenger")
+language.Add("npcpassengers.context.blacklist_passenger", "Blacklist Passenger")
+language.Add("npcpassengers.context.whitelist_passenger", "Whitelist Passenger")
 
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
