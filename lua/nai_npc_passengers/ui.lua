@@ -778,6 +778,16 @@ local function DrawRotatingCross(cx, cy, size, angleDegrees, color)
     surface.DrawLine(cx + x3, cy + y3, cx + x4, cy + y4)
 end
 
+local function DrawVerticalGradient(x, y, w, h, topColor, bottomColor)
+    surface.SetDrawColor(topColor)
+    surface.DrawRect(x, y, w, h)
+    
+    local gradientMat = Material("vgui/gradient-v")
+    surface.SetMaterial(gradientMat)
+    surface.SetDrawColor(bottomColor.r - topColor.r, bottomColor.g - topColor.g, bottomColor.b - topColor.b, bottomColor.a - topColor.a)
+    surface.DrawTexturedRect(x, y, w, h)
+end
+
 local function DrawMarqueeText(panel, text, font, x, y, color, maxWidth, alignY, padding, speed)
     if not IsValid(panel) or not text or maxWidth <= 0 then
         return
@@ -1486,8 +1496,9 @@ local function OpenSettingsPanel()
         -- Subtle shadow/glow effect
         draw.RoundedBox(12, 0, 0, w, h, Color(0, 0, 0, 80))
 
-        -- Main background with subtle gradient
-        draw.RoundedBox(11, 1, 1, w - 2, h - 2, Theme.bg)
+        -- Main background with vertical gradient
+        DrawVerticalGradient(1, 1, w - 2, h - 2, Theme.bgLight, Theme.bg)
+        draw.RoundedBox(11, 1, 1, w - 2, h - 2, Color(0, 0, 0, 0))
 
         -- Subtle inner border
         draw.RoundedBox(10, 2, 2, w - 4, h - 4, Color(255, 255, 255, 3))
@@ -1745,7 +1756,8 @@ local function OpenSettingsPanel()
     navContainer:SetPos(10, 58)
     navContainer:SetSize(panelWidth - 20, panelHeight - 68)
     navContainer.Paint = function(self, w, h)
-        draw.RoundedBox(8, 0, 0, w, h, Theme.bgLight)
+        DrawVerticalGradient(0, 0, w, h, Theme.bgLight, Theme.bg)
+        draw.RoundedBox(8, 0, 0, w, h, Color(255, 255, 255, 3))
     end
 
     -- Left sidebar for navigation
@@ -1753,7 +1765,8 @@ local function OpenSettingsPanel()
     sidebar:SetPos(0, 0)
     sidebar:SetSize(270, panelHeight - 68)
     sidebar.Paint = function(self, w, h)
-        draw.RoundedBoxEx(8, 0, 0, w, h, Theme.bgDark, true, false, true, false)
+        DrawVerticalGradient(0, 0, w, h, Theme.bgDark, Color(18, 18, 24))
+        draw.RoundedBoxEx(8, 0, 0, w, h, Color(255, 255, 255, 2), true, false, true, false)
 
         -- Right border with glow
         local accentColor = Color(Theme.accent.r, Theme.accent.g, Theme.accent.b, 80)
@@ -1766,7 +1779,9 @@ local function OpenSettingsPanel()
     contentArea = vgui.Create("DPanel", navContainer)
     contentArea:SetPos(278, 0)
     contentArea:SetSize(panelWidth - 298, panelHeight - 64)
-    contentArea.Paint = function() end
+    contentArea.Paint = function(self, w, h)
+        DrawVerticalGradient(0, 0, w, h, Theme.bgLighter, Theme.bgLight)
+    end
     
     local currentPanel = nil
     local navButtons = {}
