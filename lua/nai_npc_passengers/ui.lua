@@ -39,6 +39,38 @@ local function LoadLocalization()
     end
 end
 
+-- Reload localization and refresh UI
+local function ReloadLocalizationAndRefresh()
+    -- Clear existing language entries
+    if language then
+        -- Note: We can't easily clear language entries, so we'll just override them
+    end
+
+    -- Reload localization files
+    include("nai_npc_passengers/localization/english.lua")
+
+    local langConVar = GetConVar("nai_npc_ui_language")
+    local lang = langConVar and langConVar:GetString() or "english"
+
+    if lang == "russian" then
+        include("nai_npc_passengers/localization/russian.lua")
+    elseif lang == "chinese" then
+        include("nai_npc_passengers/localization/chinese.lua")
+    end
+
+    -- Update global display name
+    ADDON_DISPLAY_NAME = L("npcpassengers.name")
+    ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
+
+    -- Update HUD position names
+    HUD_POSITION_NAMES = {
+        [0] = L("npcpassengers.hud.position.topleft"),
+        [1] = L("npcpassengers.hud.position.topright"),
+        [2] = L("npcpassengers.hud.position.bottomleft"),
+        [3] = L("npcpassengers.hud.position.bottomright"),
+    }
+end
+
 LoadLocalization()
 
 local ADDON_DISPLAY_NAME = L("npcpassengers.name")
@@ -1680,19 +1712,52 @@ local function OpenSettingsPanel()
         menu:AddOption("English", function()
             RunConsoleCommand("nai_npc_ui_language", "english")
             self.currentLang = "EN"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Reopen the settings panel to apply.")
+            ReloadLocalizationAndRefresh()
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Panel will refresh automatically.")
+
+            -- Close and reopen panel after short delay
+            timer.Simple(0.1, function()
+                if IsValid(settingsFrame) then
+                    settingsFrame:Close()
+                    timer.Simple(0.2, function()
+                        RunConsoleCommand("nai_passengers_menu")
+                    end)
+                end
+            end)
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("Русский", function()
             RunConsoleCommand("nai_npc_ui_language", "russian")
             self.currentLang = "RU"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Откройте настройки заново для применения.")
+            ReloadLocalizationAndRefresh()
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Панель обновится автоматически.")
+
+            -- Close and reopen panel after short delay
+            timer.Simple(0.1, function()
+                if IsValid(settingsFrame) then
+                    settingsFrame:Close()
+                    timer.Simple(0.2, function()
+                        RunConsoleCommand("nai_passengers_menu")
+                    end)
+                end
+            end)
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("中文", function()
             RunConsoleCommand("nai_npc_ui_language", "chinese")
             self.currentLang = "ZH"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。重新打开设置面板以应用。")
+            ReloadLocalizationAndRefresh()
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。面板将自动刷新。")
+
+            -- Close and reopen panel after short delay
+            timer.Simple(0.1, function()
+                if IsValid(settingsFrame) then
+                    settingsFrame:Close()
+                    timer.Simple(0.2, function()
+                        RunConsoleCommand("nai_passengers_menu")
+                    end)
+                end
+            end)
         end):SetIcon("icon16/world.png")
 
         menu:Open()
