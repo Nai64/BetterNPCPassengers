@@ -600,29 +600,205 @@ hook.Add("EntityRemoved", "NPCPassengers_CleanBoneCache", function(ent)
     end
 end)
 
--- Theme colors - Modern gradient design
-local Theme = {
-    bg = Color(22, 22, 28),
-    bgLight = Color(32, 32, 40),
-    bgLighter = Color(42, 42, 52),
-    bgDark = Color(15, 15, 20),
-    accent = Color(88, 166, 255),
-    accentHover = Color(110, 180, 255),
-    accentActive = Color(70, 140, 220),
-    accentDark = Color(50, 110, 180),
-    text = Color(230, 230, 240),
-    textDim = Color(160, 160, 180),
-    textBright = Color(255, 255, 255),
-    success = Color(90, 200, 120),
-    warning = Color(240, 180, 70),
-    error = Color(220, 90, 90),
-    border = Color(55, 55, 70),
-    borderLight = Color(70, 70, 90),
-    scrollbar = Color(70, 70, 85),
-    scrollbarGrip = Color(100, 100, 125),
-    shadow = Color(0, 0, 0, 120),
-    glow = Color(88, 166, 255, 30),
+-- Theme presets
+local ThemePresets = {
+    blue = {
+        bg = Color(22, 22, 28),
+        bgLight = Color(32, 32, 40),
+        bgLighter = Color(42, 42, 52),
+        bgDark = Color(15, 15, 20),
+        accent = Color(88, 166, 255),
+        accentHover = Color(110, 180, 255),
+        accentActive = Color(70, 140, 220),
+        accentDark = Color(50, 110, 180),
+        text = Color(230, 230, 240),
+        textDim = Color(160, 160, 180),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(55, 55, 70),
+        borderLight = Color(70, 70, 90),
+        scrollbar = Color(70, 70, 85),
+        scrollbarGrip = Color(100, 100, 125),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(88, 166, 255, 30),
+    },
+    green = {
+        bg = Color(22, 28, 22),
+        bgLight = Color(32, 40, 32),
+        bgLighter = Color(42, 52, 42),
+        bgDark = Color(15, 20, 15),
+        accent = Color(90, 200, 120),
+        accentHover = Color(110, 220, 140),
+        accentActive = Color(70, 180, 100),
+        accentDark = Color(50, 150, 80),
+        text = Color(230, 240, 230),
+        textDim = Color(160, 180, 160),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(55, 70, 55),
+        borderLight = Color(70, 90, 70),
+        scrollbar = Color(70, 85, 70),
+        scrollbarGrip = Color(100, 125, 100),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(90, 200, 120, 30),
+    },
+    purple = {
+        bg = Color(28, 22, 32),
+        bgLight = Color(40, 32, 42),
+        bgLighter = Color(52, 42, 54),
+        bgDark = Color(20, 15, 24),
+        accent = Color(166, 88, 255),
+        accentHover = Color(180, 110, 255),
+        accentActive = Color(140, 70, 220),
+        accentDark = Color(110, 50, 180),
+        text = Color(240, 230, 245),
+        textDim = Color(180, 160, 190),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(70, 55, 75),
+        borderLight = Color(90, 70, 95),
+        scrollbar = Color(85, 70, 90),
+        scrollbarGrip = Color(125, 100, 130),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(166, 88, 255, 30),
+    },
+    orange = {
+        bg = Color(28, 26, 22),
+        bgLight = Color(40, 36, 32),
+        bgLighter = Color(52, 46, 42),
+        bgDark = Color(20, 18, 15),
+        accent = Color(255, 150, 88),
+        accentHover = Color(255, 170, 110),
+        accentActive = Color(220, 130, 70),
+        accentDark = Color(180, 100, 50),
+        text = Color(245, 240, 230),
+        textDim = Color(190, 180, 160),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(70, 65, 55),
+        borderLight = Color(90, 85, 70),
+        scrollbar = Color(85, 80, 70),
+        scrollbarGrip = Color(125, 115, 100),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(255, 150, 88, 30),
+    },
+    red = {
+        bg = Color(28, 22, 22),
+        bgLight = Color(40, 32, 32),
+        bgLighter = Color(52, 42, 42),
+        bgDark = Color(20, 15, 15),
+        accent = Color(255, 88, 88),
+        accentHover = Color(255, 110, 110),
+        accentActive = Color(220, 70, 70),
+        accentDark = Color(180, 50, 50),
+        text = Color(245, 230, 230),
+        textDim = Color(190, 160, 160),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(70, 55, 55),
+        borderLight = Color(90, 70, 70),
+        scrollbar = Color(85, 70, 70),
+        scrollbarGrip = Color(125, 100, 100),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(255, 88, 88, 30),
+    },
+    pink = {
+        bg = Color(28, 22, 26),
+        bgLight = Color(40, 32, 38),
+        bgLighter = Color(52, 42, 50),
+        bgDark = Color(20, 15, 18),
+        accent = Color(255, 88, 166),
+        accentHover = Color(255, 110, 180),
+        accentActive = Color(220, 70, 140),
+        accentDark = Color(180, 50, 110),
+        text = Color(245, 230, 240),
+        textDim = Color(190, 160, 180),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(70, 55, 65),
+        borderLight = Color(90, 70, 85),
+        scrollbar = Color(85, 70, 80),
+        scrollbarGrip = Color(125, 100, 115),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(255, 88, 166, 30),
+    },
+    cyan = {
+        bg = Color(22, 26, 28),
+        bgLight = Color(32, 36, 40),
+        bgLighter = Color(42, 46, 52),
+        bgDark = Color(15, 18, 20),
+        accent = Color(88, 220, 255),
+        accentHover = Color(110, 235, 255),
+        accentActive = Color(70, 190, 220),
+        accentDark = Color(50, 160, 180),
+        text = Color(230, 245, 250),
+        textDim = Color(160, 190, 200),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(55, 65, 70),
+        borderLight = Color(70, 85, 90),
+        scrollbar = Color(70, 80, 85),
+        scrollbarGrip = Color(100, 115, 125),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(88, 220, 255, 30),
+    },
+    yellow = {
+        bg = Color(28, 26, 22),
+        bgLight = Color(40, 36, 32),
+        bgLighter = Color(52, 46, 42),
+        bgDark = Color(20, 18, 15),
+        accent = Color(255, 220, 88),
+        accentHover = Color(255, 235, 110),
+        accentActive = Color(220, 190, 70),
+        accentDark = Color(180, 150, 50),
+        text = Color(250, 245, 230),
+        textDim = Color(200, 190, 160),
+        textBright = Color(255, 255, 255),
+        success = Color(90, 200, 120),
+        warning = Color(240, 180, 70),
+        error = Color(220, 90, 90),
+        border = Color(70, 65, 55),
+        borderLight = Color(90, 85, 70),
+        scrollbar = Color(85, 80, 70),
+        scrollbarGrip = Color(125, 115, 100),
+        shadow = Color(0, 0, 0, 120),
+        glow = Color(255, 220, 88, 30),
+    },
 }
+
+-- Function to get current theme
+local function GetTheme()
+    local themeName = GetConVar("nai_npc_ui_color_theme")
+    if themeName then
+        local name = themeName:GetString()
+        if ThemePresets[name] then
+            return ThemePresets[name]
+        end
+    end
+    return ThemePresets.blue -- Default to blue theme
+end
+
+-- Theme colors - Modern gradient design (dynamic)
+local Theme = GetTheme()
+
+-- Update theme when ConVar changes
+cvars.AddChangeCallback("nai_npc_ui_color_theme", function(name, old, new)
+    Theme = GetTheme()
+end, "npcpassengers_theme_update")
 
 -- Custom fonts (requires metropolis.ttf in resource/fonts/)
 local fontName = "Metropolis"
@@ -4148,7 +4324,66 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(interfacePanel, L("npcpassengers.ui.click_sounds"), "nai_npc_ui_click_enabled")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_click_enabled.help"))
-    
+
+    CreateSpacer(interfacePanel, 10)
+    CreateSectionHeader(interfacePanel, L("npcpassengers.section.appearance"))
+
+    -- Color theme dropdown
+    local themeLabel = vgui.Create("DLabel", interfacePanel)
+    themeLabel:SetText(L("npcpassengers.ui.color_theme"))
+    themeLabel:SetFont("NaiFont_Normal")
+    themeLabel:SetTextColor(Theme.text)
+    themeLabel:Dock(TOP)
+    themeLabel:DockMargin(10, 8, 10, 2)
+
+    local themeCombo = vgui.Create("DComboBox", interfacePanel)
+    themeCombo.SearchLabel = L("npcpassengers.ui.color_theme")
+    themeCombo.SearchConVar = "nai_npc_ui_color_theme"
+    themeCombo:Dock(TOP)
+    themeCombo:DockMargin(10, 0, 10, 5)
+    themeCombo:SetTall(28)
+    themeCombo:SetFont("NaiFont_Normal")
+    themeCombo:SetTextColor(Theme.text)
+
+    local themeNames = {
+        {name = "blue", label = "Blue"},
+        {name = "green", label = "Green"},
+        {name = "purple", label = "Purple"},
+        {name = "orange", label = "Orange"},
+        {name = "red", label = "Red"},
+        {name = "pink", label = "Pink"},
+        {name = "cyan", label = "Cyan"},
+        {name = "yellow", label = "Yellow"},
+    }
+
+    for _, theme in ipairs(themeNames) do
+        themeCombo:AddChoice(theme.label, theme.name)
+    end
+
+    local currentTheme = GetConVar("nai_npc_ui_color_theme") and GetConVar("nai_npc_ui_color_theme"):GetString() or "blue"
+    themeCombo:SetValue(currentTheme)
+
+    themeCombo.Paint = function(self, w, h)
+        draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
+        if self:IsMenuOpen() then
+            surface.SetDrawColor(Theme.accent)
+            surface.DrawOutlinedRect(0, 0, w, h, 1)
+        end
+    end
+
+    themeCombo.OnSelect = function(self, index, value, data)
+        RunConsoleCommand("nai_npc_ui_color_theme", data)
+        if IsValid(settingsFrame) then
+            settingsFrame:InvalidateLayout(true)
+            -- Force repaint of all children
+            for _, child in ipairs(settingsFrame:GetChildren()) do
+                child:InvalidateLayout(true)
+            end
+        end
+    end
+
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_color_theme.help"))
+
     CreateSpacer(interfacePanel, 10)
     CreateSectionHeader(interfacePanel, L("npcpassengers.section.context_menu"))
     CreateHelpText(interfacePanel, L("npcpassengers.context_menu.desc"))

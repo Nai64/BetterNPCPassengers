@@ -167,6 +167,7 @@ language.Add("npcpassengers.section.passenger_status", "Passenger Status Control
 language.Add("npcpassengers.section.quick_test", "Quick Test Buttons")
 language.Add("npcpassengers.section.driver_system", "NPC Driver System")
 language.Add("npcpassengers.section.ui_sounds", "UI Sound Settings")
+language.Add("npcpassengers.section.appearance", "Appearance")
 language.Add("npcpassengers.section.context_menu", "Context Menu Options")
 language.Add("npcpassengers.section.panel_preferences", "Settings Panel Preferences")
 language.Add("npcpassengers.section.performance", "Performance & Technical")
@@ -471,6 +472,7 @@ language.Add("npcpassengers.ui.enable_animations", "Enable UI Animations")
 language.Add("npcpassengers.ui.show_tooltips", "Show Tooltips")
 language.Add("npcpassengers.ui.auto_hide_scrollbar", "Auto-Hide Scrollbar")
 language.Add("npcpassengers.ui.sidebar_scroll_smoothness", "Sidebar Scroll Smoothness")
+language.Add("npcpassengers.ui.color_theme", "Color Theme")
 
 -- Context menu labels
 language.Add("npcpassengers.context.cancel_selection", "Cancel NPC Selection")
@@ -675,5 +677,6 @@ language.Add("npcpassengers.ui_tooltips.help", "Display helpful tooltips when ho
 language.Add("npcpassengers.ui_scrollbar_autohide.help", "Only show the scrollbar while you're scrolling or hovering it.")
 language.Add("npcpassengers.ui_scroll_smoothness_note", "Note: Panel becomes 70% transparent when dragging any slider to see content in background.")
 language.Add("npcpassengers.ui_scroll_smoothness.help", "Lower values = smoother but slower scrolling (0.01-1)")
+language.Add("npcpassengers.ui_color_theme.help", "Choose a color theme for the settings panel. Changes apply immediately.")
 
 print("[Better NPC Passengers] English localization loaded")
