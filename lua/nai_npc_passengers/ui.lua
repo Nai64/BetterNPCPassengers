@@ -866,18 +866,15 @@ end)
 CreateNaiFonts()
 
 -- Recreate fonts when font scale changes
+local fontScaleChangeCooldown = false
 cvars.AddChangeCallback("nai_npc_ui_font_scale", function(name, old, new)
+    if fontScaleChangeCooldown then return end
     CreateNaiFonts()
     if IsValid(settingsFrame) then
-        settingsFrame:InvalidateLayout(true)
-        local function InvalidatePanel(panel)
-            if not IsValid(panel) then return end
-            panel:InvalidateLayout(true)
-            for _, child in ipairs(panel:GetChildren()) do
-                InvalidatePanel(child)
-            end
-        end
-        InvalidatePanel(settingsFrame)
+        settingsFrame:Close()
+        timer.Simple(0.15, function()
+            RunConsoleCommand("nai_passengers_menu")
+        end)
     end
 end, "npcpassengers_font_scale_update")
 
@@ -1590,6 +1587,12 @@ local function OpenSettingsPanel()
     if IsValid(settingsFrame) then
         settingsFrame:Remove()
     end
+
+    -- Set cooldown to prevent font scale change callback from closing panel during initialization
+    fontScaleChangeCooldown = true
+    timer.Simple(0.5, function()
+        fontScaleChangeCooldown = false
+    end)
 
     -- Clear the slider tracking table to avoid tracking sliders from previous panel instances
     -- This prevents stale references when the panel is reopened
