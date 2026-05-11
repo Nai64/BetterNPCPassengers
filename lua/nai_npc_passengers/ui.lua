@@ -1710,53 +1710,59 @@ local function OpenSettingsPanel()
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
         menu:AddOption("English", function()
-            RunConsoleCommand("nai_npc_ui_language", "english")
             self.currentLang = "EN"
-            ReloadLocalizationAndRefresh()
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Panel will refresh automatically.")
 
-            -- Close and reopen panel after short delay
-            timer.Simple(0.1, function()
-                if IsValid(settingsFrame) then
-                    settingsFrame:Close()
-                    timer.Simple(0.2, function()
-                        RunConsoleCommand("nai_passengers_menu")
-                    end)
-                end
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "english")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
             end)
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("Русский", function()
-            RunConsoleCommand("nai_npc_ui_language", "russian")
             self.currentLang = "RU"
-            ReloadLocalizationAndRefresh()
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Панель обновится автоматически.")
 
-            -- Close and reopen panel after short delay
-            timer.Simple(0.1, function()
-                if IsValid(settingsFrame) then
-                    settingsFrame:Close()
-                    timer.Simple(0.2, function()
-                        RunConsoleCommand("nai_passengers_menu")
-                    end)
-                end
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "russian")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
             end)
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("中文", function()
-            RunConsoleCommand("nai_npc_ui_language", "chinese")
             self.currentLang = "ZH"
-            ReloadLocalizationAndRefresh()
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。面板将自动刷新。")
 
-            -- Close and reopen panel after short delay
-            timer.Simple(0.1, function()
-                if IsValid(settingsFrame) then
-                    settingsFrame:Close()
-                    timer.Simple(0.2, function()
-                        RunConsoleCommand("nai_passengers_menu")
-                    end)
-                end
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "chinese")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
             end)
         end):SetIcon("icon16/world.png")
 
