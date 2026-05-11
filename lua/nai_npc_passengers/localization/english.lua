@@ -470,6 +470,7 @@ language.Add("npcpassengers.ui.click_sounds", "Button Click Sounds")
 language.Add("npcpassengers.ui.enable_animations", "Enable UI Animations")
 language.Add("npcpassengers.ui.show_tooltips", "Show Tooltips")
 language.Add("npcpassengers.ui.auto_hide_scrollbar", "Auto-Hide Scrollbar")
+language.Add("npcpassengers.ui.sidebar_scroll_smoothness", "Sidebar Scroll Smoothness")
 
 -- Context menu labels
 language.Add("npcpassengers.context.cancel_selection", "Cancel NPC Selection")

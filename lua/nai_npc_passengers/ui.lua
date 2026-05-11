@@ -4376,7 +4376,7 @@ local function OpenSettingsPanel()
 
     CreateHelpText(interfacePanel, L("npcpassengers.ui_scroll_smoothness_note"))
 
-    local _, scrollSmoothSlider = CreateSlider(interfacePanel, "Sidebar Scroll Smoothness", "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
+    local _, scrollSmoothSlider = CreateSlider(interfacePanel, L("npcpassengers.ui.sidebar_scroll_smoothness"), "nai_npc_ui_scroll_smoothness", 0.01, 1, 2)
     CreateHelpText(interfacePanel, L("npcpassengers.ui_scroll_smoothness.help"))
     
     -- Apply scroll smoothness immediately when changed

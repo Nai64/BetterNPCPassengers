@@ -623,6 +623,7 @@ language.Add("npcpassengers.ui.click_sounds", "Звуки нажатия кно�
 language.Add("npcpassengers.ui.enable_animations", "Включить анимации UI")
 language.Add("npcpassengers.ui.show_tooltips", "Показывать подсказки")
 language.Add("npcpassengers.ui.auto_hide_scrollbar", "Автоматически скрывать полосу прокрутки")
+language.Add("npcpassengers.ui.sidebar_scroll_smoothness", "Плавность прокрутки боковой панели")
 
 -- Context menu labels
 language.Add("npcpassengers.context.cancel_selection", "Отменить выбор NPC")
