@@ -471,6 +471,7 @@ language.Add("npcpassengers.ui.show_tooltips", "Show Tooltips")
 language.Add("npcpassengers.ui.auto_hide_scrollbar", "Auto-Hide Scrollbar")
 language.Add("npcpassengers.ui.sidebar_scroll_smoothness", "Sidebar Scroll Smoothness")
 language.Add("npcpassengers.ui.color_theme", "Color Theme")
+language.Add("npcpassengers.ui.font_scale", "Font Scale")
 
 -- Context menu labels
 language.Add("npcpassengers.context.cancel_selection", "Cancel NPC Selection")
@@ -674,5 +675,6 @@ language.Add("npcpassengers.ui_scrollbar_autohide.help", "Only show the scrollba
 language.Add("npcpassengers.ui_scroll_smoothness_note", "Note: Panel becomes 70% transparent when dragging any slider to see content in background.")
 language.Add("npcpassengers.ui_scroll_smoothness.help", "Lower values = smoother but slower scrolling (0.01-1)")
 language.Add("npcpassengers.ui_color_theme.help", "Choose a color theme for the settings panel. Changes apply immediately.")
+language.Add("npcpassengers.ui_font_scale.help", "Scale all UI font sizes. 1.0 = default, 0.5 = half size, 2.0 = double size.")
 
 print("[Better NPC Passengers] English localization loaded")

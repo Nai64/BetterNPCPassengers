@@ -813,44 +813,46 @@ cvars.AddChangeCallback("nai_npc_ui_color_theme", function(name, old, new)
 end, "npcpassengers_theme_update")
 
 local function CreateNaiFonts()
+    local fontScale = GetConVar("nai_npc_ui_font_scale") and GetConVar("nai_npc_ui_font_scale"):GetFloat() or 1.0
+
     surface.CreateFont("NaiFont_Small", {
         font = DEFAULT_FONT_NAME,
-        size = 21,
+        size = math.floor(21 * fontScale),
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Normal", {
         font = DEFAULT_FONT_NAME,
-        size = 24,
+        size = math.floor(24 * fontScale),
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Medium", {
         font = DEFAULT_FONT_NAME,
-        size = 27,
+        size = math.floor(27 * fontScale),
         weight = 500,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Large", {
         font = DEFAULT_FONT_NAME,
-        size = 33,
+        size = math.floor(33 * fontScale),
         weight = 600,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Title", {
         font = DEFAULT_FONT_NAME,
-        size = 39,
+        size = math.floor(39 * fontScale),
         weight = 700,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Bold", {
         font = DEFAULT_FONT_NAME,
-        size = 24,
+        size = math.floor(24 * fontScale),
         weight = 700,
         antialias = true,
     })
@@ -862,6 +864,22 @@ hook.Add("Initialize", "NPCPassengers_CreateFonts", function()
 end)
 -- Also create them immediately in case Initialize already fired (e.g. Lua file refresh)
 CreateNaiFonts()
+
+-- Recreate fonts when font scale changes
+cvars.AddChangeCallback("nai_npc_ui_font_scale", function(name, old, new)
+    CreateNaiFonts()
+    if IsValid(settingsFrame) then
+        settingsFrame:InvalidateLayout(true)
+        local function InvalidatePanel(panel)
+            if not IsValid(panel) then return end
+            panel:InvalidateLayout(true)
+            for _, child in ipairs(panel:GetChildren()) do
+                InvalidatePanel(child)
+            end
+        end
+        InvalidatePanel(settingsFrame)
+    end
+end, "npcpassengers_font_scale_update")
 
 local function Lerp(t, a, b)
     return a + (b - a) * t
@@ -4365,6 +4383,9 @@ local function OpenSettingsPanel()
             settingsFrame:InvalidateLayout(true)
         end
     end
+
+    local _, fontScaleSlider = CreateSlider(interfacePanel, L("npcpassengers.ui.font_scale"), "nai_npc_ui_font_scale", 0.5, 2.0, 2)
+    CreateHelpText(interfacePanel, L("npcpassengers.ui_font_scale.help"))
 
     local function ApplyPanelSizePreset(width, height)
         RunConsoleCommand("nai_npc_ui_panel_width", tostring(width))
