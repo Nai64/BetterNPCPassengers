@@ -496,8 +496,6 @@ language.Add("npcpassengers.ui.blacklist_help", "Разделенный запя
 language.Add("npcpassengers.ui.hud_position", "Позиция HUD")
 language.Add("npcpassengers.ui.not_bound", "Не привязано")
 language.Add("npcpassengers.ui.keybind_tip", "Совет: Нажмите правой кнопкой на привязку чтобы отвязать. Нажмите ESC во время привязки чтобы отменить.")
-language.Add("npcpassengers.ui.custom_font", "Пользовательский шрифт")
-language.Add("npcpassengers.ui.custom_font_hint", "Или введите имя пользовательского шрифта")
 language.Add("npcpassengers.ui.dont_show_again", "Больше не показывать")
 
 -- HUD and status strings
@@ -654,8 +652,6 @@ language.Add("npcpassengers.context_make_passenger.help", "Добавить NPC 
 language.Add("npcpassengers.context_make_passenger_vehicle.help", "Добавить NPC в конкретный транспорт (нажмите NPC, затем транспорт)")
 language.Add("npcpassengers.context_detach.help", "Удалить NPC из транспорта")
 language.Add("npcpassengers.ui_show_welcome.help", "Показать приветственную панель когда аддон обновляется до новой версии")
-language.Add("npcpassengers.ui_default_font.help", "Переключить UI на шрифты Garry's Mod по умолчанию если вы предпочитаете более чистое резервное отображение.")
-language.Add("npcpassengers.ui_custom_font.help", "Выберите пользовательский шрифт. Добавьте файлы .ttf в resource/fonts/ и используйте фактическое имя шрифта (например, 'Roboto', 'Arial'). Изменения применяются немедленно.")
 language.Add("npcpassengers.ui_panel_width.help", "Ширина панели настроек")
 language.Add("npcpassengers.ui_panel_height.help", "Высота панели настроек")
 language.Add("npcpassengers.ui_animations.help", "Плавные переходы и эффекты наведения (может повлиять на производительность)")

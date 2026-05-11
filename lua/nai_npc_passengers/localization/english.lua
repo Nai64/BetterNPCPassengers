@@ -343,8 +343,6 @@ language.Add("npcpassengers.ui.blacklist_help", "Comma-separated list of NPC cla
 language.Add("npcpassengers.ui.hud_position", "HUD Position")
 language.Add("npcpassengers.ui.not_bound", "Not Bound")
 language.Add("npcpassengers.ui.keybind_tip", "Tip: Right-click a keybind to unbind it. Press ESC while binding to cancel.")
-language.Add("npcpassengers.ui.custom_font", "Custom Font")
-language.Add("npcpassengers.ui.custom_font_hint", "Or Enter Custom Font Name")
 language.Add("npcpassengers.ui.dont_show_again", "Don't show this again")
 
 -- HUD and status strings
@@ -668,8 +666,6 @@ language.Add("npcpassengers.context_make_passenger.help", "Add NPC as passenger 
 language.Add("npcpassengers.context_make_passenger_vehicle.help", "Add NPC to a specific vehicle (click NPC, then vehicle)")
 language.Add("npcpassengers.context_detach.help", "Remove NPC from vehicle")
 language.Add("npcpassengers.ui_show_welcome.help", "Display welcome panel when addon is updated to a new version")
-language.Add("npcpassengers.ui_default_font.help", "Switch the UI to Garry's Mod default fonts if you prefer cleaner fallback rendering.")
-language.Add("npcpassengers.ui_custom_font.help", "Select a custom font. Add .ttf files to resource/fonts/ and use the actual font name (e.g., 'Roboto', 'Arial'). Changes apply immediately.")
 language.Add("npcpassengers.ui_panel_width.help", "Width of the settings panel")
 language.Add("npcpassengers.ui_panel_height.help", "Height of the settings panel")
 language.Add("npcpassengers.ui_animations.help", "Smooth transitions and hover effects (may impact performance)")

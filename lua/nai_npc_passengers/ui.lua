@@ -875,116 +875,44 @@ cvars.AddChangeCallback("nai_npc_ui_color_theme", function(name, old, new)
     StartThemeTransition(new)
 end, "npcpassengers_theme_update")
 
--- Custom fonts (requires metropolis.ttf in resource/fonts/)
-local fontName = "Metropolis"
-
-local function GetUIFontName()
-    local useDefaultFont = GetConVar("nai_npc_ui_use_default_font")
-    if useDefaultFont and useDefaultFont:GetBool() then
-        return DEFAULT_FONT_NAME
-    end
-
-    local customFont = GetConVar("nai_npc_ui_custom_font")
-    if customFont then
-        local fontName = customFont:GetString()
-        if fontName and fontName ~= "" then
-            return fontName
-        end
-    end
-
-    return fontName
-end
-
--- Function to copy fonts from addon folder to global resource/fonts/
-local fontsInstalled = false
-local function InstallAddonFonts()
-    if fontsInstalled then return end
-    fontsInstalled = true
-
-    local addonFontFiles = file.Find("addons/betternpcpassengers-gmod/resource/fonts/*.ttf", "GAME")
-
-    if addonFontFiles then
-        for _, filename in ipairs(addonFontFiles) do
-            local sourcePath = "addons/betternpcpassengers-gmod/resource/fonts/" .. filename
-            local destPath = "resource/fonts/" .. filename
-
-            -- Only copy if file doesn't already exist in global folder
-            if not file.Exists(destPath, "GAME") then
-                file.Copy(sourcePath, destPath, "GAME")
-            end
-        end
-    end
-end
-
--- Function to get available fonts (using actual font names, not filenames)
-local cachedAvailableFonts = nil
-local function GetAvailableFonts()
-    if cachedAvailableFonts then return cachedAvailableFonts end
-
-    -- List of known fonts with their actual font names
-    local knownFonts = {
-        {file = "metropolis.ttf", name = "Metropolis"},
-        {file = "bebasneue.ttf", name = "Bebas Neue"},
-        {file = "sharetech.ttf", name = "Share Tech"},
-    }
-
-    local fonts = {"Metropolis"} -- Default font
-
-    -- Check which known fonts are actually present
-    for _, fontInfo in ipairs(knownFonts) do
-        local addonPath = "addons/betternpcpassengers-gmod/resource/fonts/" .. fontInfo.file
-        local globalPath = "resource/fonts/" .. fontInfo.file
-
-        if file.Exists(addonPath, "GAME") or file.Exists(globalPath, "GAME") then
-            table.insert(fonts, fontInfo.name)
-        end
-    end
-
-    cachedAvailableFonts = fonts
-    return fonts
-end
-
-
 local function CreateNaiFonts()
-    local activeFontName = GetUIFontName()
-
     surface.CreateFont("NaiFont_Small", {
-        font = activeFontName,
+        font = DEFAULT_FONT_NAME,
         size = 14,
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Normal", {
-        font = activeFontName,
+        font = DEFAULT_FONT_NAME,
         size = 16,
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Medium", {
-        font = activeFontName,
+        font = DEFAULT_FONT_NAME,
         size = 18,
         weight = 500,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Large", {
-        font = activeFontName,
+        font = DEFAULT_FONT_NAME,
         size = 22,
         weight = 600,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Title", {
-        font = activeFontName,
+        font = DEFAULT_FONT_NAME,
         size = 26,
         weight = 700,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Bold", {
-        font = activeFontName,
+        font = DEFAULT_FONT_NAME,
         size = 16,
         weight = 700,
         antialias = true,
@@ -993,11 +921,9 @@ end
 
 -- Create fonts inside Initialize so the renderer is fully ready
 hook.Add("Initialize", "NPCPassengers_CreateFonts", function()
-    InstallAddonFonts()
     CreateNaiFonts()
 end)
 -- Also create them immediately in case Initialize already fired (e.g. Lua file refresh)
-InstallAddonFonts()
 CreateNaiFonts()
 
 local function Lerp(t, a, b)
@@ -4484,129 +4410,6 @@ local function OpenSettingsPanel()
     
     CreateCheckbox(interfacePanel, "Show Welcome Screen on Updates", "nai_npc_ui_show_welcome")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_show_welcome.help"))
-
-    local _, defaultFontCheckbox = CreateCheckbox(interfacePanel, "Use Default Font Instead of Metropolis", "nai_npc_ui_use_default_font")
-    CreateHelpText(interfacePanel, L("npcpassengers.ui_default_font.help"))
-
-    -- Custom font dropdown and text entry will be created below
-    -- We'll set up the OnChange handler after they're created
-
-    -- Custom font dropdown
-    local availableFonts = GetAvailableFonts()
-    local fontLabel = vgui.Create("DLabel", interfacePanel)
-    fontLabel:SetText(L("npcpassengers.ui.custom_font"))
-    fontLabel:SetFont("NaiFont_Normal")
-    fontLabel:SetTextColor(Theme.text)
-    fontLabel:Dock(TOP)
-    fontLabel:DockMargin(10, 8, 10, 2)
-
-    local fontCombo = vgui.Create("DComboBox", interfacePanel)
-    fontCombo.SearchLabel = L("npcpassengers.ui.custom_font")
-    fontCombo.SearchConVar = "nai_npc_ui_custom_font"
-    fontCombo:Dock(TOP)
-    fontCombo:DockMargin(10, 0, 10, 5)
-    fontCombo:SetTall(28)
-    fontCombo:SetFont("NaiFont_Normal")
-    fontCombo:SetTextColor(Theme.text)
-    
-    for _, font in ipairs(availableFonts) do
-        fontCombo:AddChoice(font, font)
-    end
-    
-    local currentFont = GetConVar("nai_npc_ui_custom_font") and GetConVar("nai_npc_ui_custom_font"):GetString() or "Metropolis"
-    fontCombo:SetValue(currentFont)
-    
-    fontCombo.Paint = function(self, w, h)
-        draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
-        if self:IsMenuOpen() then
-            surface.SetDrawColor(Theme.accent)
-            surface.DrawOutlinedRect(0, 0, w, h, 1)
-        end
-    end
-    
-    fontCombo.OnSelect = function(self, index, value, data)
-        RunConsoleCommand("nai_npc_ui_custom_font", data)
-        if IsValid(customFontText) then
-            customFontText:SetText(data)
-        end
-        InstallAddonFonts()
-        CreateNaiFonts()
-
-        if IsValid(settingsFrame) then
-            settingsFrame:InvalidateLayout(true)
-        end
-    end
-
-    CreateHelpText(interfacePanel, L("npcpassengers.ui_custom_font.help"))
-
-    -- Custom font name text entry
-    local customFontLabel = vgui.Create("DLabel", interfacePanel)
-    customFontLabel:SetText(L("npcpassengers.ui.custom_font_hint"))
-    customFontLabel:SetFont("NaiFont_Normal")
-    customFontLabel:SetTextColor(Theme.text)
-    customFontLabel:Dock(TOP)
-    customFontLabel:DockMargin(10, 8, 10, 2)
-
-    local customFontText = vgui.Create("DTextEntry", interfacePanel)
-    customFontText:Dock(TOP)
-    customFontText:DockMargin(10, 0, 10, 5)
-    customFontText:SetTall(28)
-    customFontText:SetFont("NaiFont_Normal")
-    customFontText:SetTextColor(Theme.text)
-    customFontText:SetPlaceholderText("e.g., Roboto, Arial, etc.")
-
-    local currentCustomFont = GetConVar("nai_npc_ui_custom_font") and GetConVar("nai_npc_ui_custom_font"):GetString() or ""
-    customFontText:SetText(currentCustomFont)
-
-    customFontText.OnEnter = function(self)
-        local text = self:GetText()
-        RunConsoleCommand("nai_npc_ui_custom_font", text)
-        InstallAddonFonts()
-        CreateNaiFonts()
-
-        if IsValid(settingsFrame) then
-            settingsFrame:InvalidateLayout(true)
-        end
-    end
-
-    -- Set up the default font checkbox OnChange handler now that controls exist
-    local defaultFontOnChange = defaultFontCheckbox.OnChange
-    defaultFontCheckbox.OnChange = function(self, val)
-        if defaultFontOnChange then
-            defaultFontOnChange(self, val)
-        end
-
-        InstallAddonFonts()
-        CreateNaiFonts()
-
-        if IsValid(settingsFrame) then
-            settingsFrame:InvalidateLayout(true)
-        end
-
-        -- Hide/show custom font controls based on default font setting
-        if IsValid(fontCombo) then
-            fontCombo:SetVisible(not val)
-        end
-        if IsValid(fontLabel) then
-            fontLabel:SetVisible(not val)
-        end
-        if IsValid(customFontLabel) then
-            customFontLabel:SetVisible(not val)
-        end
-        if IsValid(customFontText) then
-            customFontText:SetVisible(not val)
-        end
-    end
-
-    -- Initially hide custom font controls if default font is enabled
-    local useDefaultFont = GetConVarBoolSafe("nai_npc_ui_use_default_font", false)
-    if useDefaultFont then
-        fontCombo:SetVisible(false)
-        fontLabel:SetVisible(false)
-        customFontLabel:SetVisible(false)
-        customFontText:SetVisible(false)
-    end
-
 
     local _, widthSlider = CreateSlider(interfacePanel, L("npcpassengers.ui_panel_width"), "nai_npc_ui_panel_width", 800, 1400, 0)
     CreateHelpText(interfacePanel, L("npcpassengers.ui_panel_width.help"))
