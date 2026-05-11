@@ -131,6 +131,16 @@ language.Add("npcpassengers.help.desc", "Быстрые ответы на общ
 language.Add("npcpassengers.help.still_need", "Все еще нужна помощь?")
 language.Add("npcpassengers.help.community", "Присоединяйтесь к нашему Discord сообществу для поддержки!")
 
+-- Additional navigation tabs
+language.Add("npcpassengers.nav.tank", "Танк/LVS")
+language.Add("npcpassengers.nav.debugging", "Отладка")
+language.Add("npcpassengers.nav.driver", "NPC Водитель")
+language.Add("npcpassengers.nav.interface", "Интерфейс")
+language.Add("npcpassengers.nav.simulate", "Симуляция")
+language.Add("npcpassengers.nav.modules", "Модули")
+language.Add("npcpassengers.nav.about", "О программе")
+language.Add("npcpassengers.search.placeholder", "Поиск настроек...")
+
 -- Status messages
 language.Add("npcpassengers.status.calm", "СПОКОЕН")
 language.Add("npcpassengers.status.alert", "ТРЕВОГА")

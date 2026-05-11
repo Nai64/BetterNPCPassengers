@@ -132,6 +132,16 @@ language.Add("npcpassengers.help.desc", "Quick answers to common questions and t
 language.Add("npcpassengers.help.still_need", "Still Need Help?")
 language.Add("npcpassengers.help.community", "Join our Discord community for support!")
 
+-- Additional navigation tabs
+language.Add("npcpassengers.nav.tank", "Tank/LVS")
+language.Add("npcpassengers.nav.debugging", "Debugging")
+language.Add("npcpassengers.nav.driver", "NPC Driver")
+language.Add("npcpassengers.nav.interface", "Interface")
+language.Add("npcpassengers.nav.simulate", "Simulate")
+language.Add("npcpassengers.nav.modules", "Modules")
+language.Add("npcpassengers.nav.about", "About")
+language.Add("npcpassengers.search.placeholder", "Search settings...")
+
 -- Status messages
 language.Add("npcpassengers.status.calm", "CALM")
 language.Add("npcpassengers.status.alert", "ALERT")

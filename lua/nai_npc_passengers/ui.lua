@@ -2349,7 +2349,7 @@ local function OpenSettingsPanel()
         self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
 
         if self:GetValue() == "" and not self:HasFocus() then
-            draw.SimpleText("Search settings...", "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(L("npcpassengers.search.placeholder"), "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
     end
     searchEntry.OnKeyCodeTyped = function(self, key)
@@ -2470,8 +2470,8 @@ local function OpenSettingsPanel()
 
     -- Auto-Join Tab
     local autoJoinPanel = CreateContentPanel()
-    autoJoinPanel.SearchPanelName = "Auto-Join"
-    local autoJoinBtn = CreateNavButton("Auto-Join", "icon16/group.png")
+    autoJoinPanel.SearchPanelName = L("npcpassengers.nav.autojoin")
+    local autoJoinBtn = CreateNavButton(L("npcpassengers.nav.autojoin"), "icon16/group.png")
     autoJoinPanel.SearchNavButton = autoJoinBtn
     autoJoinBtn.DoClick = function() SwitchToPanel(autoJoinPanel, autoJoinBtn) end
     
@@ -2494,8 +2494,8 @@ local function OpenSettingsPanel()
 
     -- Passengers Tab
     local passengersPanel = CreateContentPanel()
-    passengersPanel.SearchPanelName = "Passengers"
-    local passengersBtn = CreateNavButton("Passengers", "icon16/group_gear.png")
+    passengersPanel.SearchPanelName = L("npcpassengers.nav.passengers")
+    local passengersBtn = CreateNavButton(L("npcpassengers.nav.passengers"), "icon16/group_gear.png")
     passengersPanel.SearchNavButton = passengersBtn
 
     passengerControlList = nil
@@ -3245,8 +3245,8 @@ local function OpenSettingsPanel()
 
     -- Position Tab
     local posPanel = CreateContentPanel()
-    posPanel.SearchPanelName = "Position"
-    local posBtn = CreateNavButton("Position", "icon16/arrow_out.png")
+    posPanel.SearchPanelName = L("npcpassengers.nav.position")
+    local posBtn = CreateNavButton(L("npcpassengers.nav.position"), "icon16/arrow_out.png")
     posPanel.SearchNavButton = posBtn
     posBtn.DoClick = function() SwitchToPanel(posPanel, posBtn) end
     
@@ -3279,8 +3279,8 @@ local function OpenSettingsPanel()
     
     -- Speech & Behavior Tab
     local speechPanel = CreateContentPanel()
-    speechPanel.SearchPanelName = "Behaviour"
-    local speechBtn = CreateNavButton("Behaviour", "icon16/sound.png")
+    speechPanel.SearchPanelName = L("npcpassengers.nav.behaviour")
+    local speechBtn = CreateNavButton(L("npcpassengers.nav.behaviour"), "icon16/sound.png")
     speechPanel.SearchNavButton = speechBtn
     speechBtn.DoClick = function() SwitchToPanel(speechPanel, speechBtn) end
     
@@ -3498,8 +3498,8 @@ local function OpenSettingsPanel()
     
     -- Tank/LVS Tab
     local tankPanel = CreateContentPanel()
-    tankPanel.SearchPanelName = "Tank/LVS"
-    local tankBtn = CreateNavButton("Tank/LVS", "icon16/shield.png")
+    tankPanel.SearchPanelName = L("npcpassengers.nav.tank")
+    local tankBtn = CreateNavButton(L("npcpassengers.nav.tank"), "icon16/shield.png")
     tankPanel.SearchNavButton = tankBtn
     tankBtn.DoClick = function() SwitchToPanel(tankPanel, tankBtn) end
     
@@ -3595,8 +3595,8 @@ local function OpenSettingsPanel()
     
     -- HUD Tab
     local hudPanel = CreateContentPanel()
-    hudPanel.SearchPanelName = "HUD"
-    local hudBtn = CreateNavButton("HUD", "icon16/eye.png")
+    hudPanel.SearchPanelName = L("npcpassengers.nav.hud")
+    local hudBtn = CreateNavButton(L("npcpassengers.nav.hud"), "icon16/eye.png")
     hudPanel.SearchNavButton = hudBtn
     hudBtn.DoClick = function() SwitchToPanel(hudPanel, hudBtn) end
     
@@ -3738,8 +3738,8 @@ local function OpenSettingsPanel()
     
     -- Keybinds Tab
     local keybindsPanel = CreateContentPanel()
-    keybindsPanel.SearchPanelName = "Keybinds"
-    local keybindsBtn = CreateNavButton("Keybinds", "icon16/keyboard.png")
+    keybindsPanel.SearchPanelName = L("npcpassengers.nav.keybinds")
+    local keybindsBtn = CreateNavButton(L("npcpassengers.nav.keybinds"), "icon16/keyboard.png")
     keybindsPanel.SearchNavButton = keybindsBtn
     keybindsBtn.DoClick = function() SwitchToPanel(keybindsPanel, keybindsBtn) end
     local keybindButtons = {}
@@ -3963,8 +3963,8 @@ local function OpenSettingsPanel()
     
     -- Debugging Tab
     local debugPanel = CreateContentPanel()
-    debugPanel.SearchPanelName = "Debugging"
-    local debugBtn = CreateNavButton("Debugging", "icon16/bug.png")
+    debugPanel.SearchPanelName = L("npcpassengers.nav.debugging")
+    local debugBtn = CreateNavButton(L("npcpassengers.nav.debugging"), "icon16/bug.png")
     debugPanel.SearchNavButton = debugBtn
     debugBtn.DoClick = function() SwitchToPanel(debugPanel, debugBtn) end
     
@@ -4094,8 +4094,8 @@ local function OpenSettingsPanel()
     
     -- NPC Driver Tab
     local driverPanel = CreateContentPanel()
-    driverPanel.SearchPanelName = "NPC Driver"
-    local driverBtn = CreateNavButton("NPC Driver", "icon16/car.png")
+    driverPanel.SearchPanelName = L("npcpassengers.nav.driver")
+    local driverBtn = CreateNavButton(L("npcpassengers.nav.driver"), "icon16/car.png")
     driverPanel.SearchNavButton = driverBtn
     driverBtn.DoClick = function() SwitchToPanel(driverPanel, driverBtn) end
     
@@ -4122,8 +4122,8 @@ local function OpenSettingsPanel()
     
     -- Interface Tab
     local interfacePanel = CreateContentPanel()
-    interfacePanel.SearchPanelName = "Interface"
-    local interfaceBtn = CreateNavButton("Interface", "icon16/application_view_tile.png")
+    interfacePanel.SearchPanelName = L("npcpassengers.nav.interface")
+    local interfaceBtn = CreateNavButton(L("npcpassengers.nav.interface"), "icon16/application_view_tile.png")
     interfacePanel.SearchNavButton = interfaceBtn
     interfaceBtn.DoClick = function() SwitchToPanel(interfacePanel, interfaceBtn) end
     
@@ -4456,8 +4456,8 @@ local function OpenSettingsPanel()
     
     -- Simulate Tab
     local simulatePanel = CreateContentPanel()
-    simulatePanel.SearchPanelName = "Simulate"
-    local simulateBtn = CreateNavButton("Simulate", "icon16/wand.png")
+    simulatePanel.SearchPanelName = L("npcpassengers.nav.simulate")
+    local simulateBtn = CreateNavButton(L("npcpassengers.nav.simulate"), "icon16/wand.png")
     simulatePanel.SearchNavButton = simulateBtn
     simulateBtn.DoClick = function() SwitchToPanel(simulatePanel, simulateBtn) end
     
@@ -4484,8 +4484,8 @@ local function OpenSettingsPanel()
     
     -- Modules Tab
     local modulesPanel = CreateContentPanel()
-    modulesPanel.SearchPanelName = "Modules"
-    local modulesBtn = CreateNavButton("Modules", "icon16/plugin.png")
+    modulesPanel.SearchPanelName = L("npcpassengers.nav.modules")
+    local modulesBtn = CreateNavButton(L("npcpassengers.nav.modules"), "icon16/plugin.png")
     modulesPanel.SearchNavButton = modulesBtn
     modulesBtn.DoClick = function() SwitchToPanel(modulesPanel, modulesBtn) end
     
@@ -4512,8 +4512,8 @@ local function OpenSettingsPanel()
     
     -- Help Tab
     local helpPanel = CreateContentPanel()
-    helpPanel.SearchPanelName = "Help"
-    local helpBtn = CreateNavButton("Help", "icon16/help.png")
+    helpPanel.SearchPanelName = L("npcpassengers.nav.help")
+    local helpBtn = CreateNavButton(L("npcpassengers.nav.help"), "icon16/help.png")
     helpPanel.SearchNavButton = helpBtn
     helpBtn.DoClick = function() SwitchToPanel(helpPanel, helpBtn) end
     
@@ -4677,8 +4677,8 @@ local function OpenSettingsPanel()
     
     -- About Tab
     local aboutPanel = CreateContentPanel()
-    aboutPanel.SearchPanelName = "About"
-    local aboutBtn = CreateNavButton("About", "icon16/information.png")
+    aboutPanel.SearchPanelName = L("npcpassengers.nav.about")
+    local aboutBtn = CreateNavButton(L("npcpassengers.nav.about"), "icon16/information.png")
     aboutPanel.SearchNavButton = aboutBtn
     aboutBtn.DoClick = function() SwitchToPanel(aboutPanel, aboutBtn) end
     
