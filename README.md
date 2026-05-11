@@ -3,7 +3,7 @@
 <div align="center">
 
 
-[![Version](https://img.shields.io/badge/version-v2.7.18-blue?style=flat)](https://github.com/Nai64/BetterNPCPassengers/releases)
+[![Version](https://img.shields.io/badge/version-v2.7.19-blue?style=flat)](https://github.com/Nai64/BetterNPCPassengers/releases)
 [![Last Update](https://img.shields.io/github/last-commit/Nai64/BetterNPCPassengers?style=flat&logo=github)](https://github.com/Nai64/BetterNPCPassengers/commits/main)
 [![GMod](https://img.shields.io/badge/Garry's%20Mod-Addon-black?style=flat&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
 [![GMod Version](https://img.shields.io/badge/GMod-13-orange?style=flat&logo=steam)](https://store.steampowered.com/app/4000/Garrys_Mod/)
@@ -225,7 +225,7 @@ All settings are saved per-client or per-server as appropriate. A debug mode is 
 - **Dead body cannot be removed** — Move closer to the vehicle and hold `R` for the full duration.
 - **Auto-Join not triggering** — Check search range and max-passenger count in the Auto-Join tab. Ensure the NPCs are friendly to you.
 - **Passengers not boarding a specific vehicle** — Check the deny ConVars: `nai_npc_deny_classes`, `nai_npc_deny_models`.
-- **VJ NPCs acting weird as passengers** — Make sure you're on v2.7.18+ which has dedicated VJ Base support. Older versions only had partial compatibility.
+- **VJ NPCs acting weird as passengers** — Make sure you're on v2.7.19+ which has dedicated VJ Base support. Older versions only had partial compatibility.
 
 ---
 
