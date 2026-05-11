@@ -1602,7 +1602,7 @@ local function OpenSettingsPanel()
     settingsFrame.originalHeight = settingsFrame:GetTall()
 
     local minimizeBtn = vgui.Create("DButton", settingsFrame)
-    minimizeBtn:SetPos(settingsFrame:GetWide() - 70, 12)
+    minimizeBtn:SetPos(settingsFrame:GetWide() - 126, 12)
     minimizeBtn:SetSize(28, 28)
     minimizeBtn:SetText("")
     minimizeBtn.hoverAnim = 0
@@ -1670,8 +1670,8 @@ local function OpenSettingsPanel()
 
     -- Language selector dropdown (compact)
     local langBtn = vgui.Create("DButton", settingsFrame)
-    langBtn:SetPos(settingsFrame:GetWide() - 105, 12)
-    langBtn:SetSize(26, 28)
+    langBtn:SetPos(settingsFrame:GetWide() - 71, 12)
+    langBtn:SetSize(50, 28)
     langBtn:SetText("")
     langBtn.hoverAnim = 0
     langBtn.currentLang = "EN"
@@ -1707,9 +1707,9 @@ local function OpenSettingsPanel()
         local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or "cn") .. ".png"
         surface.SetDrawColor(Theme.textBright)
         surface.SetMaterial(Material(flagIcon))
-        surface.DrawTexturedRect(3, (h - 10) / 2, 12, 10)
+        surface.DrawTexturedRect(4, (h - 10) / 2, 12, 10)
 
-        draw.SimpleText(self.currentLang, "NaiFont_Small", w/2 + 6, h/2, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        draw.SimpleText(self.currentLang, "NaiFont_Small", 20, h/2, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
 
     -- Language dropdown menu
