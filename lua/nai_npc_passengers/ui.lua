@@ -815,42 +815,42 @@ end, "npcpassengers_theme_update")
 local function CreateNaiFonts()
     surface.CreateFont("NaiFont_Small", {
         font = DEFAULT_FONT_NAME,
-        size = 14,
+        size = 21,
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Normal", {
         font = DEFAULT_FONT_NAME,
-        size = 16,
+        size = 24,
         weight = 400,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Medium", {
         font = DEFAULT_FONT_NAME,
-        size = 18,
+        size = 27,
         weight = 500,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Large", {
         font = DEFAULT_FONT_NAME,
-        size = 22,
+        size = 33,
         weight = 600,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Title", {
         font = DEFAULT_FONT_NAME,
-        size = 26,
+        size = 39,
         weight = 700,
         antialias = true,
     })
 
     surface.CreateFont("NaiFont_Bold", {
         font = DEFAULT_FONT_NAME,
-        size = 16,
+        size = 24,
         weight = 700,
         antialias = true,
     })
