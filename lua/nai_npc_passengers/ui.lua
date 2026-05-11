@@ -1004,9 +1004,9 @@ end
 local function CreateSectionHeader(parent, text)
     local header = vgui.Create("DPanel", parent)
     header.SearchSectionTitle = text
-    header:SetTall(38)
+    header:SetTall(50)
     header:Dock(TOP)
-    header:DockMargin(0, 15, 0, 8)
+    header:DockMargin(0, 15, 0, 10)
 
     header.Paint = function(self, w, h)
         local accentColor = Theme.accent
@@ -1068,7 +1068,7 @@ local function CreateHelpText(parent, text)
     help:SetWrap(true)
     help:SetAutoStretchVertical(true)
     help:Dock(TOP)
-    help:DockMargin(5, 0, 5, 6)
+    help:DockMargin(5, 0, 5, 10)
     return help
 end
 
@@ -1095,9 +1095,9 @@ local function CreateCheckbox(parent, label, convar)
     local container = vgui.Create("DPanel", parent)
     container.SearchLabel = label
     container.SearchConVar = convar
-    container:SetTall(32)
+    container:SetTall(40)
     container:Dock(TOP)
-    container:DockMargin(5, 3, 5, 3)
+    container:DockMargin(5, 4, 5, 4)
     container.hoverAnim = 0
     container.hasPlayedHoverSound = false
     container.Paint = function(self, w, h)
@@ -1266,9 +1266,9 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     local container = vgui.Create("DPanel", parent)
     container.SearchLabel = label
     container.SearchConVar = convar
-    container:SetTall(52)
+    container:SetTall(65)
     container:Dock(TOP)
-    container:DockMargin(5, 3, 5, 3)
+    container:DockMargin(5, 4, 5, 4)
     container.Paint = function() end
 
     local lbl = CreateLabel(container, label, "NaiFont_Normal", Theme.text)
@@ -1399,9 +1399,9 @@ local function CreateButton(parent, text, callback)
     btn.SearchLabel = text
     btn:SetText(text)
     btn:SetFont("NaiFont_Medium")
-    btn:SetTall(40)
+    btn:SetTall(50)
     btn:Dock(TOP)
-    btn:DockMargin(8, 6, 8, 6)
+    btn:DockMargin(8, 8, 8, 8)
     btn:SetTextColor(TransparentColor)
     btn.hoverAnim = 0
     btn.pressAnim = 0
