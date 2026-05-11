@@ -26,15 +26,15 @@ end
 -- Load appropriate localization file based on client language
 local function LoadLocalization()
     -- Always load English as base
-    include("resource/localization/english.lua")
+    include("nai_npc_passengers/localization/english.lua")
 
     -- Detect client language and load additional localization
     local lang = GetConVar("gmod_language") and GetConVar("gmod_language"):GetString() or "english"
 
     if lang == "russian" or lang == "ru" then
-        include("resource/localization/russian.lua")
+        include("nai_npc_passengers/localization/russian.lua")
     elseif lang == "schinese" or lang == "tchinese" or lang == "zh" then
-        include("resource/localization/chinese.lua")
+        include("nai_npc_passengers/localization/chinese.lua")
     end
 end
 

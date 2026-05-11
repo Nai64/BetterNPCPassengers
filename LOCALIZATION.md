@@ -15,9 +15,9 @@ The addon now supports multi-language localization! This guide explains how to c
 ## File Structure
 
 ```
-resource/localization/
+lua/nai_npc_passengers/localization/
 ├── english.lua      # Complete English translations (base)
-├── russian.lua      # Russian template (needs translation)
+├── russian.lua      # Russian translations (complete)
 └── chinese.lua      # Chinese template (needs translation)
 ```
 
@@ -45,7 +45,7 @@ In `lua/nai_npc_passengers/ui.lua`, add your language to the `LoadLocalization()
 
 ```lua
 elseif lang == "spanish" or lang == "es" then
-    include("resource/localization/spanish.lua")
+    include("nai_npc_passengers/localization/spanish.lua")
 ```
 
 ### 4. Test Your Translation
