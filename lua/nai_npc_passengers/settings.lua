@@ -77,7 +77,7 @@ if CLIENT then
     NPCPassengers.cv_context_detach_passenger = CreateClientConVar("nai_npc_context_detach", "1", true, false, "Show 'Detach Passenger' in context menu")
     NPCPassengers.cv_ui_show_welcome = CreateClientConVar("nai_npc_ui_show_welcome", "1", true, false, "Show welcome screen on updates")
     NPCPassengers.cv_ui_panel_width = CreateClientConVar("nai_npc_ui_panel_width", "950", true, false, "Settings panel width")
-    NPCPassengers.cv_ui_panel_height = CreateClientConVar("nai_npc_ui_panel_height", "850", true, false, "Settings panel height")
+    NPCPassengers.cv_ui_panel_height = CreateClientConVar("nai_npc_ui_panel_height", "800", true, false, "Settings panel height")
     NPCPassengers.cv_ui_animations = CreateClientConVar("nai_npc_ui_animations", "1", true, false, "Enable UI animations")
     NPCPassengers.cv_ui_tooltips = CreateClientConVar("nai_npc_ui_tooltips", "1", true, false, "Show tooltips in UI")
     NPCPassengers.cv_ui_scroll_smoothness = CreateClientConVar("nai_npc_ui_scroll_smoothness", "0.15", true, false, "Sidebar scroll smoothness (0.01-1, lower = smoother)")

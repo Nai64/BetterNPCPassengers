@@ -1006,7 +1006,7 @@ local function CreateSectionHeader(parent, text)
     header.SearchSectionTitle = text
     header:SetTall(50)
     header:Dock(TOP)
-    header:DockMargin(0, 15, 0, 10)
+    header:DockMargin(0, 12, 0, 5)
 
     header.Paint = function(self, w, h)
         local accentColor = Theme.accent
@@ -1068,7 +1068,7 @@ local function CreateHelpText(parent, text)
     help:SetWrap(true)
     help:SetAutoStretchVertical(true)
     help:Dock(TOP)
-    help:DockMargin(5, 0, 5, 10)
+    help:DockMargin(5, 0, 5, 4)
     return help
 end
 
@@ -1097,7 +1097,7 @@ local function CreateCheckbox(parent, label, convar)
     container.SearchConVar = convar
     container:SetTall(40)
     container:Dock(TOP)
-    container:DockMargin(5, 4, 5, 4)
+    container:DockMargin(5, 2, 5, 2)
     container.hoverAnim = 0
     container.hasPlayedHoverSound = false
     container.Paint = function(self, w, h)
@@ -1268,7 +1268,7 @@ local function CreateSlider(parent, label, convar, min, max, decimals)
     container.SearchConVar = convar
     container:SetTall(65)
     container:Dock(TOP)
-    container:DockMargin(5, 4, 5, 4)
+    container:DockMargin(5, 2, 5, 2)
     container.Paint = function() end
 
     local lbl = CreateLabel(container, label, "NaiFont_Normal", Theme.text)
@@ -1401,7 +1401,7 @@ local function CreateButton(parent, text, callback)
     btn:SetFont("NaiFont_Medium")
     btn:SetTall(50)
     btn:Dock(TOP)
-    btn:DockMargin(8, 8, 8, 8)
+    btn:DockMargin(8, 4, 8, 4)
     btn:SetTextColor(TransparentColor)
     btn.hoverAnim = 0
     btn.pressAnim = 0
