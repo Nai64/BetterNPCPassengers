@@ -1704,7 +1704,7 @@ local function OpenSettingsPanel()
         draw.RoundedBox(3, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Theme.border)
 
         -- Draw flag icon next to language code
-        local flagIcon = "icon16/flag_" .. (self.currentLang == "EN" and "gb" or self.currentLang == "RU" and "ru" or "cn") .. ".png"
+        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or "cn") .. ".png"
         surface.SetDrawColor(Theme.textBright)
         surface.SetMaterial(Material(flagIcon))
         surface.DrawTexturedRect(3, (h - 10) / 2, 12, 10)
@@ -1772,6 +1772,7 @@ local function OpenSettingsPanel()
             end)
         end):SetIcon("icon16/globe.png")
 
+        menu:SetWide(120)
         menu:Open()
     end
     langBtn:SetTooltip(L("npcpassengers.tooltip.changelang"))
