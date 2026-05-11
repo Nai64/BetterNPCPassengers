@@ -1709,7 +1709,7 @@ local function OpenSettingsPanel()
     -- Language dropdown menu
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
-        menu:AddOption("English", function()
+        menu:AddOption("🇬🇧 English", function()
             self.currentLang = "EN"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Panel will refresh automatically.")
 
@@ -1728,7 +1728,7 @@ local function OpenSettingsPanel()
             end)
         end):SetIcon("icon16/world.png")
 
-        menu:AddOption("Русский", function()
+        menu:AddOption("🇷🇺 Русский", function()
             self.currentLang = "RU"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Панель обновится автоматически.")
 
@@ -1747,7 +1747,7 @@ local function OpenSettingsPanel()
             end)
         end):SetIcon("icon16/world.png")
 
-        menu:AddOption("中文", function()
+        menu:AddOption("🇨🇳 中文", function()
             self.currentLang = "ZH"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。面板将自动刷新。")
 
