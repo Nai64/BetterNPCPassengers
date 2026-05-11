@@ -23,17 +23,18 @@ local function L(phrase)
     return phrase
 end
 
--- Load appropriate localization file based on client language
+-- Load appropriate localization file based on user preference
 local function LoadLocalization()
     -- Always load English as base
     include("nai_npc_passengers/localization/english.lua")
 
-    -- Detect client language and load additional localization
-    local lang = GetConVar("gmod_language") and GetConVar("gmod_language"):GetString() or "english"
+    -- Get user's language preference from our custom ConVar
+    local langConVar = CreateClientConVar("nai_npc_ui_language", "english", true, false, "UI Language preference")
+    local lang = langConVar:GetString()
 
-    if lang == "russian" or lang == "ru" then
+    if lang == "russian" then
         include("nai_npc_passengers/localization/russian.lua")
-    elseif lang == "schinese" or lang == "tchinese" or lang == "zh" then
+    elseif lang == "chinese" then
         include("nai_npc_passengers/localization/chinese.lua")
     end
 end
@@ -1643,11 +1644,12 @@ local function OpenSettingsPanel()
     langBtn.hoverAnim = 0
     langBtn.currentLang = "EN"
 
-    -- Get current language
-    local currentLangCode = GetConVar("gmod_language") and GetConVar("gmod_language"):GetString() or "english"
-    if currentLangCode == "russian" or currentLangCode == "ru" then
+    -- Get current language from our custom ConVar
+    local langConVar = GetConVar("nai_npc_ui_language")
+    local currentLangCode = langConVar and langConVar:GetString() or "english"
+    if currentLangCode == "russian" then
         langBtn.currentLang = "RU"
-    elseif currentLangCode == "schinese" or currentLangCode == "tchinese" or currentLangCode == "zh" then
+    elseif currentLangCode == "chinese" then
         langBtn.currentLang = "ZH"
     else
         langBtn.currentLang = "EN"
@@ -1676,15 +1678,21 @@ local function OpenSettingsPanel()
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
         menu:AddOption("English", function()
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "To use English: Open GMod Options → Language → English, then restart GMod.")
+            RunConsoleCommand("nai_npc_ui_language", "english")
+            self.currentLang = "EN"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Reopen the settings panel to apply.")
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("Русский", function()
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Для русского языка: Откройте GMod Настройки → Язык → Русский, затем перезапустите GMod.")
+            RunConsoleCommand("nai_npc_ui_language", "russian")
+            self.currentLang = "RU"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Откройте настройки заново для применения.")
         end):SetIcon("icon16/world.png")
 
         menu:AddOption("中文", function()
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "使用中文：打开 GMod 选项 → 语言 → 简体中文，然后重启 GMod。")
+            RunConsoleCommand("nai_npc_ui_language", "chinese")
+            self.currentLang = "ZH"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。重新打开设置面板以应用。")
         end):SetIcon("icon16/world.png")
 
         menu:Open()
