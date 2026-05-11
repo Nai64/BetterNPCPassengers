@@ -143,7 +143,7 @@ hook.Add("Think", "NPCPassengers_Keybinds", function()
     if WasKeyJustPressed(keyToggleAutoJoin) then
         local currentVal = GetConVarBoolSafe("nai_npc_auto_join", true)
         RunConsoleCommand("nai_npc_auto_join", currentVal and "0" or "1")
-        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Auto-Join: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.autojoin_status") .. ": ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and L("npcpassengers.state.off") or L("npcpassengers.state.on"))
     end
     
     local keyMenu = GetConVarIntSafe("nai_npc_key_menu", 0)
@@ -160,7 +160,7 @@ hook.Add("Think", "NPCPassengers_Keybinds", function()
     if WasKeyJustPressed(keyToggleHUD) then
         local currentVal = GetConVarBoolSafe("nai_npc_hud_enabled", true)
         RunConsoleCommand("nai_npc_hud_enabled", currentVal and "0" or "1")
-        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Passenger HUD: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.hud_status") .. ": ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and L("npcpassengers.state.off") or L("npcpassengers.state.on"))
     end
 
     local keyCycleHUDPosition = GetConVarIntSafe("nai_npc_key_cycle_hud_position", 0)
@@ -168,27 +168,27 @@ hook.Add("Think", "NPCPassengers_Keybinds", function()
         local currentPos = GetConVarIntSafe("nai_npc_hud_position", 1)
         local nextPos = (currentPos + 1) % 4
         RunConsoleCommand("nai_npc_hud_position", tostring(nextPos))
-        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "HUD Position: ", Color(180, 220, 255), HUD_POSITION_NAMES[nextPos] or "Unknown")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.hud_position") .. ": ", Color(180, 220, 255), HUD_POSITION_NAMES[nextPos] or L("npcpassengers.chat.unknown"))
     end
 
     local keyDebugHUD = GetConVarIntSafe("nai_npc_key_debug_hud", 0)
     if WasKeyJustPressed(keyDebugHUD) then
         local currentVal = GetConVarBoolSafe("nai_npc_hud_target_debug", false)
         RunConsoleCommand("nai_npc_hud_target_debug", currentVal and "0" or "1")
-        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Target Debug: ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and "OFF" or "ON")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.target_debug") .. ": ", currentVal and Color(255, 100, 100) or Color(100, 255, 100), currentVal and L("npcpassengers.state.off") or L("npcpassengers.state.on"))
     end
 
     -- Hold fire / Open fire keybinds
     local keyHoldFire = GetConVarIntSafe("nai_npc_key_hold_fire", 0)
     if WasKeyJustPressed(keyHoldFire) then
         RunConsoleCommand("nai_npc_turret_hold_fire", "1")
-        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Turret gunners: ", Color(255, 100, 100), "HOLDING FIRE")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.turret_gunners") .. ": ", Color(255, 100, 100), L("npcpassengers.chat.turret_holding"))
     end
 
     local keyOpenFire = GetConVarIntSafe("nai_npc_key_open_fire", 0)
     if WasKeyJustPressed(keyOpenFire) then
         RunConsoleCommand("nai_npc_turret_hold_fire", "0")
-        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Turret gunners: ", Color(100, 255, 100), "OPEN FIRE")
+        chat.AddText(Color(100, 200, 255), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.turret_gunners") .. ": ", Color(100, 255, 100), L("npcpassengers.chat.turret_fire"))
     end
     
     -- Debug keybinds (only if debug mode is enabled)
@@ -2633,17 +2633,17 @@ local function OpenSettingsPanel()
 
     local function CopyPassengerText(text, successMessage)
         if not text or text == "" then
-            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "Nothing to copy.")
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.nothing_copy"))
             return
         end
 
         if not SetClipboardText then
-            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "Clipboard access is not available in this build.")
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.clipboard_unavailable"))
             return
         end
 
         SetClipboardText(text)
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, successMessage or "Copied to clipboard.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, successMessage or L("npcpassengers.chat.copied_clipboard"))
     end
 
     local function BuildPassengerSummaryLine(npc, passengerVehicle, status, intensity, currentSeat)
@@ -2933,7 +2933,7 @@ local function OpenSettingsPanel()
             assignBtn.DoClick = function()
                 if not IsValid(npc) then return end
                 if not IsPassengerInLocalPlayersVehicle(npc) then
-                    chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "Sit in the same vehicle to reassign this passenger.")
+                    chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.sit_vehicle_reassign"))
                     return
                 end
 
@@ -3210,7 +3210,7 @@ local function OpenSettingsPanel()
 
     CreateButton(passengersPanel, "Copy Visible Passenger List", function()
         if #passengerVisiblePassengers == 0 then
-            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "No visible passengers to copy.")
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.no_visible_passengers"))
             return
         end
 
@@ -3229,7 +3229,7 @@ local function OpenSettingsPanel()
 
     CreateButton(passengersPanel, "Make Current Vehicle Passengers Exit", function()
         if not LocalPlayer():InVehicle() then
-            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, "You need to be in a vehicle to use this.")
+            chat.AddText(Color(255, 180, 120), ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.need_vehicle"))
             return
         end
 
@@ -3942,7 +3942,7 @@ local function OpenSettingsPanel()
             end
         end
 
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Recommended keybinds applied.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.keybinds_applied"))
     end)
 
     CreateSpacer(keybindsPanel, 4)
@@ -3955,7 +3955,7 @@ local function OpenSettingsPanel()
             end
         end
 
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All keybinds cleared.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.keybinds_cleared"))
     end)
     
     CreateSpacer(keybindsPanel, 10)
@@ -4166,14 +4166,14 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_context_make_passenger", "1")
         RunConsoleCommand("nai_npc_context_make_passenger_vehicle", "1")
         RunConsoleCommand("nai_npc_context_detach", "1")
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All context menu options enabled.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.context_enabled"))
     end)
 
     CreateButton(interfacePanel, "Hide All Context Menu Options", function()
         RunConsoleCommand("nai_npc_context_make_passenger", "0")
         RunConsoleCommand("nai_npc_context_make_passenger_vehicle", "0")
         RunConsoleCommand("nai_npc_context_detach", "0")
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All context menu options hidden.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.context_hidden"))
     end)
     
     CreateSpacer(interfacePanel, 10)
@@ -4344,24 +4344,24 @@ local function OpenSettingsPanel()
 
     CreateButton(interfacePanel, "Set Compact Panel Size", function()
         ApplyPanelSizePreset(900, 650)
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel size set to compact.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.panel_compact"))
     end)
 
     CreateButton(interfacePanel, "Set Default Panel Size", function()
         ApplyPanelSizePreset(950, 700)
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel size set to default.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.panel_default"))
     end)
 
     CreateButton(interfacePanel, "Set Large Panel Size", function()
         ApplyPanelSizePreset(1200, 800)
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel size set to large.")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.panel_large"))
     end)
 
     CreateButton(interfacePanel, "Center Panel Now", function()
         if IsValid(settingsFrame) then
             settingsFrame:Center()
             settingsFrame:InvalidateLayout(true)
-            chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "Panel centered.")
+            chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.panel_centered"))
         end
     end)
     
@@ -4430,7 +4430,7 @@ local function OpenSettingsPanel()
         end
 
         CreateNaiFonts()
-        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, "All UI settings reset to defaults!")
+        chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.settings_reset"))
     end)
     
     CreateSpacer(interfacePanel, 10)
@@ -4850,7 +4850,7 @@ properties.Add("nai_select_for_vehicle", {
     Action = function(self, ent)
         selectedNPCForVehicle = ent
         selectionExpireTime = CurTime() + 30
-        chat.AddText(Color(100, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "NPC selected! Now right-click on a vehicle and select 'Add Selected NPC'")
+        chat.AddText(Color(100, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.npc_selected"))
     end
 })
 
@@ -4885,7 +4885,7 @@ properties.Add("nai_add_selected_to_vehicle", {
                 net.WriteEntity(selectedNPCForVehicle)
                 net.WriteEntity(ent)
             net.SendToServer()
-            chat.AddText(Color(100, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "Adding NPC to vehicle...")
+            chat.AddText(Color(100, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.adding_npc"))
             selectedNPCForVehicle = nil
         end
     end
@@ -4907,7 +4907,7 @@ properties.Add("nai_cancel_selection", {
 
     Action = function(self, ent)
         selectedNPCForVehicle = nil
-        chat.AddText(Color(255, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), "NPC selection cancelled")
+        chat.AddText(Color(255, 200, 100), ADDON_CHAT_PREFIX, Color(255, 255, 255), L("npcpassengers.chat.selection_cancelled"))
     end
 })
 
