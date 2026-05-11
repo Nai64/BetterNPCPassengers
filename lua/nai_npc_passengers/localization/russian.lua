@@ -589,6 +589,20 @@ language.Add("npcpassengers.ui.cover_face", "Закрыть лицо")
 language.Add("npcpassengers.ui.apply_keybinds", "Применить рекомендуемые привязки")
 language.Add("npcpassengers.ui.clear_keybinds", "Очистить все привязки")
 
+-- Debugging buttons
+language.Add("npcpassengers.ui.test_flinch", "Тест жеста вздрагивания")
+language.Add("npcpassengers.ui.test_random", "Тест случайного жеста")
+language.Add("npcpassengers.ui.reset_states", "Сбросить все состояния")
+
+-- Interface buttons
+language.Add("npcpassengers.ui.enable_context", "Включить все опции контекстного меню")
+language.Add("npcpassengers.ui.hide_context", "Скрыть все опции контекстного меню")
+language.Add("npcpassengers.ui.set_compact", "Установить компактный размер панели")
+language.Add("npcpassengers.ui.set_default", "Установить размер панели по умолчанию")
+language.Add("npcpassengers.ui.set_large", "Установить большой размер панели")
+language.Add("npcpassengers.ui.center_panel", "Центрировать панель сейчас")
+language.Add("npcpassengers.ui.reset_ui", "Сбросить все настройки UI по умолчанию")
+
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")
 language.Add("npcpassengers.keybinds_hud.desc", "Быстрые элементы управления HUD для показа, перемещения и отладки оверлея пассажиров.")

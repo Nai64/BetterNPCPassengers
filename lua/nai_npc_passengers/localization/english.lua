@@ -436,6 +436,20 @@ language.Add("npcpassengers.ui.cover_face", "Cover Face")
 language.Add("npcpassengers.ui.apply_keybinds", "Apply Recommended Keybinds")
 language.Add("npcpassengers.ui.clear_keybinds", "Clear All Keybinds")
 
+-- Debugging buttons
+language.Add("npcpassengers.ui.test_flinch", "Test Flinch Gesture")
+language.Add("npcpassengers.ui.test_random", "Test Random Gesture")
+language.Add("npcpassengers.ui.reset_states", "Reset All States")
+
+-- Interface buttons
+language.Add("npcpassengers.ui.enable_context", "Enable All Context Menu Options")
+language.Add("npcpassengers.ui.hide_context", "Hide All Context Menu Options")
+language.Add("npcpassengers.ui.set_compact", "Set Compact Panel Size")
+language.Add("npcpassengers.ui.set_default", "Set Default Panel Size")
+language.Add("npcpassengers.ui.set_large", "Set Large Panel Size")
+language.Add("npcpassengers.ui.center_panel", "Center Panel Now")
+language.Add("npcpassengers.ui.reset_ui", "Reset All UI Settings to Default")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")
