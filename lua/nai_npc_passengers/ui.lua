@@ -1732,7 +1732,7 @@ local function OpenSettingsPanel()
                     end
                 end)
             end)
-        end):SetIcon("icon16/globe.png")
+        end):SetIcon("flags16/us.png")
 
         menu:AddOption("Русский", function()
             self.currentLang = "RU"
@@ -1751,7 +1751,7 @@ local function OpenSettingsPanel()
                     end
                 end)
             end)
-        end):SetIcon("icon16/globe.png")
+        end):SetIcon("flags16/ru.png")
 
         menu:AddOption("中文", function()
             self.currentLang = "ZH"
@@ -1770,7 +1770,7 @@ local function OpenSettingsPanel()
                     end
                 end)
             end)
-        end):SetIcon("icon16/globe.png")
+        end):SetIcon("flags16/cn.png")
 
         menu:SetWide(120)
         menu:Open()
