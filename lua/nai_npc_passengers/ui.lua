@@ -1849,7 +1849,7 @@ local function OpenSettingsPanel()
         end
         timer.Simple(0.1, function() ShowWelcomePanel(true) end)
     end
-    versionBtn:SetTooltip("Show welcome screen")
+    versionBtn:SetTooltip(L("npcpassengers.tooltip.welcome"))
 
     local navContainer, sidebar, contentArea, searchBox, searchEntry, searchSuggestions, searchMatches, searchStatus, searchClearBtn
     local ClearSearchSuggestions
@@ -2898,7 +2898,7 @@ local function OpenSettingsPanel()
                 local intensityBarW = w - 100
                 draw.RoundedBox(6, intensityBarX, intensityBarY, intensityBarW, 10, Theme.bgDark)
                 draw.RoundedBox(6, intensityBarX, intensityBarY, math.max(intensityBarW * math.Clamp(intensity, 0.05, 1), 8), 10, Color(statusColor.r, statusColor.g, statusColor.b, 225))
-                draw.SimpleText(string.format("Status intensity %.0f%%", math.Clamp(intensity, 0, 1) * 100), "NaiFont_Small", intensityBarX + intensityBarW, intensityBarY - 8, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
+                draw.SimpleText(string.format(L("npcpassengers.ui.status_intensity"), math.Clamp(intensity, 0, 1) * 100), "NaiFont_Small", intensityBarX + intensityBarW, intensityBarY - 8, Theme.textDim, TEXT_ALIGN_RIGHT, TEXT_ALIGN_BOTTOM)
             end
 
             local seatCombo = vgui.Create("DComboBox", npcPanel)
@@ -3102,8 +3102,8 @@ local function OpenSettingsPanel()
     end
 
     local passengerToolbar = vgui.Create("DPanel", passengersPanel)
-    passengerToolbar.SearchLabel = "Passenger Filter"
-    passengerToolbar.SearchDescription = "Filter active passengers by name, class, seat, status, or vehicle."
+    passengerToolbar.SearchLabel = L("npcpassengers.ui.search_label_filter")
+    passengerToolbar.SearchDescription = L("npcpassengers.ui.search_desc_passengers")
     passengerToolbar:Dock(TOP)
     passengerToolbar:DockMargin(8, 4, 8, 4)
     passengerToolbar:SetTall(40)
@@ -3112,8 +3112,8 @@ local function OpenSettingsPanel()
     end
 
     local passengerSortCombo = vgui.Create("DComboBox", passengerToolbar)
-    passengerSortCombo.SearchLabel = "Passenger Sort"
-    passengerSortCombo.SearchDescription = "Sort the visible passenger list by vehicle, name, seat, health, or status."
+    passengerSortCombo.SearchLabel = L("npcpassengers.ui.search_label_sort")
+    passengerSortCombo.SearchDescription = L("npcpassengers.ui.search_desc_sort")
     passengerSortCombo:SetFont("NaiFont_Small")
     passengerSortCombo:SetTextColor(Theme.text)
     passengerSortCombo:SetSortItems(false)
@@ -3163,7 +3163,7 @@ local function OpenSettingsPanel()
         self:DrawTextEntryText(Theme.text, Theme.accent, Theme.text)
 
         if self:GetValue() == "" and not self:HasFocus() then
-            draw.SimpleText("Filter passengers...", "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+            draw.SimpleText(L("npcpassengers.ui.filter_placeholder"), "NaiFont_Normal", 0, h / 2, Theme.textDim, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
         end
     end
     passengerFilterEntry.OnChange = function(self)
@@ -3817,7 +3817,7 @@ local function OpenSettingsPanel()
         btn.DoClick = function()
             if btn.isBinding then return end
             btn.isBinding = true
-            btn:SetText("Press a key...")
+            btn:SetText(L("npcpassengers.ui.press_key"))
             btn:RequestFocus()
         end
         
@@ -3868,11 +3868,11 @@ local function OpenSettingsPanel()
     CreateHelpText(keybindsPanel, L("npcpassengers.panel.keybinds.desc"))
     
     local keybindConvars = {
-        {name = "Attach Nearest NPC", cvar = "nai_npc_key_attach", desc = "Attach the nearest friendly NPC to your vehicle"},
-        {name = "Detach All Passengers", cvar = "nai_npc_key_detach_all", desc = "Remove all NPCs from your vehicle"},
-        {name = "Toggle Auto-Join", cvar = "nai_npc_key_toggle_autojoin", desc = "Enable/disable automatic NPC boarding"},
-        {name = "Open Settings Menu", cvar = "nai_npc_key_menu", desc = "Open the Better NPC Passengers settings panel"},
-        {name = "Quick Attach Mode", cvar = "nai_npc_key_quick_attach", desc = "Hold to quickly attach NPCs you're looking at"},
+        {name = L("npcpassengers.keybind.attach"), cvar = "nai_npc_key_attach", desc = L("npcpassengers.keybind.attach.help")},
+        {name = L("npcpassengers.keybind.detach_all"), cvar = "nai_npc_key_detach_all", desc = L("npcpassengers.keybind.detach_all.help")},
+        {name = L("npcpassengers.keybind.toggle_autojoin"), cvar = "nai_npc_key_toggle_autojoin", desc = L("npcpassengers.keybind.toggle_autojoin.help")},
+        {name = L("npcpassengers.keybind.open_settings"), cvar = "nai_npc_key_menu", desc = L("npcpassengers.keybind.open_settings.help")},
+        {name = L("npcpassengers.keybind.quick_attach"), cvar = "nai_npc_key_quick_attach", desc = L("npcpassengers.keybind.quick_attach.help")},
     }
     
     for _, keybind in ipairs(keybindConvars) do
@@ -3883,10 +3883,10 @@ local function OpenSettingsPanel()
     CreateSectionHeader(keybindsPanel, L("npcpassengers.section.vehicle_control"))
     
     local vehicleKeybinds = {
-        {name = "NPCs Exit Vehicle", cvar = "nai_npc_key_exit_all", desc = "Command all passengers to exit the vehicle"},
-        {name = "NPCs Hold Fire", cvar = "nai_npc_key_hold_fire", desc = "Tell gunner NPCs to stop firing"},
-        {name = "NPCs Open Fire", cvar = "nai_npc_key_open_fire", desc = "Tell gunner NPCs to engage targets"},
-        {name = "Cycle Passenger View", cvar = "nai_npc_key_cycle_view", desc = "Cycle camera through passengers"},
+        {name = L("npcpassengers.keybind.exit_all"), cvar = "nai_npc_key_exit_all", desc = L("npcpassengers.keybind.exit_all.help")},
+        {name = L("npcpassengers.keybind.hold_fire"), cvar = "nai_npc_key_hold_fire", desc = L("npcpassengers.keybind.hold_fire.help")},
+        {name = L("npcpassengers.keybind.open_fire"), cvar = "nai_npc_key_open_fire", desc = L("npcpassengers.keybind.open_fire.help")},
+        {name = L("npcpassengers.keybind.cycle_view"), cvar = "nai_npc_key_cycle_view", desc = L("npcpassengers.keybind.cycle_view.help")},
     }
     
     for _, keybind in ipairs(vehicleKeybinds) do
@@ -3898,9 +3898,9 @@ local function OpenSettingsPanel()
     CreateHelpText(keybindsPanel, L("npcpassengers.keybinds_hud.desc"))
 
     local hudKeybinds = {
-        {name = "Toggle Passenger HUD", cvar = "nai_npc_key_toggle_hud", desc = "Show or hide the passenger status HUD"},
-        {name = "Cycle HUD Position", cvar = "nai_npc_key_cycle_hud_position", desc = "Move the passenger HUD through all four corners"},
-        {name = "Toggle Target Debug", cvar = "nai_npc_key_debug_hud", desc = "Toggle the small target debug overlay"},
+        {name = L("npcpassengers.keybind.toggle_hud"), cvar = "nai_npc_key_toggle_hud", desc = L("npcpassengers.keybind.toggle_hud.help")},
+        {name = L("npcpassengers.keybind.cycle_hud_position"), cvar = "nai_npc_key_cycle_hud_position", desc = L("npcpassengers.keybind.cycle_hud_position.help")},
+        {name = L("npcpassengers.keybind.toggle_debug"), cvar = "nai_npc_key_debug_hud", desc = L("npcpassengers.keybind.toggle_debug.help")},
     }
 
     for _, keybind in ipairs(hudKeybinds) do
@@ -3912,8 +3912,8 @@ local function OpenSettingsPanel()
     CreateHelpText(keybindsPanel, L("npcpassengers.keybinds_debug_note"))
     
     local debugKeybinds = {
-        {name = "Test Random Gesture", cvar = "nai_npc_key_test_gesture", desc = "Play a random gesture on nearest passenger"},
-        {name = "Reset All NPCs", cvar = "nai_npc_key_reset_all", desc = "Reset animation states for all passengers"},
+        {name = L("npcpassengers.keybind.test_gesture"), cvar = "nai_npc_key_test_gesture", desc = L("npcpassengers.keybind.test_gesture.help")},
+        {name = L("npcpassengers.keybind.reset_all"), cvar = "nai_npc_key_reset_all", desc = L("npcpassengers.keybind.reset_all.help")},
     }
     
     for _, keybind in ipairs(debugKeybinds) do
@@ -4122,9 +4122,9 @@ local function OpenSettingsPanel()
         surface.SetMaterial(Material("icon16/hourglass.png"))
         surface.DrawTexturedRectRotated(w / 2, 62, 64, 64, angle)
         
-        draw.SimpleText("Work In Progress", "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
-        draw.SimpleText("This feature is currently under development", "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
-        draw.SimpleText("Check back in a future update!", "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.work_in_progress"), "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.under_development"), "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.check_back_later"), "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
     end
     
     -- Interface Tab
@@ -4446,12 +4446,12 @@ local function OpenSettingsPanel()
         surface.SetMaterial(Material("icon16/information.png"))
         surface.DrawTexturedRect(15, 15, 16, 16)
         
-        draw.SimpleText("Interface Settings Info", "NaiFont_Bold", 38, 18, Theme.accent)
+        draw.SimpleText(L("npcpassengers.panel.performance_title"), "NaiFont_Bold", 38, 18, Theme.accent)
         
         local infoLines = {
-            "These settings control the addon's user interface behavior",
-            "Changes to panel size require closing and reopening the menu",
-            "Disabling sounds or animations can improve performance on low-end systems"
+            L("npcpassengers.panel.performance_desc"),
+            L("npcpassengers.panel.performance_note1"),
+            L("npcpassengers.panel.performance_note2")
         }
         
         local y = 45
@@ -4484,9 +4484,9 @@ local function OpenSettingsPanel()
         surface.SetMaterial(Material("icon16/hourglass.png"))
         surface.DrawTexturedRectRotated(w / 2, 62, 64, 64, angle)
         
-        draw.SimpleText("Work In Progress", "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
-        draw.SimpleText("This feature is currently under development", "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
-        draw.SimpleText("Check back in a future update!", "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.work_in_progress"), "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.under_development"), "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.check_back_later"), "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
     end
     
     -- Modules Tab
@@ -4512,9 +4512,9 @@ local function OpenSettingsPanel()
         surface.SetMaterial(Material("icon16/hourglass.png"))
         surface.DrawTexturedRectRotated(w / 2, 62, 64, 64, angle)
         
-        draw.SimpleText("Work In Progress", "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
-        draw.SimpleText("This feature is currently under development", "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
-        draw.SimpleText("Check back in a future update!", "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.work_in_progress"), "NaiFont_Title", w/2, 110, Theme.textBright, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.under_development"), "NaiFont_Normal", w/2, 140, Theme.textDim, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.ui.check_back_later"), "NaiFont_Normal", w/2, 165, Theme.textDim, TEXT_ALIGN_CENTER)
     end
     
     -- Help Tab
@@ -4607,62 +4607,62 @@ local function OpenSettingsPanel()
     end
     
     -- FAQ Items
-    CreateFAQ(helpPanel, "icon16/car.png", "How do I add NPCs to my vehicle?",
-        "Right-click on a friendly NPC while near your vehicle. They'll automatically walk over and board. You can also enable Auto-Join in the settings to have NPCs automatically board when you enter a vehicle.")
+    CreateFAQ(helpPanel, "icon16/car.png", L("npcpassengers.faq.add_npc"),
+        L("npcpassengers.faq.add_npc.answer"))
     
-    CreateFAQ(helpPanel, "icon16/cross.png", "How do I remove passengers from my vehicle?",
-        "Right-click them again while they're in the vehicle, or use the 'Detach All' keybind (set in Keybinds tab). Dead passengers can be removed by holding R near them.")
+    CreateFAQ(helpPanel, "icon16/cross.png", L("npcpassengers.faq.remove_npc"),
+        L("npcpassengers.faq.remove_npc.answer"))
     
-    CreateFAQ(helpPanel, "icon16/error.png", "My NPCs are floating or clipping through the vehicle!",
-        "Go to the Position tab and adjust the Height/Forward/Right offsets. Each vehicle model is different, so you may need to fine-tune these values. Use the debugging panel to test positions in real-time.")
+    CreateFAQ(helpPanel, "icon16/error.png", L("npcpassengers.faq.position"),
+        L("npcpassengers.faq.position.answer"))
     
-    CreateFAQ(helpPanel, "icon16/sound_mute.png", "NPCs aren't making any sounds!",
-        "Check the Behaviour tab and make sure 'Enable NPC Speech' is turned on. Also verify that Speech Volume is above 0. Some NPC models may not have voice lines available.")
+    CreateFAQ(helpPanel, "icon16/sound_mute.png", L("npcpassengers.faq.speech"),
+        L("npcpassengers.faq.speech.answer"))
     
-    CreateFAQ(helpPanel, "icon16/group.png", "Can I have multiple NPCs in one vehicle?",
-        "Yes! Set the 'Passenger Limit' in General settings. The addon will distribute NPCs around the vehicle automatically. For specific seat positions, adjust offsets in the Position tab.")
+    CreateFAQ(helpPanel, "icon16/group.png", L("npcpassengers.faq.multiple"),
+        L("npcpassengers.faq.multiple.answer"))
     
-    CreateFAQ(helpPanel, "icon16/user_go.png", "How does Auto-Join work?",
-        "When enabled in the Auto-Join tab, nearby friendly NPCs will automatically board your vehicle when you enter it - just like squad mechanics in Half-Life 2. You can set the detection range and limit how many NPCs can auto-join.")
+    CreateFAQ(helpPanel, "icon16/user_go.png", L("npcpassengers.faq.autojoin"),
+        L("npcpassengers.faq.autojoin.answer"))
     
-    CreateFAQ(helpPanel, "icon16/user_delete.png", "What happens when passengers die?",
-        "Dead passengers will show a red glow effect and display a skull icon on the HUD. Get close to your vehicle and hold R to remove their bodies. The bodies will be ejected with physics.")
+    CreateFAQ(helpPanel, "icon16/user_delete.png", L("npcpassengers.faq.death"),
+        L("npcpassengers.faq.death.answer"))
     
-    CreateFAQ(helpPanel, "icon16/emoticon_smile.png", "What do the passenger statuses mean?",
-        "CALM: Relaxed, no threats nearby\nALERT: Enemy detected, NPC is tracking threats\nSCARED: Dangerous driving (high speed, crashes)\nDROWSY: Long calm ride, NPC is getting sleepy\nDEAD: Health reached zero")
+    CreateFAQ(helpPanel, "icon16/emoticon_smile.png", L("npcpassengers.faq.status"),
+        L("npcpassengers.faq.status.answer"))
     
-    CreateFAQ(helpPanel, "icon16/keyboard.png", "My keybinds aren't working!",
-        "Go to the Keybinds tab and make sure you've actually set the keybinds (they're unbound by default). Click the button next to each action and press your desired key. Right-click to unbind.")
+    CreateFAQ(helpPanel, "icon16/keyboard.png", L("npcpassengers.faq.keybinds"),
+        L("npcpassengers.faq.keybinds.answer"))
     
-    CreateFAQ(helpPanel, "icon16/bug.png", "The addon isn't working at all / I'm getting errors!",
-        "1. Make sure you're using friendly NPCs (Combine NPCs won't work)\n2. Check console for errors (press ~)\n3. Try resetting all settings with 'nai_npc_reset' in console\n4. Verify the addon is enabled in the Addons menu\n5. Make sure your vehicle has physics and isn't frozen")
+    CreateFAQ(helpPanel, "icon16/bug.png", L("npcpassengers.faq.errors"),
+        L("npcpassengers.faq.errors.answer"))
     
-    CreateFAQ(helpPanel, "icon16/lightbulb.png", "Can NPCs shoot from the vehicle?",
-        "Not currently. NPCs will track enemies and react to threats, but won't fire weapons while seated. This feature may be added in future updates.")
+    CreateFAQ(helpPanel, "icon16/lightbulb.png", L("npcpassengers.faq.combat"),
+        L("npcpassengers.faq.combat.answer"))
     
-    CreateFAQ(helpPanel, "icon16/stop.png", "How do I stop NPCs from auto-joining?",
-        "Disable 'Enable Auto-Join' in the Auto-Join settings tab. You can also toggle it with a keybind (set in Keybinds tab).")
+    CreateFAQ(helpPanel, "icon16/stop.png", L("npcpassengers.faq.stop_autojoin"),
+        L("npcpassengers.faq.stop_autojoin.answer"))
     
-    CreateFAQ(helpPanel, "icon16/cog.png", "Where are the settings saved?",
-        "All settings are saved as ConVars in your GMod config. They persist between sessions and are specific to your client.")
+    CreateFAQ(helpPanel, "icon16/cog.png", L("npcpassengers.faq.settings"),
+        L("npcpassengers.faq.settings.answer"))
     
-    CreateFAQ(helpPanel, "icon16/drive.png", "Does this work with all vehicles?",
-        "It works with most vehicles that have physics. Tanks, APCs, cars, boats, etc. Some modded vehicles may require position adjustments.")
+    CreateFAQ(helpPanel, "icon16/drive.png", L("npcpassengers.faq.vehicles"),
+        L("npcpassengers.faq.vehicles.answer"))
     
-    CreateFAQ(helpPanel, "icon16/weather_lightning.png", "NPCs are acting weird after crashes!",
-        "This is normal - they react with fear to dangerous driving. Lower the Fear Threshold in HUD settings if you want them less reactive.")
+    CreateFAQ(helpPanel, "icon16/weather_lightning.png", L("npcpassengers.faq.crashes"),
+        L("npcpassengers.faq.crashes.answer"))
     
-    CreateFAQ(helpPanel, "icon16/arrow_rotate_clockwise.png", "How do I reset just one setting?",
-        "Use the console command for that specific setting. All commands start with 'nai_npc_'. Type 'find nai_npc' in console to see all available commands.")
+    CreateFAQ(helpPanel, "icon16/arrow_rotate_clockwise.png", L("npcpassengers.faq.reset_setting"),
+        L("npcpassengers.faq.reset_setting.answer"))
     
-    CreateFAQ(helpPanel, "icon16/server.png", "Does this work in multiplayer?",
-        "Yes! The addon works on both singleplayer and multiplayer servers. Each player controls their own passengers.")
+    CreateFAQ(helpPanel, "icon16/server.png", L("npcpassengers.faq.multiplayer"),
+        L("npcpassengers.faq.multiplayer.answer"))
 
-    CreateFAQ(helpPanel, "icon16/steering_wheel.png", "Does this work with LVS vehicles?",
-        "Yes! The addon has full support for LVS (Lua Vehicle System) vehicles. NPCs can ride as passengers and can even drive LVS vehicles if NPC Driver mode is enabled.")
+    CreateFAQ(helpPanel, "icon16/steering_wheel.png", L("npcpassengers.faq.lvs"),
+        L("npcpassengers.faq.lvs.answer"))
 
     CreateSpacer(helpPanel, 10)
-    CreateSectionHeader(helpPanel, "Still Need Help?")
+    CreateSectionHeader(helpPanel, L("npcpassengers.help.still_need"))
     
     local helpBox = vgui.Create("DPanel", helpPanel)
     helpBox:Dock(TOP)
@@ -4675,11 +4675,11 @@ local function OpenSettingsPanel()
         surface.SetMaterial(Material("icon16/comment.png"))
         surface.DrawTexturedRect(15, 15, 16, 16)
         
-        draw.SimpleText("Console Commands for Debugging:", "NaiFont_Bold", 40, 18, Theme.text)
+        draw.SimpleText(L("npcpassengers.help.console_title"), "NaiFont_Bold", 40, 18, Theme.text)
         
         local y = 45
-        draw.SimpleText("nai_npc_debug_mode 1", "NaiFont_Normal", 40, y, Theme.textDim)
-        draw.SimpleText("- Enable debug mode to see detailed info", "NaiFont_Small", 220, y, Color(120, 120, 135))
+        draw.SimpleText(L("npcpassengers.help.console_command"), "NaiFont_Normal", 40, y, Theme.textDim)
+        draw.SimpleText(L("npcpassengers.help.console_desc"), "NaiFont_Small", 220, y, Color(120, 120, 135))
     end
     
     -- About Tab
@@ -4689,7 +4689,7 @@ local function OpenSettingsPanel()
     aboutPanel.SearchNavButton = aboutBtn
     aboutBtn.DoClick = function() SwitchToPanel(aboutPanel, aboutBtn) end
     
-    CreateSectionHeader(aboutPanel, "About " .. ADDON_DISPLAY_NAME .. " v" .. NPCPassengers.Version)
+    CreateSectionHeader(aboutPanel, L("npcpassengers.about.title") .. " " .. ADDON_DISPLAY_NAME .. " v" .. NPCPassengers.Version)
     
     local aboutText = vgui.Create("DPanel", aboutPanel)
     aboutText:SetTall(160)
