@@ -3395,13 +3395,13 @@ local function OpenSettingsPanel()
     CreateHelpText(speechPanel, L("npcpassengers.speech_idle_interval.help"))
     
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Board/Exit Sounds")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.board_exit_sounds"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.speech_board"), "nai_npc_speech_board")
     CreateHelpText(speechPanel, L("npcpassengers.speech_board.help"))
     
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Ambient Sounds")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.ambient_sounds"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.ambient_sounds"), "nai_npc_ambient_sounds")
     CreateHelpText(speechPanel, L("npcpassengers.ambient_sounds.help"))
@@ -3435,7 +3435,7 @@ local function OpenSettingsPanel()
     CreateHelpText(speechPanel, L("npcpassengers.realism.help"))
     
     CreateSpacer(speechPanel, 5)
-    CreateSubHeader(speechPanel, "Gesture Animations")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.gesture_animations"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.talking_gestures"), "nai_npc_talking_gestures")
     CreateHelpText(speechPanel, L("npcpassengers.talking_gestures.help"))
@@ -3462,7 +3462,7 @@ local function OpenSettingsPanel()
     CreateHelpText(speechPanel, L("npcpassengers.body_sway_amount.help"))
     
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Threat Awareness")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.threat_awareness"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.threat_awareness"), "nai_npc_threat_awareness")
     CreateHelpText(speechPanel, L("npcpassengers.threat_awareness.help"))
@@ -3489,7 +3489,7 @@ local function OpenSettingsPanel()
     CreateHelpText(speechPanel, L("npcpassengers.passenger_interaction.help"))
     
     CreateSpacer(speechPanel, 10)
-    CreateSubHeader(speechPanel, "Emotional States")
+    CreateSubHeader(speechPanel, L("npcpassengers.section.emotional_states"))
     
     CreateCheckbox(speechPanel, L("npcpassengers.fear_reactions"), "nai_npc_fear_reactions")
     CreateHelpText(speechPanel, L("npcpassengers.fear_reactions.help"))
@@ -3549,7 +3549,7 @@ local function OpenSettingsPanel()
     CreateHelpText(tankPanel, L("npcpassengers.tank_driver_reverse.help"))
     
     CreateSpacer(tankPanel, 10)
-    CreateSubHeader(tankPanel, "Turret Control (Experimental)")
+    CreateSubHeader(tankPanel, L("npcpassengers.section.turret_control"))
     
     CreateCheckbox(tankPanel, L("npcpassengers.turret_enabled"), "nai_npc_turret_enabled")
     CreateHelpText(tankPanel, L("npcpassengers.tank_turret.help"))
@@ -3566,7 +3566,7 @@ local function OpenSettingsPanel()
 
     -- QoL: Turret NPC Blacklist
     CreateSpacer(tankPanel, 10)
-    CreateSubHeader(tankPanel, "Turret NPC Blacklist")
+    CreateSubHeader(tankPanel, L("npcpassengers.section.turret_blacklist"))
     
     local blacklistLabel = vgui.Create("DLabel", tankPanel)
     blacklistLabel:SetText(L("npcpassengers.ui.blacklist_label"))
@@ -3609,7 +3609,7 @@ local function OpenSettingsPanel()
     
     CreateSectionHeader(hudPanel, L("npcpassengers.hud.header"))
     
-    CreateCheckbox(hudPanel, "Enable Passenger HUD", "nai_npc_hud_enabled")
+    CreateCheckbox(hudPanel, L("npcpassengers.ui.enable_hud"), "nai_npc_hud_enabled")
     CreateHelpText(hudPanel, L("npcpassengers.panel.hud.desc"))
     
     CreateCheckbox(hudPanel, "Only Show When In Vehicle", "nai_npc_hud_only_vehicle")
@@ -3640,8 +3640,8 @@ local function OpenSettingsPanel()
     posCombo:SetTextColor(Theme.text)
     posCombo:AddChoice("Top Left", 0)
     posCombo:AddChoice("Top Right", 1)
-    posCombo:AddChoice("Bottom Left", 2)
-    posCombo:AddChoice("Bottom Right", 3)
+    posCombo:AddChoice(L("npcpassengers.hud.bottom_left"), 2)
+    posCombo:AddChoice(L("npcpassengers.hud.bottom_right"), 3)
     posCombo.Paint = function(self, w, h)
         draw.RoundedBox(4, 0, 0, w, h, Theme.bgLighter)
         if self:IsMenuOpen() then
@@ -3682,7 +3682,7 @@ local function OpenSettingsPanel()
         {name = "Play Sound", value = 2},
         {name = "Duck / Crouch", value = 3},
         {name = "Look Around", value = 4},
-        {name = "Cover Face", value = 5},
+        {name = L("npcpassengers.ui.cover_face"), value = 5},
         {name = "Fall Asleep", value = 6}
     }
     
@@ -3921,7 +3921,7 @@ local function OpenSettingsPanel()
     end
 
     CreateSpacer(keybindsPanel, 8)
-    CreateButton(keybindsPanel, "Apply Recommended Keybinds", function()
+    CreateButton(keybindsPanel, L("npcpassengers.ui.apply_keybinds"), function()
         local recommendedKeys = {
             nai_npc_key_attach = KEY_G,
             nai_npc_key_detach_all = KEY_J,
@@ -3946,7 +3946,7 @@ local function OpenSettingsPanel()
     end)
 
     CreateSpacer(keybindsPanel, 4)
-    CreateButton(keybindsPanel, "Clear All Keybinds", function()
+    CreateButton(keybindsPanel, L("npcpassengers.ui.clear_keybinds"), function()
         for convar, button in pairs(keybindButtons) do
             RunConsoleCommand(convar, "0")
             if IsValid(button) then

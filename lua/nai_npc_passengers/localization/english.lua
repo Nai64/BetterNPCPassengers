@@ -414,6 +414,25 @@ language.Add("npcpassengers.ui.make_exit", "Make Current Vehicle Passengers Exit
 language.Add("npcpassengers.ui.reset_pos", "Reset Position & Angles")
 language.Add("npcpassengers.ui.crash_reactions", "Crash Reactions")
 
+-- Section headers
+language.Add("npcpassengers.section.board_exit_sounds", "Board/Exit Sounds")
+language.Add("npcpassengers.section.ambient_sounds", "Ambient Sounds")
+language.Add("npcpassengers.section.gesture_animations", "Gesture Animations")
+language.Add("npcpassengers.section.threat_awareness", "Threat Awareness")
+language.Add("npcpassengers.section.emotional_states", "Emotional States")
+language.Add("npcpassengers.section.turret_control", "Turret Control (Experimental)")
+language.Add("npcpassengers.section.turret_blacklist", "Turret NPC Blacklist")
+
+-- HUD positions
+language.Add("npcpassengers.hud.bottom_left", "Bottom Left")
+language.Add("npcpassengers.hud.bottom_right", "Bottom Right")
+
+-- Button labels
+language.Add("npcpassengers.ui.enable_hud", "Enable Passenger HUD")
+language.Add("npcpassengers.ui.cover_face", "Cover Face")
+language.Add("npcpassengers.ui.apply_keybinds", "Apply Recommended Keybinds")
+language.Add("npcpassengers.ui.clear_keybinds", "Clear All Keybinds")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")
