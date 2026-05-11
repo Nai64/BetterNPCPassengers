@@ -3980,7 +3980,7 @@ local function OpenSettingsPanel()
     
     CreateSpacer(debugPanel, 5)
     
-    CreateCheckbox(debugPanel, "Enable Debug Mode", "nai_npc_debug_mode")
+    CreateCheckbox(debugPanel, L("npcpassengers.debug.enable_mode"), "nai_npc_debug_mode")
     CreateHelpText(debugPanel, L("npcpassengers.debug_mode.help"))
     
     CreateSpacer(debugPanel, 15)
@@ -4137,16 +4137,16 @@ local function OpenSettingsPanel()
     CreateSectionHeader(interfacePanel, L("npcpassengers.section.ui_sounds"))
     CreateHelpText(interfacePanel, L("npcpassengers.panel.interface.desc"))
     
-    CreateCheckbox(interfacePanel, "Enable UI Sounds", "nai_npc_ui_sounds_enabled")
+    CreateCheckbox(interfacePanel, L("npcpassengers.ui.enable_sounds"), "nai_npc_ui_sounds_enabled")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_sounds_enabled.help"))
     
     CreateSlider(interfacePanel, L("npcpassengers.ui_sounds_volume"), "nai_npc_ui_sounds_volume", 0, 2, 1)
     CreateHelpText(interfacePanel, L("npcpassengers.ui_sounds_volume.help"))
     
-    CreateCheckbox(interfacePanel, "Button Hover Sounds", "nai_npc_ui_hover_enabled")
+    CreateCheckbox(interfacePanel, L("npcpassengers.ui.hover_sounds"), "nai_npc_ui_hover_enabled")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_hover_enabled.help"))
     
-    CreateCheckbox(interfacePanel, "Button Click Sounds", "nai_npc_ui_click_enabled")
+    CreateCheckbox(interfacePanel, L("npcpassengers.ui.click_sounds"), "nai_npc_ui_click_enabled")
     CreateHelpText(interfacePanel, L("npcpassengers.ui_click_enabled.help"))
     
     CreateSpacer(interfacePanel, 10)

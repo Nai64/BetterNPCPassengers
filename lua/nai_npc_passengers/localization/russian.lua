@@ -616,6 +616,10 @@ language.Add("npcpassengers.hud.show_calm", "Показывать спокойн
 language.Add("npcpassengers.hud.show_hints", "Показывать контекстные подсказки")
 language.Add("npcpassengers.hud.show_target_debug", "Показывать отладку цели")
 language.Add("npcpassengers.hud.play_cues", "Воспроизводить звуковые сигналы успеха/неудачи")
+language.Add("npcpassengers.debug.enable_mode", "Включить режим отладки")
+language.Add("npcpassengers.ui.enable_sounds", "Включить звуки UI")
+language.Add("npcpassengers.ui.hover_sounds", "Звуки наведения кнопок")
+language.Add("npcpassengers.ui.click_sounds", "Звуки нажатия кнопок")
 
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")

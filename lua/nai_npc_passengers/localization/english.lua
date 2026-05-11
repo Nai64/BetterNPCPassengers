@@ -463,6 +463,10 @@ language.Add("npcpassengers.hud.show_calm", "Show Calm Passengers")
 language.Add("npcpassengers.hud.show_hints", "Show Context Hints")
 language.Add("npcpassengers.hud.show_target_debug", "Show Target Debug")
 language.Add("npcpassengers.hud.play_cues", "Play Success/Fail Cues")
+language.Add("npcpassengers.debug.enable_mode", "Enable Debug Mode")
+language.Add("npcpassengers.ui.enable_sounds", "Enable UI Sounds")
+language.Add("npcpassengers.ui.hover_sounds", "Button Hover Sounds")
+language.Add("npcpassengers.ui.click_sounds", "Button Click Sounds")
 
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
