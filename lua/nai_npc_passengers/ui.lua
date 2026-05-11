@@ -1670,7 +1670,7 @@ local function OpenSettingsPanel()
 
     -- Language selector dropdown (compact)
     local langBtn = vgui.Create("DButton", settingsFrame)
-    langBtn:SetPos(settingsFrame:GetWide() - 104, 12)
+    langBtn:SetPos(settingsFrame:GetWide() - 126, 12)
     langBtn:SetSize(50, 28)
     langBtn:SetText("")
     langBtn.hoverAnim = 0
