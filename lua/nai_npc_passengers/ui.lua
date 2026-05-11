@@ -3088,17 +3088,17 @@ local function OpenSettingsPanel()
         surface.SetMaterial(gradientMat)
         surface.DrawTexturedRect(0, 0, w, h)
 
-        draw.SimpleText("Passenger Operations", "NaiFont_Bold", 16, 18, Theme.textBright)
-        draw.SimpleText("Filter: " .. filterSummary, "NaiFont_Small", 16, 40, Theme.textDim)
-        draw.SimpleText("Sort: " .. (self.sortSummary or passengerSortLabels.vehicle) .. "  |  Auto Refresh: " .. (self.autoRefreshEnabled and "ON" or "OFF"), "NaiFont_Small", 16, 58, Theme.textDim)
+        draw.SimpleText(L("npcpassengers.hud.passenger_operations"), "NaiFont_Bold", 16, 18, Theme.textBright)
+        draw.SimpleText(L("npcpassengers.hud.filter_prefix") .. filterSummary, "NaiFont_Small", 16, 40, Theme.textDim)
+        draw.SimpleText(L("npcpassengers.hud.sort_prefix") .. (self.sortSummary or passengerSortLabels.vehicle) .. L("npcpassengers.hud.auto_refresh_prefix") .. (self.autoRefreshEnabled and L("npcpassengers.hud.on") or L("npcpassengers.hud.off")), "NaiFont_Small", 16, 58, Theme.textDim)
 
-        DrawInfoPill(16, 86, 110, 26, "Total: " .. self.totalPassengers, Theme.bgLighter, Theme.textBright)
-        DrawInfoPill(136, 86, 126, 26, "Showing: " .. self.visiblePassengers, Color(34, 52, 64, 220), Theme.textBright)
-        DrawInfoPill(272, 86, 174, 26, "Current Vehicle: " .. self.currentVehiclePassengers, Color(38, 58, 72, 220), Theme.textBright)
-        DrawInfoPill(456, 86, 108, 26, "Hidden: " .. self.hiddenPassengers, Color(44, 50, 64, 220), Theme.textBright)
-        DrawInfoPill(16, 116, 92, 20, "Dead: " .. self.deadPassengers, Color(62, 62, 72, 220), Theme.textBright)
-        DrawInfoPill(116, 116, 106, 20, "Scared: " .. self.scaredPassengers, Color(98, 40, 40, 220), Theme.textBright)
-        DrawInfoPill(230, 116, 110, 20, "Drowsy: " .. self.drowsyPassengers, Color(44, 60, 92, 220), Theme.textBright)
+        DrawInfoPill(16, 86, 110, 26, L("npcpassengers.hud.total_prefix") .. self.totalPassengers, Theme.bgLighter, Theme.textBright)
+        DrawInfoPill(136, 86, 126, 26, L("npcpassengers.hud.showing_prefix") .. self.visiblePassengers, Color(34, 52, 64, 220), Theme.textBright)
+        DrawInfoPill(272, 86, 174, 26, L("npcpassengers.hud.current_vehicle_prefix") .. self.currentVehiclePassengers, Color(38, 58, 72, 220), Theme.textBright)
+        DrawInfoPill(456, 86, 108, 26, L("npcpassengers.hud.hidden_prefix") .. self.hiddenPassengers, Color(44, 50, 64, 220), Theme.textBright)
+        DrawInfoPill(16, 116, 92, 20, L("npcpassengers.hud.dead_prefix") .. self.deadPassengers, Color(62, 62, 72, 220), Theme.textBright)
+        DrawInfoPill(116, 116, 106, 20, L("npcpassengers.hud.scared_prefix") .. self.scaredPassengers, Color(98, 40, 40, 220), Theme.textBright)
+        DrawInfoPill(230, 116, 110, 20, L("npcpassengers.hud.drowsy_prefix") .. self.drowsyPassengers, Color(44, 60, 92, 220), Theme.textBright)
     end
 
     local passengerToolbar = vgui.Create("DPanel", passengersPanel)
@@ -4031,7 +4031,7 @@ local function OpenSettingsPanel()
                 
                 local vehicle = npc:GetParent()
                 if IsValid(vehicle) then
-                    draw.SimpleText("Vehicle: " .. vehicle:GetClass(), "NaiFont_Small", 10, 30, Theme.textDim)
+                    draw.SimpleText(L("npcpassengers.hud.vehicle_prefix") .. vehicle:GetClass(), "NaiFont_Small", 10, 30, Theme.textDim)
                 end
             end
             
@@ -5689,7 +5689,7 @@ hook.Add("HUDPaint", "NPCPassengers_StatusHUD", function()
     draw.RoundedBoxEx(8 * scale, startX, startY, panelWidth, 24 * scale, headerColor, true, true, false, false)
     
     -- Header text
-    draw.SimpleText("Passengers", "NaiFont_Bold", startX + padding * scale, startY + 12 * scale, Color(220, 220, 230), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+    draw.SimpleText(L("npcpassengers.hud.passengers"), "NaiFont_Bold", startX + padding * scale, startY + 12 * scale, Color(220, 220, 230), TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     draw.SimpleText(tostring(#hudPassengers), "NaiFont_Small", startX + panelWidth - padding * scale, startY + 12 * scale, Color(150, 150, 165), TEXT_ALIGN_RIGHT, TEXT_ALIGN_CENTER)
     
     -- Draw each passenger
@@ -5853,8 +5853,8 @@ hook.Add("HUDPaint", "NPCPassengers_DriverDebug", function()
         local vehVel = vehicle:GetVelocity()
         local speed = math.Round(vehVel:Length())
         
-        draw.SimpleText("NPC Driver", "DermaDefault", screenPos.x, screenPos.y - 40, Color(100, 200, 255), TEXT_ALIGN_CENTER)
-        draw.SimpleText("Speed: " .. speed .. " u/s", "DermaDefault", screenPos.x, screenPos.y - 25, Color(255, 255, 255), TEXT_ALIGN_CENTER)
-        draw.SimpleText("NPC: " .. npc:GetClass(), "DermaDefault", screenPos.x, screenPos.y - 10, Color(200, 200, 200), TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.hud.npc_driver"), "DermaDefault", screenPos.x, screenPos.y - 40, Color(100, 200, 255), TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.hud.speed_prefix") .. speed .. " u/s", "DermaDefault", screenPos.x, screenPos.y - 25, Color(255, 255, 255), TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.hud.npc_prefix") .. npc:GetClass(), "DermaDefault", screenPos.x, screenPos.y - 10, Color(200, 200, 200), TEXT_ALIGN_CENTER)
     end
 end)
