@@ -11,14 +11,43 @@ local table = table
 local ipairs = ipairs
 local pairs = pairs
 
-local ADDON_DISPLAY_NAME = "Better NPC Passengers"
+-- Localization system
+local function L(phrase)
+    if language and language.GetPhrase then
+        local translated = language.GetPhrase(phrase)
+        if translated and translated ~= phrase then
+            return translated
+        end
+    end
+    -- Fallback to English if translation not found
+    return phrase
+end
+
+-- Load appropriate localization file based on client language
+local function LoadLocalization()
+    -- Always load English as base
+    include("resource/localization/english.lua")
+
+    -- Detect client language and load additional localization
+    local lang = GetConVar("gmod_language") and GetConVar("gmod_language"):GetString() or "english"
+
+    if lang == "russian" or lang == "ru" then
+        include("resource/localization/russian.lua")
+    elseif lang == "schinese" or lang == "tchinese" or lang == "zh" then
+        include("resource/localization/chinese.lua")
+    end
+end
+
+LoadLocalization()
+
+local ADDON_DISPLAY_NAME = L("npcpassengers.name")
 local ADDON_CHAT_PREFIX = "[" .. ADDON_DISPLAY_NAME .. "] "
 local DEFAULT_FONT_NAME = "Tahoma"
 local HUD_POSITION_NAMES = {
-    [0] = "Top Left",
-    [1] = "Top Right",
-    [2] = "Bottom Left",
-    [3] = "Bottom Right",
+    [0] = L("npcpassengers.hud.position.topleft"),
+    [1] = L("npcpassengers.hud.position.topright"),
+    [2] = L("npcpassengers.hud.position.bottomleft"),
+    [3] = L("npcpassengers.hud.position.bottomright"),
 }
 
 -- Better NPC Passengers UI
@@ -2267,42 +2296,42 @@ local function OpenSettingsPanel()
 
     -- General Tab
     local generalPanel = CreateContentPanel()
-    generalPanel.SearchPanelName = "General"
-    local generalBtn = CreateNavButton("General", "icon16/cog.png")
+    generalPanel.SearchPanelName = L("npcpassengers.nav.general")
+    local generalBtn = CreateNavButton(L("npcpassengers.nav.general"), "icon16/cog.png")
     generalPanel.SearchNavButton = generalBtn
     generalBtn.DoClick = function() SwitchToPanel(generalPanel, generalBtn) end
 
-    CreateSectionHeader(generalPanel, "General Settings")
+    CreateSectionHeader(generalPanel, L("npcpassengers.general.header"))
 
-    CreateCheckbox(generalPanel, "Allow Multiple Passengers", "nai_npc_allow_multiple")
-    CreateHelpText(generalPanel, "Let multiple NPCs ride in the same vehicle.")
+    CreateCheckbox(generalPanel, L("npcpassengers.allow_multiple"), "nai_npc_allow_multiple")
+    CreateHelpText(generalPanel, L("npcpassengers.allow_multiple.help"))
 
     CreateSpacer(generalPanel, 5)
 
-    CreateComboBox(generalPanel, "Exit Behavior", "nai_npc_exit_mode", {
-        { label = "Leave when player exits", value = 0 },
-        { label = "Leave when vehicle is attacked", value = 1 },
-        { label = "Never leave automatically", value = 2 },
+    CreateComboBox(generalPanel, L("npcpassengers.exit_behavior"), "nai_npc_exit_mode", {
+        { label = L("npcpassengers.exit_mode.leave_player"), value = 0 },
+        { label = L("npcpassengers.exit_mode.leave_attack"), value = 1 },
+        { label = L("npcpassengers.exit_mode.never"), value = 2 },
     })
-    CreateHelpText(generalPanel, "When should NPC passengers exit the vehicle?")
+    CreateHelpText(generalPanel, L("npcpassengers.exit_behavior.help"))
 
     CreateSpacer(generalPanel, 10)
-    CreateSectionHeader(generalPanel, "Timing")
+    CreateSectionHeader(generalPanel, L("npcpassengers.timing.header"))
 
-    CreateSlider(generalPanel, "Max Attach Distance", "nai_npc_max_attach_dist", 100, 2000, 0)
-    CreateHelpText(generalPanel, "Maximum distance (units) to attach NPC to vehicle.")
+    CreateSlider(generalPanel, L("npcpassengers.max_attach_dist"), "nai_npc_max_attach_dist", 100, 2000, 0)
+    CreateHelpText(generalPanel, L("npcpassengers.max_attach_dist.help"))
 
-    CreateSlider(generalPanel, "Detach Delay", "nai_npc_detach_delay", 0, 10, 1)
-    CreateHelpText(generalPanel, "Seconds to wait before detaching after player leaves.")
+    CreateSlider(generalPanel, L("npcpassengers.detach_delay"), "nai_npc_detach_delay", 0, 10, 1)
+    CreateHelpText(generalPanel, L("npcpassengers.detach_delay.help"))
 
-    CreateSlider(generalPanel, "AI Restore Delay", "nai_npc_ai_delay", 0, 10, 1)
-    CreateHelpText(generalPanel, "Seconds to wait before restoring NPC AI after detaching.")
+    CreateSlider(generalPanel, L("npcpassengers.ai_delay"), "nai_npc_ai_delay", 0, 10, 1)
+    CreateHelpText(generalPanel, L("npcpassengers.ai_delay.help"))
 
-    CreateSlider(generalPanel, "Cooldown Time", "nai_npc_cooldown", 0, 10, 1)
-    CreateHelpText(generalPanel, "Cooldown between attaching NPCs to same vehicle.")
+    CreateSlider(generalPanel, L("npcpassengers.cooldown"), "nai_npc_cooldown", 0, 10, 1)
+    CreateHelpText(generalPanel, L("npcpassengers.cooldown.help"))
 
-    CreateSlider(generalPanel, "Passenger Limit", "nai_npc_passenger_limit", 1, 20, 0)
-    CreateHelpText(generalPanel, "Max NPCs allowed in vehicle.")
+    CreateSlider(generalPanel, L("npcpassengers.passenger_limit"), "nai_npc_passenger_limit", 1, 20, 0)
+    CreateHelpText(generalPanel, L("npcpassengers.passenger_limit.help"))
 
     -- Auto-Join Tab
     local autoJoinPanel = CreateContentPanel()
