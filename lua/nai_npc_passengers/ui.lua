@@ -3569,7 +3569,7 @@ local function OpenSettingsPanel()
     CreateSubHeader(tankPanel, "Turret NPC Blacklist")
     
     local blacklistLabel = vgui.Create("DLabel", tankPanel)
-    blacklistLabel:SetText("Blacklisted NPC Classes")
+    blacklistLabel:SetText(L("npcpassengers.ui.blacklist_label"))
     blacklistLabel:SetFont("NaiFont_Normal")
     blacklistLabel:SetTextColor(Theme.text)
     blacklistLabel:Dock(TOP)
@@ -3593,7 +3593,7 @@ local function OpenSettingsPanel()
     end
     
     local blacklistHelp = vgui.Create("DLabel", tankPanel)
-    blacklistHelp:SetText("Comma-separated list of NPC classnames that cannot use turrets. Use 'getnpcblacklist' console command to see current blacklist.")
+    blacklistHelp:SetText(L("npcpassengers.ui.blacklist_help"))
     blacklistHelp:SetFont("NaiFont_Small")
     blacklistHelp:SetTextColor(Theme.textDim)
     blacklistHelp:SetAutoStretchVertical(true)
@@ -3624,14 +3624,14 @@ local function OpenSettingsPanel()
     
     -- Position dropdown
     local posLabel = vgui.Create("DLabel", hudPanel)
-    posLabel:SetText("HUD Position")
+    posLabel:SetText(L("npcpassengers.ui.hud_position"))
     posLabel:SetFont("NaiFont_Normal")
     posLabel:SetTextColor(Theme.text)
     posLabel:Dock(TOP)
     posLabel:DockMargin(10, 8, 10, 2)
     
     local posCombo = vgui.Create("DComboBox", hudPanel)
-    posCombo.SearchLabel = "HUD Position"
+    posCombo.SearchLabel = L("npcpassengers.ui.hud_position")
     posCombo.SearchConVar = "nai_npc_hud_position"
     posCombo:Dock(TOP)
     posCombo:DockMargin(10, 0, 10, 5)
@@ -3791,12 +3791,12 @@ local function OpenSettingsPanel()
         if cvar then
             local savedKey = cvar:GetInt()
             if savedKey > 0 then
-                btn:SetText(input.GetKeyName(savedKey) or "Not Bound")
+                btn:SetText(input.GetKeyName(savedKey) or L("npcpassengers.ui.not_bound"))
             else
-                btn:SetText("Not Bound")
+                btn:SetText(L("npcpassengers.ui.not_bound"))
             end
         else
-            btn:SetText("Not Bound")
+            btn:SetText(L("npcpassengers.ui.not_bound"))
         end
         
         btn.Paint = function(self, w, h)
@@ -3832,12 +3832,12 @@ local function OpenSettingsPanel()
                 if cvar then
                     local savedKey = cvar:GetInt()
                     if savedKey > 0 then
-                        self:SetText(input.GetKeyName(savedKey) or "Not Bound")
+                        self:SetText(input.GetKeyName(savedKey) or L("npcpassengers.ui.not_bound"))
                     else
-                        self:SetText("Not Bound")
+                        self:SetText(L("npcpassengers.ui.not_bound"))
                     end
                 else
-                    self:SetText("Not Bound")
+                    self:SetText(L("npcpassengers.ui.not_bound"))
                 end
                 return
             end
@@ -3851,7 +3851,7 @@ local function OpenSettingsPanel()
         -- Right click to unbind
         btn.DoRightClick = function()
             RunConsoleCommand(convar, "0")
-            btn:SetText("Not Bound")
+            btn:SetText(L("npcpassengers.ui.not_bound"))
         end
         
         -- Align button to right side after container is sized
@@ -3951,7 +3951,7 @@ local function OpenSettingsPanel()
             RunConsoleCommand(convar, "0")
             if IsValid(button) then
                 button.isBinding = false
-                button:SetText("Not Bound")
+                button:SetText(L("npcpassengers.ui.not_bound"))
             end
         end
 
@@ -3960,7 +3960,7 @@ local function OpenSettingsPanel()
     
     CreateSpacer(keybindsPanel, 10)
     local infoLabel = vgui.Create("DLabel", keybindsPanel)
-    infoLabel:SetText("Tip: Right-click a keybind to unbind it. Press ESC while binding to cancel.")
+    infoLabel:SetText(L("npcpassengers.ui.keybind_tip"))
     infoLabel:SetFont("NaiFont_Small")
     infoLabel:SetTextColor(Color(150, 150, 165))
     infoLabel:Dock(TOP)
@@ -4191,14 +4191,14 @@ local function OpenSettingsPanel()
     -- Custom font dropdown
     local availableFonts = GetAvailableFonts()
     local fontLabel = vgui.Create("DLabel", interfacePanel)
-    fontLabel:SetText("Custom Font")
+    fontLabel:SetText(L("npcpassengers.ui.custom_font"))
     fontLabel:SetFont("NaiFont_Normal")
     fontLabel:SetTextColor(Theme.text)
     fontLabel:Dock(TOP)
     fontLabel:DockMargin(10, 8, 10, 2)
 
     local fontCombo = vgui.Create("DComboBox", interfacePanel)
-    fontCombo.SearchLabel = "Custom Font"
+    fontCombo.SearchLabel = L("npcpassengers.ui.custom_font")
     fontCombo.SearchConVar = "nai_npc_ui_custom_font"
     fontCombo:Dock(TOP)
     fontCombo:DockMargin(10, 0, 10, 5)
@@ -4238,7 +4238,7 @@ local function OpenSettingsPanel()
 
     -- Custom font name text entry
     local customFontLabel = vgui.Create("DLabel", interfacePanel)
-    customFontLabel:SetText("Or Enter Custom Font Name")
+    customFontLabel:SetText(L("npcpassengers.ui.custom_font_hint"))
     customFontLabel:SetFont("NaiFont_Normal")
     customFontLabel:SetTextColor(Theme.text)
     customFontLabel:Dock(TOP)
@@ -5208,7 +5208,7 @@ function ShowWelcomePanel(forceShow)
     
     local dontShowLabel = vgui.Create("DLabel", bottomPanel)
     dontShowLabel:SetPos(28, 12)
-    dontShowLabel:SetText("Don't show this again")
+    dontShowLabel:SetText(L("npcpassengers.ui.dont_show_again"))
     dontShowLabel:SetFont("NaiFont_Normal")
     dontShowLabel:SetTextColor(Theme.textDim)
     dontShowLabel:SizeToContents()

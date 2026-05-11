@@ -489,6 +489,16 @@ language.Add("npcpassengers.welcome.changelog", "Список изменений
 language.Add("npcpassengers.welcome.got_it", "Понял!")
 language.Add("npcpassengers.welcome.console_cmd", "Или используйте консольную команду: nai_passengers_menu")
 
+-- Additional UI strings
+language.Add("npcpassengers.ui.blacklist_label", "Черный список классов NPC")
+language.Add("npcpassengers.ui.blacklist_help", "Разделенный запятыми список имен классов NPC которые не могут использовать турели. Используйте консольную команду 'getnpcblacklist' чтобы увидеть текущий черный список.")
+language.Add("npcpassengers.ui.hud_position", "Позиция HUD")
+language.Add("npcpassengers.ui.not_bound", "Не привязано")
+language.Add("npcpassengers.ui.keybind_tip", "Совет: Нажмите правой кнопкой на привязку чтобы отвязать. Нажмите ESC во время привязки чтобы отменить.")
+language.Add("npcpassengers.ui.custom_font", "Пользовательский шрифт")
+language.Add("npcpassengers.ui.custom_font_hint", "Или введите имя пользовательского шрифта")
+language.Add("npcpassengers.ui.dont_show_again", "Больше не показывать")
+
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")
 language.Add("npcpassengers.keybinds_hud.desc", "Быстрые элементы управления HUD для показа, перемещения и отладки оверлея пассажиров.")

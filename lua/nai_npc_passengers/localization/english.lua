@@ -336,6 +336,16 @@ language.Add("npcpassengers.welcome.changelog", "Update Changelog")
 language.Add("npcpassengers.welcome.got_it", "Got it!")
 language.Add("npcpassengers.welcome.console_cmd", "Or use console command: nai_passengers_menu")
 
+-- Additional UI strings
+language.Add("npcpassengers.ui.blacklist_label", "Blacklisted NPC Classes")
+language.Add("npcpassengers.ui.blacklist_help", "Comma-separated list of NPC classnames that cannot use turrets. Use 'getnpcblacklist' console command to see current blacklist.")
+language.Add("npcpassengers.ui.hud_position", "HUD Position")
+language.Add("npcpassengers.ui.not_bound", "Not Bound")
+language.Add("npcpassengers.ui.keybind_tip", "Tip: Right-click a keybind to unbind it. Press ESC while binding to cancel.")
+language.Add("npcpassengers.ui.custom_font", "Custom Font")
+language.Add("npcpassengers.ui.custom_font_hint", "Or Enter Custom Font Name")
+language.Add("npcpassengers.ui.dont_show_again", "Don't show this again")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")
