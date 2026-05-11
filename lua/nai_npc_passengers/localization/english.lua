@@ -450,6 +450,13 @@ language.Add("npcpassengers.ui.set_large", "Set Large Panel Size")
 language.Add("npcpassengers.ui.center_panel", "Center Panel Now")
 language.Add("npcpassengers.ui.reset_ui", "Reset All UI Settings to Default")
 
+-- Role names
+language.Add("npcpassengers.role.citizen_female", "Citizen (F)")
+language.Add("npcpassengers.role.citizen_male", "Citizen (M)")
+language.Add("npcpassengers.role.medic", "Medic")
+language.Add("npcpassengers.role.rebel", "Rebel")
+language.Add("npcpassengers.role.passenger", "Passenger")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")

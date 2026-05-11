@@ -603,6 +603,13 @@ language.Add("npcpassengers.ui.set_large", "Установить большой 
 language.Add("npcpassengers.ui.center_panel", "Центрировать панель сейчас")
 language.Add("npcpassengers.ui.reset_ui", "Сбросить все настройки UI по умолчанию")
 
+-- Role names
+language.Add("npcpassengers.role.citizen_female", "Гражданский (Ж)")
+language.Add("npcpassengers.role.citizen_male", "Гражданский (М)")
+language.Add("npcpassengers.role.medic", "Медик")
+language.Add("npcpassengers.role.rebel", "Бунтарь")
+language.Add("npcpassengers.role.passenger", "Пассажир")
+
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")
 language.Add("npcpassengers.keybinds_hud.desc", "Быстрые элементы управления HUD для показа, перемещения и отладки оверлея пассажиров.")

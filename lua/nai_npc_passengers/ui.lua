@@ -4037,11 +4037,11 @@ local function OpenSettingsPanel()
             
             -- Status buttons
             local statusButtons = {
-                {name = "Calm", status = "calm", col = Color(100, 200, 100)},
-                {name = "Alert", status = "alert", col = Color(255, 200, 100)},
-                {name = "Scared", status = "scared", col = Color(255, 100, 100)},
-                {name = "Drowsy", status = "drowsy", col = Color(150, 150, 200)},
-                {name = "Dead", status = "dead", col = Color(80, 80, 90)},
+                {name = L("npcpassengers.status.calm"), status = "calm", col = Color(100, 200, 100)},
+                {name = L("npcpassengers.status.alert"), status = "alert", col = Color(255, 200, 100)},
+                {name = L("npcpassengers.status.scared"), status = "scared", col = Color(255, 100, 100)},
+                {name = L("npcpassengers.status.drowsy"), status = "drowsy", col = Color(150, 150, 200)},
+                {name = L("npcpassengers.status.dead"), status = "dead", col = Color(80, 80, 90)},
             }
             
             local xPos = 10
@@ -5331,15 +5331,15 @@ local function GetNPCDisplayName(npc)
     -- Use class-based names
     local class = npc:GetClass() or "unknown"
     local classNames = {
-        ["npc_citizen"] = "Citizen",
-        ["npc_alyx"] = "Alyx",
-        ["npc_barney"] = "Barney",
-        ["npc_monk"] = "Father Grigori",
+        ["npc_citizen"] = L("npcpassengers.npc.citizen"),
+        ["npc_alyx"] = L("npcpassengers.npc.alyx"),
+        ["npc_barney"] = L("npcpassengers.npc.barney"),
+        ["npc_monk"] = L("npcpassengers.npc.monk"),
         ["npc_eli"] = L("npcpassengers.npc.eli"),
         ["npc_kleiner"] = L("npcpassengers.npc.kleiner"),
         ["npc_mossman"] = L("npcpassengers.npc.mossman"),
         ["npc_breen"] = L("npcpassengers.npc.breen"),
-        ["npc_vortigaunt"] = "Vortigaunt",
+        ["npc_vortigaunt"] = L("npcpassengers.npc.vortigaunt"),
         ["npc_dog"] = L("npcpassengers.npc.dog"),
     }
     
@@ -5348,16 +5348,16 @@ local function GetNPCDisplayName(npc)
     -- Try model-based name
     local model = npc:GetModel() or ""
     if string.find(model, "female") then
-        return "Citizen (F)"
+        return L("npcpassengers.role.citizen_female")
     elseif string.find(model, "male") then
-        return "Citizen (M)"
+        return L("npcpassengers.role.citizen_male")
     elseif string.find(model, "medic") then
-        return "Medic"
+        return L("npcpassengers.role.medic")
     elseif string.find(model, "rebel") then
-        return "Rebel"
+        return L("npcpassengers.role.rebel")
     end
-    
-    return "Passenger"
+
+    return L("npcpassengers.role.passenger")
 end
 
 -- Draw status icon (fallback if no custom icon)
