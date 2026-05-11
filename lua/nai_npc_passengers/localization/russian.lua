@@ -476,6 +476,19 @@ language.Add("npcpassengers.help.console_command", "nai_npc_debug_mode 1")
 language.Add("npcpassengers.help.console_desc", "- Включить режим отладки для просмотра подробной информации")
 language.Add("npcpassengers.about.title", "О")
 
+-- Language change messages
+language.Add("npcpassengers.lang.changed_english", "Язык изменен на Английский. Панель обновится автоматически.")
+language.Add("npcpassengers.lang.changed_russian", "Язык изменен на Русский. Панель обновится автоматически.")
+language.Add("npcpassengers.lang.changed_chinese", "Язык изменен на Китайский. Панель обновится автоматически.")
+
+-- Welcome screen strings
+language.Add("npcpassengers.welcome.header", "Привет!")
+language.Add("npcpassengers.welcome.msg1", "Прежде чем жаловаться на пассажира сидящего поверх транспорта,\nпожалуйста откройте настройки. Вы можете это сделать, я верю в вас.")
+language.Add("npcpassengers.welcome.msg2", "Этот аддон все еще далек от СОВЕРШЕНСТВА, пожалуйста не стесняйтесь\nсообщать об ошибках и предлагать новые функции. Я читаю все ваши комментарии!")
+language.Add("npcpassengers.welcome.changelog", "Список изменений")
+language.Add("npcpassengers.welcome.got_it", "Понял!")
+language.Add("npcpassengers.welcome.console_cmd", "Или используйте консольную команду: nai_passengers_menu")
+
 -- Keybinds panel help text
 language.Add("npcpassengers.panel.keybinds.desc", "Настройте горячие клавиши для действий пассажиров NPC. Нажмите кнопку и нажмите клавишу для привязки.")
 language.Add("npcpassengers.keybinds_hud.desc", "Быстрые элементы управления HUD для показа, перемещения и отладки оверлея пассажиров.")

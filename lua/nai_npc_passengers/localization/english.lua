@@ -323,6 +323,19 @@ language.Add("npcpassengers.help.console_command", "nai_npc_debug_mode 1")
 language.Add("npcpassengers.help.console_desc", "- Enable debug mode to see detailed info")
 language.Add("npcpassengers.about.title", "About")
 
+-- Language change messages
+language.Add("npcpassengers.lang.changed_english", "Language changed to English. Panel will refresh automatically.")
+language.Add("npcpassengers.lang.changed_russian", "Язык изменен на Русский. Панель обновится автоматически.")
+language.Add("npcpassengers.lang.changed_chinese", "语言已更改为中文。面板将自动刷新。")
+
+-- Welcome screen strings
+language.Add("npcpassengers.welcome.header", "Hey there!")
+language.Add("npcpassengers.welcome.msg1", "Before complaining about the passenger sitting on top of vehicle,\nplease open the settings. You can do it, I believe in you.")
+language.Add("npcpassengers.welcome.msg2", "This addon is still far from being PERFECT, please do not hesitate to\nreport bugs and suggest new features. I read all of your comments!")
+language.Add("npcpassengers.welcome.changelog", "Update Changelog")
+language.Add("npcpassengers.welcome.got_it", "Got it!")
+language.Add("npcpassengers.welcome.console_cmd", "Or use console command: nai_passengers_menu")
+
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
 language.Add("npcpassengers.keybinds.desc", "Configure keyboard shortcuts for quick actions.")

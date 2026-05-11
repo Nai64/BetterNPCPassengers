@@ -1717,7 +1717,7 @@ local function OpenSettingsPanel()
         local menu = DermaMenu()
         menu:AddOption("English", function()
             self.currentLang = "EN"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Language changed to English. Panel will refresh automatically.")
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_english"))
 
             -- Set ConVar first, then wait, then reload, then reopen
             RunConsoleCommand("nai_npc_ui_language", "english")
@@ -1736,7 +1736,7 @@ local function OpenSettingsPanel()
 
         menu:AddOption("Русский", function()
             self.currentLang = "RU"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "Язык изменен на Русский. Панель обновится автоматически.")
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_russian"))
 
             -- Set ConVar first, then wait, then reload, then reopen
             RunConsoleCommand("nai_npc_ui_language", "russian")
@@ -1755,7 +1755,7 @@ local function OpenSettingsPanel()
 
         menu:AddOption("中文", function()
             self.currentLang = "ZH"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), "语言已更改为中文。面板将自动刷新。")
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_chinese"))
 
             -- Set ConVar first, then wait, then reload, then reopen
             RunConsoleCommand("nai_npc_ui_language", "chinese")
@@ -3002,7 +3002,7 @@ local function OpenSettingsPanel()
                 local liveVehicle = GetPassengerControlVehicle(npc)
                 local liveStatus, liveIntensity = GetPassengerCardStatus(npc)
                 local liveSeat = GetClientVehicleSeatIndex(liveVehicle, npc:GetParent()) or currentSeat
-                CopyPassengerText(BuildPassengerSummaryLine(npc, liveVehicle, liveStatus, liveIntensity, liveSeat), "Passenger summary copied.")
+                CopyPassengerText(BuildPassengerSummaryLine(npc, liveVehicle, liveStatus, liveIntensity, liveSeat), L("npcpassengers.chat.summary_copied"))
             end
 
             local debugBtn = vgui.Create("DButton", npcPanel)
@@ -3025,7 +3025,7 @@ local function OpenSettingsPanel()
 
                 local liveVehicle = GetPassengerControlVehicle(npc)
                 local liveSeat = GetClientVehicleSeatIndex(liveVehicle, npc:GetParent()) or currentSeat
-                CopyPassengerText(BuildPassengerDebugLine(npc, liveVehicle, liveSeat), "Passenger debug info copied.")
+                CopyPassengerText(BuildPassengerDebugLine(npc, liveVehicle, liveSeat), L("npcpassengers.chat.debug_copied"))
             end
 
             npcPanel.PerformLayout = function(self, w, h)
@@ -4003,7 +4003,7 @@ local function OpenSettingsPanel()
         
         if #passengers == 0 then
             local noPassengers = vgui.Create("DLabel", passengerListPanel)
-            noPassengers:SetText("No passengers found. NPCs must be in a vehicle.")
+            noPassengers:SetText(L("npcpassengers.chat.no_passengers_found"))
             noPassengers:SetFont("NaiFont_Normal")
             noPassengers:SetTextColor(Theme.textDim)
             noPassengers:Dock(TOP)
@@ -4775,7 +4775,7 @@ hook.Add("PopulateToolMenu", "NPCPassengerOptions", function()
         end
         
         panel:Help("")
-        panel:Help("Or use console command: nai_passengers_menu")
+        panel:Help(L("npcpassengers.welcome.console_cmd"))
     end)
 end)
 
@@ -5101,7 +5101,7 @@ function ShowWelcomePanel(forceShow)
     local heyHeader = vgui.Create("DLabel", content)
     heyHeader:SetFont("NaiFont_Large")
     heyHeader:SetTextColor(Theme.textBright)
-    heyHeader:SetText("Hey there!")
+    heyHeader:SetText(L("npcpassengers.welcome.header"))
     heyHeader:Dock(TOP)
     heyHeader:DockMargin(0, 5, 0, 8)
     heyHeader:SizeToContents()
@@ -5109,7 +5109,7 @@ function ShowWelcomePanel(forceShow)
     local msg1 = vgui.Create("DLabel", content)
     msg1:SetFont("NaiFont_Normal")
     msg1:SetTextColor(Theme.text)
-    msg1:SetText("Before complaining about the passenger sitting on top of vehicle,\nplease open the settings. You can do it, I believe in you.")
+    msg1:SetText(L("npcpassengers.welcome.msg1"))
     msg1:SetWrap(true)
     msg1:SetAutoStretchVertical(true)
     msg1:Dock(TOP)
@@ -5152,7 +5152,7 @@ function ShowWelcomePanel(forceShow)
     local msg2 = vgui.Create("DLabel", content)
     msg2:SetFont("NaiFont_Normal")
     msg2:SetTextColor(Theme.textDim)
-    msg2:SetText("This addon is still far from being PERFECT, please do not hesitate to\nreport bugs and suggest new features. I read all of your comments!")
+    msg2:SetText(L("npcpassengers.welcome.msg2"))
     msg2:SetWrap(true)
     msg2:SetAutoStretchVertical(true)
     msg2:Dock(TOP)
@@ -5164,7 +5164,7 @@ function ShowWelcomePanel(forceShow)
     changelogHeader:DockMargin(0, 0, 0, 8)
     changelogHeader.Paint = function(self, w, h)
         draw.RoundedBox(4, 0, 0, w, h, Theme.accent)
-        draw.SimpleText("Update Changelog (v" .. WELCOME_VERSION .. ")", "NaiFont_Medium", 12, h/2, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+        draw.SimpleText(L("npcpassengers.welcome.changelog") .. " (v" .. WELCOME_VERSION .. ")", "NaiFont_Medium", 12, h/2, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
     end
     
     local changelog = vgui.Create("DPanel", content)
@@ -5222,7 +5222,7 @@ function ShowWelcomePanel(forceShow)
     local okBtn = vgui.Create("DButton", bottomPanel)
     okBtn:SetPos(bottomPanel:GetWide() - 120, 5)
     okBtn:SetSize(120, 36)
-    okBtn:SetText("Got it!")
+    okBtn:SetText(L("npcpassengers.welcome.got_it"))
     okBtn:SetFont("NaiFont_Medium")
     okBtn:SetTextColor(TransparentColor)
     okBtn.hoverAnim = 0
