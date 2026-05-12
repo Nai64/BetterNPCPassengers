@@ -67,6 +67,8 @@ local function LoadLocalization()
         TryLoadLanguage("bengali", "bengali.lua")
     elseif lang == "indonesian" then
         TryLoadLanguage("indonesian", "indonesian.lua")
+    elseif lang == "vietnamese" then
+        TryLoadLanguage("vietnamese", "vietnamese.lua")
     end
 end
 
@@ -118,6 +120,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("bengali", "bengali.lua")
     elseif lang == "indonesian" then
         TryLoadLanguage("indonesian", "indonesian.lua")
+    elseif lang == "vietnamese" then
+        TryLoadLanguage("vietnamese", "vietnamese.lua")
     end
 
     -- Update global display name
@@ -2170,6 +2174,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/id.png")
+        end
+
+        if LanguageExists("vietnamese.lua") then
+            menu:AddOption("Tiếng Việt", function()
+                self.currentLang = "VN"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_vietnamese"))
+                RunConsoleCommand("nai_npc_ui_language", "vietnamese")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/vn.png")
         end
 
         menu:SetWide(140)
