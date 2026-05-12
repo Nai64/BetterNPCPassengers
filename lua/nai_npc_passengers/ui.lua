@@ -101,6 +101,8 @@ local function LoadLocalization()
         TryLoadLanguage("romanian", "romanian.lua")
     elseif lang == "czech" then
         TryLoadLanguage("czech", "czech.lua")
+    elseif lang == "hungarian" then
+        TryLoadLanguage("hungarian", "hungarian.lua")
     end
 end
 
@@ -186,6 +188,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("romanian", "romanian.lua")
     elseif lang == "czech" then
         TryLoadLanguage("czech", "czech.lua")
+    elseif lang == "hungarian" then
+        TryLoadLanguage("hungarian", "hungarian.lua")
     end
 
     -- Update global display name
@@ -2561,6 +2565,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/cz.png")
+        end
+
+        if LanguageExists("hungarian.lua") then
+            menu:AddOption("Magyar", function()
+                self.currentLang = "HU"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_hungarian"))
+                RunConsoleCommand("nai_npc_ui_language", "hungarian")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/hu.png")
         end
 
         menu:SetWide(140)
