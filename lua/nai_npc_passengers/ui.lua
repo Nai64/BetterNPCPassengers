@@ -40,6 +40,8 @@ local function LoadLocalization()
         include("nai_npc_passengers/localization/spanish.lua")
     elseif lang == "turkish" then
         include("nai_npc_passengers/localization/turkish.lua")
+    elseif lang == "portuguese" then
+        include("nai_npc_passengers/localization/portuguese.lua")
     end
 end
 
@@ -64,6 +66,8 @@ local function ReloadLocalizationAndRefresh()
         include("nai_npc_passengers/localization/spanish.lua")
     elseif lang == "turkish" then
         include("nai_npc_passengers/localization/turkish.lua")
+    elseif lang == "portuguese" then
+        include("nai_npc_passengers/localization/portuguese.lua")
     end
 
     -- Update global display name
@@ -1795,6 +1799,8 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "ES"
     elseif currentLangCode == "turkish" then
         langBtn.currentLang = "TR"
+    elseif currentLangCode == "portuguese" then
+        langBtn.currentLang = "PT"
     else
         langBtn.currentLang = "EN"
     end
@@ -1816,7 +1822,7 @@ local function OpenSettingsPanel()
         draw.RoundedBox(3, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Theme.border)
 
         -- Draw flag icon next to language code
-        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or self.currentLang == "ZH" and "cn" or self.currentLang == "ES" and "es" or "tr") .. ".png"
+        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or self.currentLang == "ZH" and "cn" or self.currentLang == "ES" and "es" or self.currentLang == "TR" and "tr" or "pt") .. ".png"
         surface.SetDrawColor(Theme.textBright)
         surface.SetMaterial(Material(flagIcon))
         surface.DrawTexturedRect(4, (h - 10) / 2, 12, 10)
@@ -1921,6 +1927,25 @@ local function OpenSettingsPanel()
                 end)
             end)
         end):SetIcon("flags16/tr.png")
+
+        menu:AddOption("Português", function()
+            self.currentLang = "PT"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_portuguese"))
+
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "portuguese")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
+            end)
+        end):SetIcon("flags16/pt.png")
 
         menu:SetWide(120)
         menu:Open()
