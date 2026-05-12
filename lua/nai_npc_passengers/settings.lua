@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.7.68"
+NPCPassengers.Version = NPCPassengers.Version or "2.7.69"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-05-12"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -84,6 +84,7 @@ if CLIENT then
     NPCPassengers.cv_ui_scrollbar_autohide = CreateClientConVar("nai_npc_ui_scrollbar_autohide", "1", true, false, "Hide scrollbar unless the player is actively scrolling or hovering it")
     NPCPassengers.cv_ui_color_theme = CreateClientConVar("nai_npc_ui_color_theme", "blue", true, false, "UI color theme: blue, green, purple, orange, red, pink, cyan, yellow")
     NPCPassengers.cv_ui_font_scale = CreateClientConVar("nai_npc_ui_font_scale", "1.0", true, false, "Font size scale multiplier (0.5-2.0)")
+    NPCPassengers.cv_ui_language_autodetect = CreateClientConVar("nai_npc_ui_language_autodetect", "0", true, false, "Automatically detect and use GMod's language")
 end
 NPCPassengers.cv_speech_volume = CreateConVar("nai_npc_speech_volume", "75", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPC speech volume (0-100)")
 NPCPassengers.cv_speech_crash_enabled = CreateConVar("nai_npc_speech_crash", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs react to crashes with pain sounds")

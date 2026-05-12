@@ -30,7 +30,54 @@ local function LoadLocalization()
 
     -- Get user's language preference from our custom ConVar
     local langConVar = CreateClientConVar("nai_npc_ui_language", "english", true, false, "UI Language preference")
-    local lang = langConVar:GetString()
+    local autoDetectConVar = GetConVar("nai_npc_ui_language_autodetect")
+    local isAutoDetect = autoDetectConVar and autoDetectConVar:GetBool() or false
+
+    -- Function to map GMod language codes to addon language codes
+    local function GetAddonLanguageFromGMod()
+        local gmodLang = language and language.GetLanguage and language.GetLanguage() or "english"
+        local langMap = {
+            ["english"] = "english",
+            ["russian"] = "russian",
+            ["schinese"] = "chinese",
+            ["tchinese"] = "chinese",
+            ["spanish"] = "spanish",
+            ["turkish"] = "turkish",
+            ["portuguese"] = "portuguese",
+            ["german"] = "german",
+            ["french"] = "french",
+            ["japanese"] = "japanese",
+            ["arabic"] = "arabic",
+            ["ukrainian"] = "ukrainian",
+            ["indonesian"] = "indonesian",
+            ["vietnamese"] = "vietnamese",
+            ["korean"] = "korean",
+            ["thai"] = "thai",
+            ["italian"] = "italian",
+            ["urdu"] = "urdu",
+            ["dutch"] = "dutch",
+            ["polish"] = "polish",
+            ["romanian"] = "romanian",
+            ["czech"] = "czech",
+            ["hungarian"] = "hungarian",
+            ["greek"] = "greek",
+            ["kazakh"] = "kazakh_cyrillic",
+            ["hebrew"] = "hebrew",
+            ["mongolian"] = "mongolian",
+            ["kyrgyz"] = "kyrgyz"
+        }
+        return langMap[gmodLang] or "english"
+    end
+
+    -- If auto-detect is enabled, use GMod's language
+    local lang
+    if isAutoDetect then
+        lang = GetAddonLanguageFromGMod()
+        -- Update the ConVar to match the auto-detected language
+        RunConsoleCommand("nai_npc_ui_language", lang)
+    else
+        lang = langConVar:GetString()
+    end
 
     -- Helper function to try loading from either main addon or language pack
     local function TryLoadLanguage(langName, fileName)
@@ -1971,12 +2018,82 @@ local function OpenSettingsPanel()
     -- Language dropdown menu
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
+
+        -- Function to map GMod language codes to addon language codes
+        local function GetAddonLanguageFromGMod()
+            local gmodLang = language and language.GetLanguage and language.GetLanguage() or "english"
+            local langMap = {
+                ["english"] = "english",
+                ["russian"] = "russian",
+                ["schinese"] = "chinese",
+                ["tchinese"] = "chinese",
+                ["spanish"] = "spanish",
+                ["turkish"] = "turkish",
+                ["portuguese"] = "portuguese",
+                ["german"] = "german",
+                ["french"] = "french",
+                ["japanese"] = "japanese",
+                ["arabic"] = "arabic",
+                ["ukrainian"] = "ukrainian",
+                ["indonesian"] = "indonesian",
+                ["vietnamese"] = "vietnamese",
+                ["korean"] = "korean",
+                ["thai"] = "thai",
+                ["italian"] = "italian",
+                ["urdu"] = "urdu",
+                ["dutch"] = "dutch",
+                ["polish"] = "polish",
+                ["romanian"] = "romanian",
+                ["czech"] = "czech",
+                ["hungarian"] = "hungarian",
+                ["greek"] = "greek",
+                ["kazakh"] = "kazakh_cyrillic",
+                ["hebrew"] = "hebrew",
+                ["mongolian"] = "mongolian",
+                ["kyrgyz"] = "kyrgyz"
+            }
+            return langMap[gmodLang] or "english"
+        end
+
+        -- Function to apply auto-detected language
+        local function ApplyAutoLanguage()
+            local addonLang = GetAddonLanguageFromGMod()
+            RunConsoleCommand("nai_npc_ui_language", addonLang)
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
+            end)
+        end
+
+        -- Get current auto-detect state
+        local autoDetectCvar = GetConVar("nai_npc_ui_language_autodetect")
+        local isAutoDetect = autoDetectCvar and autoDetectCvar:GetBool() or false
+
+        -- Add auto-detect checkbox at the top
+        menu:AddOption("Automatic", function()
+            local newState = not isAutoDetect
+            RunConsoleCommand("nai_npc_ui_language_autodetect", newState and "1" or "0")
+            if newState then
+                ApplyAutoLanguage()
+            end
+        end):SetChecked(isAutoDetect)
+
+        menu:AddSpacer()
+
         menu:AddOption("English", function()
             self.currentLang = "EN"
             chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_english"))
 
             -- Set ConVar first, then wait, then reload, then reopen
             RunConsoleCommand("nai_npc_ui_language", "english")
+            RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
             timer.Simple(0.15, function()
                 ReloadLocalizationAndRefresh()
                 timer.Simple(0.1, function()
@@ -1996,6 +2113,7 @@ local function OpenSettingsPanel()
 
             -- Set ConVar first, then wait, then reload, then reopen
             RunConsoleCommand("nai_npc_ui_language", "russian")
+            RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
             timer.Simple(0.15, function()
                 ReloadLocalizationAndRefresh()
                 timer.Simple(0.1, function()
@@ -2021,6 +2139,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "ZH"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_chinese"))
                 RunConsoleCommand("nai_npc_ui_language", "chinese")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2040,6 +2159,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "ES"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_spanish"))
                 RunConsoleCommand("nai_npc_ui_language", "spanish")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2059,6 +2179,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "TR"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_turkish"))
                 RunConsoleCommand("nai_npc_ui_language", "turkish")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2078,6 +2199,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "PT"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_portuguese"))
                 RunConsoleCommand("nai_npc_ui_language", "portuguese")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2097,6 +2219,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "DE"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_german"))
                 RunConsoleCommand("nai_npc_ui_language", "german")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2116,6 +2239,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "FR"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_french"))
                 RunConsoleCommand("nai_npc_ui_language", "french")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2135,6 +2259,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "JP"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_japanese"))
                 RunConsoleCommand("nai_npc_ui_language", "japanese")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2154,6 +2279,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "AR"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_arabic"))
                 RunConsoleCommand("nai_npc_ui_language", "arabic")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2173,6 +2299,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "UA"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_ukrainian"))
                 RunConsoleCommand("nai_npc_ui_language", "ukrainian")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2192,6 +2319,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "ID"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_indonesian"))
                 RunConsoleCommand("nai_npc_ui_language", "indonesian")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2211,6 +2339,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "VN"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_vietnamese"))
                 RunConsoleCommand("nai_npc_ui_language", "vietnamese")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2230,6 +2359,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "PH"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_tagalog"))
                 RunConsoleCommand("nai_npc_ui_language", "tagalog")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2249,6 +2379,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "KR"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_korean"))
                 RunConsoleCommand("nai_npc_ui_language", "korean")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2268,6 +2399,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "TH"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_thai"))
                 RunConsoleCommand("nai_npc_ui_language", "thai")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2287,6 +2419,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "IT"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_italian"))
                 RunConsoleCommand("nai_npc_ui_language", "italian")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2306,6 +2439,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "PK"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_urdu"))
                 RunConsoleCommand("nai_npc_ui_language", "urdu")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2325,6 +2459,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "TP"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_toki_pona"))
                 RunConsoleCommand("nai_npc_ui_language", "toki_pona")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2344,6 +2479,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "NL"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_dutch"))
                 RunConsoleCommand("nai_npc_ui_language", "dutch")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2363,6 +2499,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "KZ"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_kazakh_cyrillic"))
                 RunConsoleCommand("nai_npc_ui_language", "kazakh_cyrillic")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2382,6 +2519,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "KZ"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_kazakh_latin"))
                 RunConsoleCommand("nai_npc_ui_language", "kazakh_latin")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2401,6 +2539,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "IL"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_hebrew"))
                 RunConsoleCommand("nai_npc_ui_language", "hebrew")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2420,6 +2559,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "LA"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_latin"))
                 RunConsoleCommand("nai_npc_ui_language", "latin")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2439,6 +2579,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "UZ"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_uzbek_latin"))
                 RunConsoleCommand("nai_npc_ui_language", "uzbek_latin")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2458,6 +2599,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "UZ"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_uzbek_cyrillic"))
                 RunConsoleCommand("nai_npc_ui_language", "uzbek_cyrillic")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2477,6 +2619,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "MN"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_mongolian"))
                 RunConsoleCommand("nai_npc_ui_language", "mongolian")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2496,6 +2639,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "KG"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_kyrgyz"))
                 RunConsoleCommand("nai_npc_ui_language", "kyrgyz")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2515,6 +2659,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "PL"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_polish"))
                 RunConsoleCommand("nai_npc_ui_language", "polish")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2534,6 +2679,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "RO"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_romanian"))
                 RunConsoleCommand("nai_npc_ui_language", "romanian")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2553,6 +2699,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "CZ"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_czech"))
                 RunConsoleCommand("nai_npc_ui_language", "czech")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2572,6 +2719,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "HU"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_hungarian"))
                 RunConsoleCommand("nai_npc_ui_language", "hungarian")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
@@ -2591,6 +2739,7 @@ local function OpenSettingsPanel()
                 self.currentLang = "GR"
                 chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_greek"))
                 RunConsoleCommand("nai_npc_ui_language", "greek")
+                RunConsoleCommand("nai_npc_ui_language_autodetect", "0")
                 timer.Simple(0.15, function()
                     ReloadLocalizationAndRefresh()
                     timer.Simple(0.1, function()
