@@ -228,6 +228,7 @@ language.Add("npcpassengers.chat.panel_centered", "Панель центриро
 language.Add("npcpassengers.chat.settings_reset", "Все настройки UI сброшены на значения по умолчанию!")
 language.Add("npcpassengers.chat.npc_selected", "NPC выбран! Теперь нажмите правой кнопкой на транспорт и выберите 'Добавить выбранного NPC'")
 language.Add("npcpassengers.chat.adding_npc", "Добавление NPC в транспорт...")
+language.Add("npcpassengers.chat.selection_cancelled", "Выбор NPC отменен")
 language.Add("npcpassengers.chat.summary_copied", "Сводка пассажиров скопирована.")
 language.Add("npcpassengers.chat.debug_copied", "Отладочная информация пассажира скопирована.")
 language.Add("npcpassengers.chat.no_passengers_found", "Пассажиры не найдены. NPC должны быть в транспорте.")
