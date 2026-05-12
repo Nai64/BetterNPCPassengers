@@ -63,6 +63,8 @@ local function LoadLocalization()
         TryLoadLanguage("ukrainian", "ukrainian.lua")
     elseif lang == "hindi" then
         TryLoadLanguage("hindi", "hindi.lua")
+    elseif lang == "bengali" then
+        TryLoadLanguage("bengali", "bengali.lua")
     end
 end
 
@@ -110,6 +112,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("ukrainian", "ukrainian.lua")
     elseif lang == "hindi" then
         TryLoadLanguage("hindi", "hindi.lua")
+    elseif lang == "bengali" then
+        TryLoadLanguage("bengali", "bengali.lua")
     end
 
     -- Update global display name
@@ -1855,6 +1859,8 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "UA"
     elseif currentLangCode == "hindi" then
         langBtn.currentLang = "HI"
+    elseif currentLangCode == "bengali" then
+        langBtn.currentLang = "BN"
     else
         langBtn.currentLang = "EN"
     end
@@ -2120,6 +2126,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/in.png")
+        end
+
+        if LanguageExists("bengali.lua") then
+            menu:AddOption("বাংলা", function()
+                self.currentLang = "BN"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_bengali"))
+                RunConsoleCommand("nai_npc_ui_language", "bengali")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/bd.png")
         end
 
         menu:SetWide(140)
