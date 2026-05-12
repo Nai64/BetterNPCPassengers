@@ -103,6 +103,8 @@ local function LoadLocalization()
         TryLoadLanguage("czech", "czech.lua")
     elseif lang == "hungarian" then
         TryLoadLanguage("hungarian", "hungarian.lua")
+    elseif lang == "greek" then
+        TryLoadLanguage("greek", "greek.lua")
     end
 end
 
@@ -190,6 +192,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("czech", "czech.lua")
     elseif lang == "hungarian" then
         TryLoadLanguage("hungarian", "hungarian.lua")
+    elseif lang == "greek" then
+        TryLoadLanguage("greek", "greek.lua")
     end
 
     -- Update global display name
@@ -2581,6 +2585,31 @@ local function OpenSettingsPanel()
                 end)
             end):SetIcon("flags16/hu.png")
         end
+
+        if LanguageExists("greek.lua") then
+            menu:AddOption("Ελληνικά", function()
+                self.currentLang = "GR"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_greek"))
+                RunConsoleCommand("nai_npc_ui_language", "greek")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/gr.png")
+        end
+
+        menu:AddSpacer()
+
+        menu:AddOption("Install additional languages", function()
+            gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=LANGUAGE_PACK_WORKSHOP_ID")
+        end)
 
         menu:SetWide(140)
         menu:Open()
