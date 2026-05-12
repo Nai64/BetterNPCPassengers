@@ -48,6 +48,8 @@ local function LoadLocalization()
         include("nai_npc_passengers/localization/french.lua")
     elseif lang == "japanese" then
         include("nai_npc_passengers/localization/japanese.lua")
+    elseif lang == "arabic" then
+        include("nai_npc_passengers/localization/arabic.lua")
     end
 end
 
@@ -80,6 +82,8 @@ local function ReloadLocalizationAndRefresh()
         include("nai_npc_passengers/localization/french.lua")
     elseif lang == "japanese" then
         include("nai_npc_passengers/localization/japanese.lua")
+    elseif lang == "arabic" then
+        include("nai_npc_passengers/localization/arabic.lua")
     end
 
     -- Update global display name
@@ -1819,6 +1823,8 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "FR"
     elseif currentLangCode == "japanese" then
         langBtn.currentLang = "JP"
+    elseif currentLangCode == "arabic" then
+        langBtn.currentLang = "AR"
     else
         langBtn.currentLang = "EN"
     end
@@ -2021,6 +2027,25 @@ local function OpenSettingsPanel()
                 end)
             end)
         end):SetIcon("flags16/jp.png")
+
+        menu:AddOption("العربية", function()
+            self.currentLang = "AR"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_arabic"))
+
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "arabic")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
+            end)
+        end):SetIcon("flags16/ar.png")
 
         menu:SetWide(120)
         menu:Open()
