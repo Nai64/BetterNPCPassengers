@@ -2757,7 +2757,7 @@ local function OpenSettingsPanel()
         menu:AddSpacer()
 
         menu:AddOption("Install additional languages", function()
-            gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=LANGUAGE_PACK_WORKSHOP_ID")
+            gui.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=3724869907")
         end)
 
         menu:SetWide(140)
