@@ -85,6 +85,8 @@ local function LoadLocalization()
         TryLoadLanguage("kazakh_latin", "kazakh_latin.lua")
     elseif lang == "hebrew" then
         TryLoadLanguage("hebrew", "hebrew.lua")
+    elseif lang == "latin" then
+        TryLoadLanguage("latin", "latin.lua")
     end
 end
 
@@ -154,6 +156,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("kazakh_latin", "kazakh_latin.lua")
     elseif lang == "hebrew" then
         TryLoadLanguage("hebrew", "hebrew.lua")
+    elseif lang == "latin" then
+        TryLoadLanguage("latin", "latin.lua")
     end
 
     -- Update global display name
@@ -2377,6 +2381,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/il.png")
+        end
+
+        if LanguageExists("latin.lua") then
+            menu:AddOption("Latina", function()
+                self.currentLang = "LA"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_latin"))
+                RunConsoleCommand("nai_npc_ui_language", "latin")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("icon16/world.png")
         end
 
         menu:SetWide(140)
