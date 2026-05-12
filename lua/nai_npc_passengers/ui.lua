@@ -71,6 +71,8 @@ local function LoadLocalization()
         TryLoadLanguage("vietnamese", "vietnamese.lua")
     elseif lang == "tagalog" then
         TryLoadLanguage("tagalog", "tagalog.lua")
+    elseif lang == "tamil" then
+        TryLoadLanguage("tamil", "tamil.lua")
     end
 end
 
@@ -126,6 +128,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("vietnamese", "vietnamese.lua")
     elseif lang == "tagalog" then
         TryLoadLanguage("tagalog", "tagalog.lua")
+    elseif lang == "tamil" then
+        TryLoadLanguage("tamil", "tamil.lua")
     end
 
     -- Update global display name
@@ -2216,6 +2220,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/ph.png")
+        end
+
+        if LanguageExists("tamil.lua") then
+            menu:AddOption("தமிழ்", function()
+                self.currentLang = "TA"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_tamil"))
+                RunConsoleCommand("nai_npc_ui_language", "tamil")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/in.png")
         end
 
         menu:SetWide(140)
