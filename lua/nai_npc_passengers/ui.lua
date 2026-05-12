@@ -23,6 +23,42 @@ local function L(phrase)
     return phrase
 end
 
+-- Function to map GMod language codes to addon language codes
+local function GetAddonLanguageFromGMod()
+    local gmodLang = language and language.GetLanguage and language.GetLanguage() or "english"
+    local langMap = {
+        ["english"] = "english",
+        ["russian"] = "russian",
+        ["schinese"] = "chinese",
+        ["tchinese"] = "chinese",
+        ["spanish"] = "spanish",
+        ["turkish"] = "turkish",
+        ["portuguese"] = "portuguese",
+        ["german"] = "german",
+        ["french"] = "french",
+        ["japanese"] = "japanese",
+        ["arabic"] = "arabic",
+        ["ukrainian"] = "ukrainian",
+        ["indonesian"] = "indonesian",
+        ["vietnamese"] = "vietnamese",
+        ["korean"] = "korean",
+        ["thai"] = "thai",
+        ["italian"] = "italian",
+        ["urdu"] = "urdu",
+        ["dutch"] = "dutch",
+        ["polish"] = "polish",
+        ["romanian"] = "romanian",
+        ["czech"] = "czech",
+        ["hungarian"] = "hungarian",
+        ["greek"] = "greek",
+        ["kazakh"] = "kazakh_cyrillic",
+        ["hebrew"] = "hebrew",
+        ["mongolian"] = "mongolian",
+        ["kyrgyz"] = "kyrgyz"
+    }
+    return langMap[gmodLang] or "english"
+end
+
 -- Load appropriate localization file based on user preference
 local function LoadLocalization()
     -- Always load English as base
@@ -33,48 +69,10 @@ local function LoadLocalization()
     local autoDetectConVar = GetConVar("nai_npc_ui_language_autodetect")
     local isAutoDetect = autoDetectConVar and autoDetectConVar:GetBool() or false
 
-    -- Function to map GMod language codes to addon language codes
-    local function GetAddonLanguageFromGMod()
-        local gmodLang = language and language.GetLanguage and language.GetLanguage() or "english"
-        local langMap = {
-            ["english"] = "english",
-            ["russian"] = "russian",
-            ["schinese"] = "chinese",
-            ["tchinese"] = "chinese",
-            ["spanish"] = "spanish",
-            ["turkish"] = "turkish",
-            ["portuguese"] = "portuguese",
-            ["german"] = "german",
-            ["french"] = "french",
-            ["japanese"] = "japanese",
-            ["arabic"] = "arabic",
-            ["ukrainian"] = "ukrainian",
-            ["indonesian"] = "indonesian",
-            ["vietnamese"] = "vietnamese",
-            ["korean"] = "korean",
-            ["thai"] = "thai",
-            ["italian"] = "italian",
-            ["urdu"] = "urdu",
-            ["dutch"] = "dutch",
-            ["polish"] = "polish",
-            ["romanian"] = "romanian",
-            ["czech"] = "czech",
-            ["hungarian"] = "hungarian",
-            ["greek"] = "greek",
-            ["kazakh"] = "kazakh_cyrillic",
-            ["hebrew"] = "hebrew",
-            ["mongolian"] = "mongolian",
-            ["kyrgyz"] = "kyrgyz"
-        }
-        return langMap[gmodLang] or "english"
-    end
-
     -- If auto-detect is enabled, use GMod's language
     local lang
     if isAutoDetect then
         lang = GetAddonLanguageFromGMod()
-        -- Update the ConVar to match the auto-detected language
-        RunConsoleCommand("nai_npc_ui_language", lang)
     else
         lang = langConVar:GetString()
     end
@@ -2018,42 +2016,6 @@ local function OpenSettingsPanel()
     -- Language dropdown menu
     langBtn.DoClick = function(self)
         local menu = DermaMenu()
-
-        -- Function to map GMod language codes to addon language codes
-        local function GetAddonLanguageFromGMod()
-            local gmodLang = language and language.GetLanguage and language.GetLanguage() or "english"
-            local langMap = {
-                ["english"] = "english",
-                ["russian"] = "russian",
-                ["schinese"] = "chinese",
-                ["tchinese"] = "chinese",
-                ["spanish"] = "spanish",
-                ["turkish"] = "turkish",
-                ["portuguese"] = "portuguese",
-                ["german"] = "german",
-                ["french"] = "french",
-                ["japanese"] = "japanese",
-                ["arabic"] = "arabic",
-                ["ukrainian"] = "ukrainian",
-                ["indonesian"] = "indonesian",
-                ["vietnamese"] = "vietnamese",
-                ["korean"] = "korean",
-                ["thai"] = "thai",
-                ["italian"] = "italian",
-                ["urdu"] = "urdu",
-                ["dutch"] = "dutch",
-                ["polish"] = "polish",
-                ["romanian"] = "romanian",
-                ["czech"] = "czech",
-                ["hungarian"] = "hungarian",
-                ["greek"] = "greek",
-                ["kazakh"] = "kazakh_cyrillic",
-                ["hebrew"] = "hebrew",
-                ["mongolian"] = "mongolian",
-                ["kyrgyz"] = "kyrgyz"
-            }
-            return langMap[gmodLang] or "english"
-        end
 
         -- Function to apply auto-detected language
         local function ApplyAutoLanguage()
