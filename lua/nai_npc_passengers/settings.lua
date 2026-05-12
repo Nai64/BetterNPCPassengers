@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.7.31"
+NPCPassengers.Version = NPCPassengers.Version or "2.7.32"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-05-12"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -165,20 +165,16 @@ NPCPassengers.cv_seat_collision_check = CreateConVar("nai_npc_seat_collision_che
 -- NPC Driver settings
 NPCPassengers.cv_driver_enabled = CreateConVar("nai_npc_driver_enabled", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow NPCs to drive vehicles")
 NPCPassengers.cv_driver_behavior = CreateConVar("nai_npc_driver_behavior", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Driving behavior: 0=Random Cruise, 1=Follow Player, 2=Patrol, 3=Flee, 4=Stay Parked")
-NPCPassengers.cv_driver_obey_traffic = CreateConVar("nai_npc_driver_obey_traffic", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs follow speed limits and traffic signals")
 NPCPassengers.cv_driver_avoid_collisions = CreateConVar("nai_npc_driver_avoid_collisions", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs avoid hitting obstacles and vehicles")
 NPCPassengers.cv_driver_honk = CreateConVar("nai_npc_driver_honk", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "NPCs use horn when frustrated")
 NPCPassengers.cv_driver_speed = CreateConVar("nai_npc_driver_speed", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Driving speed multiplier")
 NPCPassengers.cv_driver_skill = CreateConVar("nai_npc_driver_skill", "50", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Driver skill level (0-100)")
 NPCPassengers.cv_driver_aggression = CreateConVar("nai_npc_driver_aggression", "30", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Driving aggression (0-100)")
 NPCPassengers.cv_driver_wander_dist = CreateConVar("nai_npc_driver_wander_dist", "2000", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Wander distance for random cruise")
-NPCPassengers.cv_driver_recalculate = CreateConVar("nai_npc_driver_recalculate", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Dynamic rerouting enabled")
 NPCPassengers.cv_driver_reverse = CreateConVar("nai_npc_driver_reverse", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow reversing when stuck")
 NPCPassengers.cv_driver_brake_distance = CreateConVar("nai_npc_driver_brake_distance", "200", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Distance to start braking")
-NPCPassengers.cv_driver_auto_park = CreateConVar("nai_npc_driver_auto_park", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Auto park at destination")
 NPCPassengers.cv_driver_exit_on_arrival = CreateConVar("nai_npc_driver_exit_on_arrival", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Exit vehicle on arrival")
 NPCPassengers.cv_driver_stop_distance = CreateConVar("nai_npc_driver_stop_distance", "50", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Stop precision distance")
-NPCPassengers.cv_driver_debug = CreateConVar("nai_npc_driver_debug", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Show driver debug info")
 NPCPassengers.cv_driver_allow_all_npcs = CreateConVar("nai_npc_driver_allow_all_npcs", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow all NPC types to drive")
 NPCPassengers.cv_driver_smooth_steering = CreateConVar("nai_npc_driver_smooth_steering", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Use smooth steering")
 

@@ -934,41 +934,6 @@ local function DrawRoundedSurface(x, y, w, h, radius, fillColor, borderColor)
     draw.RoundedBox(radius, x, y, w, h, fillColor)
 end
 
-local function RotatePoint(x, y, angleRadians)
-    local angleCos = math.cos(angleRadians)
-    local angleSin = math.sin(angleRadians)
-    return x * angleCos - y * angleSin, x * angleSin + y * angleCos
-end
-
-local function DrawRotatedQuad(cx, cy, halfWidth, halfHeight, angleDegrees, color)
-    local angleRadians = math.rad(angleDegrees)
-    local x1, y1 = RotatePoint(-halfWidth, -halfHeight, angleRadians)
-    local x2, y2 = RotatePoint(halfWidth, -halfHeight, angleRadians)
-    local x3, y3 = RotatePoint(halfWidth, halfHeight, angleRadians)
-    local x4, y4 = RotatePoint(-halfWidth, halfHeight, angleRadians)
-
-    surface.SetDrawColor(color)
-    draw.NoTexture()
-    surface.DrawPoly({
-        { x = cx + x1, y = cy + y1 },
-        { x = cx + x2, y = cy + y2 },
-        { x = cx + x3, y = cy + y3 },
-        { x = cx + x4, y = cy + y4 },
-    })
-end
-
-local function DrawRotatingCross(cx, cy, size, angleDegrees, color)
-    local angleRadians = math.rad(angleDegrees)
-    local x1, y1 = RotatePoint(-size, -size, angleRadians)
-    local x2, y2 = RotatePoint(size, size, angleRadians)
-    local x3, y3 = RotatePoint(size, -size, angleRadians)
-    local x4, y4 = RotatePoint(-size, size, angleRadians)
-
-    surface.SetDrawColor(color)
-    surface.DrawLine(cx + x1, cy + y1, cx + x2, cy + y2)
-    surface.DrawLine(cx + x3, cy + y3, cx + x4, cy + y4)
-end
-
 local function DrawVerticalGradient(x, y, w, h, topColor, bottomColor)
     surface.SetDrawColor(topColor)
     surface.DrawRect(x, y, w, h)
