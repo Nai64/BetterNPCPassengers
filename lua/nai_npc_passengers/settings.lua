@@ -177,6 +177,7 @@ NPCPassengers.cv_driver_exit_on_arrival = CreateConVar("nai_npc_driver_exit_on_a
 NPCPassengers.cv_driver_stop_distance = CreateConVar("nai_npc_driver_stop_distance", "50", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Stop precision distance")
 NPCPassengers.cv_driver_allow_all_npcs = CreateConVar("nai_npc_driver_allow_all_npcs", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Allow all NPC types to drive")
 NPCPassengers.cv_driver_smooth_steering = CreateConVar("nai_npc_driver_smooth_steering", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Use smooth steering")
+NPCPassengers.cv_driver_debug = CreateConVar("nai_npc_driver_debug", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable debug HUD for NPC drivers")
 
 -- Keybind settings (client-side only, stored as key codes)
 if CLIENT then
