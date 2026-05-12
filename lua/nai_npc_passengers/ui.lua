@@ -65,6 +65,8 @@ local function LoadLocalization()
         TryLoadLanguage("hindi", "hindi.lua")
     elseif lang == "bengali" then
         TryLoadLanguage("bengali", "bengali.lua")
+    elseif lang == "indonesian" then
+        TryLoadLanguage("indonesian", "indonesian.lua")
     end
 end
 
@@ -114,6 +116,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("hindi", "hindi.lua")
     elseif lang == "bengali" then
         TryLoadLanguage("bengali", "bengali.lua")
+    elseif lang == "indonesian" then
+        TryLoadLanguage("indonesian", "indonesian.lua")
     end
 
     -- Update global display name
@@ -1861,6 +1865,8 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "HI"
     elseif currentLangCode == "bengali" then
         langBtn.currentLang = "BN"
+    elseif currentLangCode == "indonesian" then
+        langBtn.currentLang = "ID"
     else
         langBtn.currentLang = "EN"
     end
@@ -2145,6 +2151,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/bd.png")
+        end
+
+        if LanguageExists("indonesian.lua") then
+            menu:AddOption("Bahasa Indonesia", function()
+                self.currentLang = "ID"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_indonesian"))
+                RunConsoleCommand("nai_npc_ui_language", "indonesian")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/id.png")
         end
 
         menu:SetWide(140)
