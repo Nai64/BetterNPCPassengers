@@ -36,6 +36,8 @@ local function LoadLocalization()
         include("nai_npc_passengers/localization/russian.lua")
     elseif lang == "chinese" then
         include("nai_npc_passengers/localization/chinese.lua")
+    elseif lang == "spanish" then
+        include("nai_npc_passengers/localization/spanish.lua")
     end
 end
 
@@ -56,6 +58,8 @@ local function ReloadLocalizationAndRefresh()
         include("nai_npc_passengers/localization/russian.lua")
     elseif lang == "chinese" then
         include("nai_npc_passengers/localization/chinese.lua")
+    elseif lang == "spanish" then
+        include("nai_npc_passengers/localization/spanish.lua")
     end
 
     -- Update global display name
@@ -1783,6 +1787,8 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "RU"
     elseif currentLangCode == "chinese" then
         langBtn.currentLang = "ZH"
+    elseif currentLangCode == "spanish" then
+        langBtn.currentLang = "ES"
     else
         langBtn.currentLang = "EN"
     end
@@ -1804,7 +1810,7 @@ local function OpenSettingsPanel()
         draw.RoundedBox(3, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Theme.border)
 
         -- Draw flag icon next to language code
-        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or "cn") .. ".png"
+        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or self.currentLang == "ZH" and "cn" or "es") .. ".png"
         surface.SetDrawColor(Theme.textBright)
         surface.SetMaterial(Material(flagIcon))
         surface.DrawTexturedRect(4, (h - 10) / 2, 12, 10)
@@ -1871,6 +1877,25 @@ local function OpenSettingsPanel()
                 end)
             end)
         end):SetIcon("flags16/cn.png")
+
+        menu:AddOption("Español", function()
+            self.currentLang = "ES"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_spanish"))
+
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "spanish")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
+            end)
+        end):SetIcon("flags16/es.png")
 
         menu:SetWide(120)
         menu:Open()
