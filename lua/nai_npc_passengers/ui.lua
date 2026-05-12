@@ -75,6 +75,8 @@ local function LoadLocalization()
         TryLoadLanguage("tamil", "tamil.lua")
     elseif lang == "korean" then
         TryLoadLanguage("korean", "korean.lua")
+    elseif lang == "thai" then
+        TryLoadLanguage("thai", "thai.lua")
     end
 end
 
@@ -134,6 +136,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("tamil", "tamil.lua")
     elseif lang == "korean" then
         TryLoadLanguage("korean", "korean.lua")
+    elseif lang == "thai" then
+        TryLoadLanguage("thai", "thai.lua")
     end
 
     -- Update global display name
@@ -2262,6 +2266,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/kr.png")
+        end
+
+        if LanguageExists("thai.lua") then
+            menu:AddOption("ภาษาไทย", function()
+                self.currentLang = "TH"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_thai"))
+                RunConsoleCommand("nai_npc_ui_language", "thai")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/th.png")
         end
 
         menu:SetWide(140)
