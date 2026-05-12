@@ -46,6 +46,8 @@ local function LoadLocalization()
         include("nai_npc_passengers/localization/german.lua")
     elseif lang == "french" then
         include("nai_npc_passengers/localization/french.lua")
+    elseif lang == "japanese" then
+        include("nai_npc_passengers/localization/japanese.lua")
     end
 end
 
@@ -76,6 +78,8 @@ local function ReloadLocalizationAndRefresh()
         include("nai_npc_passengers/localization/german.lua")
     elseif lang == "french" then
         include("nai_npc_passengers/localization/french.lua")
+    elseif lang == "japanese" then
+        include("nai_npc_passengers/localization/japanese.lua")
     end
 
     -- Update global display name
@@ -1813,6 +1817,8 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "DE"
     elseif currentLangCode == "french" then
         langBtn.currentLang = "FR"
+    elseif currentLangCode == "japanese" then
+        langBtn.currentLang = "JP"
     else
         langBtn.currentLang = "EN"
     end
@@ -1834,7 +1840,7 @@ local function OpenSettingsPanel()
         draw.RoundedBox(3, offsetX + 1, offsetY + 1, scaledW - 2, scaledH - 2, Theme.border)
 
         -- Draw flag icon next to language code
-        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or self.currentLang == "ZH" and "cn" or self.currentLang == "ES" and "es" or self.currentLang == "TR" and "tr" or self.currentLang == "PT" and "pt" or self.currentLang == "DE" and "de" or "fr") .. ".png"
+        local flagIcon = "flags16/" .. (self.currentLang == "EN" and "us" or self.currentLang == "RU" and "ru" or self.currentLang == "ZH" and "cn" or self.currentLang == "ES" and "es" or self.currentLang == "TR" and "tr" or self.currentLang == "PT" and "pt" or self.currentLang == "DE" and "de" or self.currentLang == "FR" and "fr" or "jp") .. ".png"
         surface.SetDrawColor(Theme.textBright)
         surface.SetMaterial(Material(flagIcon))
         surface.DrawTexturedRect(4, (h - 10) / 2, 12, 10)
@@ -1996,6 +2002,25 @@ local function OpenSettingsPanel()
                 end)
             end)
         end):SetIcon("flags16/fr.png")
+
+        menu:AddOption("日本語", function()
+            self.currentLang = "JP"
+            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_japanese"))
+
+            -- Set ConVar first, then wait, then reload, then reopen
+            RunConsoleCommand("nai_npc_ui_language", "japanese")
+            timer.Simple(0.15, function()
+                ReloadLocalizationAndRefresh()
+                timer.Simple(0.1, function()
+                    if IsValid(settingsFrame) then
+                        settingsFrame:Close()
+                        timer.Simple(0.15, function()
+                            RunConsoleCommand("nai_passengers_menu")
+                        end)
+                    end
+                end)
+            end)
+        end):SetIcon("flags16/jp.png")
 
         menu:SetWide(120)
         menu:Open()
