@@ -87,6 +87,10 @@ local function LoadLocalization()
         TryLoadLanguage("hebrew", "hebrew.lua")
     elseif lang == "latin" then
         TryLoadLanguage("latin", "latin.lua")
+    elseif lang == "uzbek_latin" then
+        TryLoadLanguage("uzbek_latin", "uzbek_latin.lua")
+    elseif lang == "uzbek_cyrillic" then
+        TryLoadLanguage("uzbek_cyrillic", "uzbek_cyrillic.lua")
     end
 end
 
@@ -158,6 +162,10 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("hebrew", "hebrew.lua")
     elseif lang == "latin" then
         TryLoadLanguage("latin", "latin.lua")
+    elseif lang == "uzbek_latin" then
+        TryLoadLanguage("uzbek_latin", "uzbek_latin.lua")
+    elseif lang == "uzbek_cyrillic" then
+        TryLoadLanguage("uzbek_cyrillic", "uzbek_cyrillic.lua")
     end
 
     -- Update global display name
@@ -2400,6 +2408,44 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("icon16/world.png")
+        end
+
+        if LanguageExists("uzbek_latin.lua") then
+            menu:AddOption("O'zbek tili (Lotin)", function()
+                self.currentLang = "UZ"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_uzbek_latin"))
+                RunConsoleCommand("nai_npc_ui_language", "uzbek_latin")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/uz.png")
+        end
+
+        if LanguageExists("uzbek_cyrillic.lua") then
+            menu:AddOption("Ўзбек тили (Кирилл)", function()
+                self.currentLang = "UZ"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_uzbek_cyrillic"))
+                RunConsoleCommand("nai_npc_ui_language", "uzbek_cyrillic")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/uz.png")
         end
 
         menu:SetWide(140)
