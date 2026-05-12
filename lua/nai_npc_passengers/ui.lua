@@ -91,6 +91,8 @@ local function LoadLocalization()
         TryLoadLanguage("uzbek_latin", "uzbek_latin.lua")
     elseif lang == "uzbek_cyrillic" then
         TryLoadLanguage("uzbek_cyrillic", "uzbek_cyrillic.lua")
+    elseif lang == "mongolian" then
+        TryLoadLanguage("mongolian", "mongolian.lua")
     end
 end
 
@@ -166,6 +168,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("uzbek_latin", "uzbek_latin.lua")
     elseif lang == "uzbek_cyrillic" then
         TryLoadLanguage("uzbek_cyrillic", "uzbek_cyrillic.lua")
+    elseif lang == "mongolian" then
+        TryLoadLanguage("mongolian", "mongolian.lua")
     end
 
     -- Update global display name
@@ -2446,6 +2450,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/uz.png")
+        end
+
+        if LanguageExists("mongolian.lua") then
+            menu:AddOption("Монгол хэл", function()
+                self.currentLang = "MN"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_mongolian"))
+                RunConsoleCommand("nai_npc_ui_language", "mongolian")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/mn.png")
         end
 
         menu:SetWide(140)
