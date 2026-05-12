@@ -61,18 +61,12 @@ local function LoadLocalization()
         TryLoadLanguage("arabic", "arabic.lua")
     elseif lang == "ukrainian" then
         TryLoadLanguage("ukrainian", "ukrainian.lua")
-    elseif lang == "hindi" then
-        TryLoadLanguage("hindi", "hindi.lua")
-    elseif lang == "bengali" then
-        TryLoadLanguage("bengali", "bengali.lua")
     elseif lang == "indonesian" then
         TryLoadLanguage("indonesian", "indonesian.lua")
     elseif lang == "vietnamese" then
         TryLoadLanguage("vietnamese", "vietnamese.lua")
     elseif lang == "tagalog" then
         TryLoadLanguage("tagalog", "tagalog.lua")
-    elseif lang == "tamil" then
-        TryLoadLanguage("tamil", "tamil.lua")
     elseif lang == "korean" then
         TryLoadLanguage("korean", "korean.lua")
     elseif lang == "thai" then
@@ -126,18 +120,12 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("arabic", "arabic.lua")
     elseif lang == "ukrainian" then
         TryLoadLanguage("ukrainian", "ukrainian.lua")
-    elseif lang == "hindi" then
-        TryLoadLanguage("hindi", "hindi.lua")
-    elseif lang == "bengali" then
-        TryLoadLanguage("bengali", "bengali.lua")
     elseif lang == "indonesian" then
         TryLoadLanguage("indonesian", "indonesian.lua")
     elseif lang == "vietnamese" then
         TryLoadLanguage("vietnamese", "vietnamese.lua")
     elseif lang == "tagalog" then
         TryLoadLanguage("tagalog", "tagalog.lua")
-    elseif lang == "tamil" then
-        TryLoadLanguage("tamil", "tamil.lua")
     elseif lang == "korean" then
         TryLoadLanguage("korean", "korean.lua")
     elseif lang == "thai" then
@@ -2143,44 +2131,6 @@ local function OpenSettingsPanel()
             end):SetIcon("flags16/ua.png")
         end
 
-        if LanguageExists("hindi.lua") then
-            menu:AddOption("हिंदी", function()
-                self.currentLang = "HI"
-                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_hindi"))
-                RunConsoleCommand("nai_npc_ui_language", "hindi")
-                timer.Simple(0.15, function()
-                    ReloadLocalizationAndRefresh()
-                    timer.Simple(0.1, function()
-                        if IsValid(settingsFrame) then
-                            settingsFrame:Close()
-                            timer.Simple(0.15, function()
-                                RunConsoleCommand("nai_passengers_menu")
-                            end)
-                        end
-                    end)
-                end)
-            end):SetIcon("flags16/in.png")
-        end
-
-        if LanguageExists("bengali.lua") then
-            menu:AddOption("বাংলা", function()
-                self.currentLang = "BN"
-                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_bengali"))
-                RunConsoleCommand("nai_npc_ui_language", "bengali")
-                timer.Simple(0.15, function()
-                    ReloadLocalizationAndRefresh()
-                    timer.Simple(0.1, function()
-                        if IsValid(settingsFrame) then
-                            settingsFrame:Close()
-                            timer.Simple(0.15, function()
-                                RunConsoleCommand("nai_passengers_menu")
-                            end)
-                        end
-                    end)
-                end)
-            end):SetIcon("flags16/bd.png")
-        end
-
         if LanguageExists("indonesian.lua") then
             menu:AddOption("Bahasa Indonesia", function()
                 self.currentLang = "ID"
@@ -2236,25 +2186,6 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/ph.png")
-        end
-
-        if LanguageExists("tamil.lua") then
-            menu:AddOption("தமிழ்", function()
-                self.currentLang = "TA"
-                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_tamil"))
-                RunConsoleCommand("nai_npc_ui_language", "tamil")
-                timer.Simple(0.15, function()
-                    ReloadLocalizationAndRefresh()
-                    timer.Simple(0.1, function()
-                        if IsValid(settingsFrame) then
-                            settingsFrame:Close()
-                            timer.Simple(0.15, function()
-                                RunConsoleCommand("nai_passengers_menu")
-                            end)
-                        end
-                    end)
-                end)
-            end):SetIcon("flags16/in.png")
         end
 
         if LanguageExists("korean.lua") then
