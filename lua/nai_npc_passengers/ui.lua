@@ -1933,10 +1933,6 @@ local function OpenSettingsPanel()
         langBtn.currentLang = "AR"
     elseif currentLangCode == "ukrainian" then
         langBtn.currentLang = "UA"
-    elseif currentLangCode == "hindi" then
-        langBtn.currentLang = "HI"
-    elseif currentLangCode == "bengali" then
-        langBtn.currentLang = "BN"
     elseif currentLangCode == "indonesian" then
         langBtn.currentLang = "ID"
     else
