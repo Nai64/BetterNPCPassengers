@@ -75,6 +75,8 @@ local function LoadLocalization()
         TryLoadLanguage("italian", "italian.lua")
     elseif lang == "urdu" then
         TryLoadLanguage("urdu", "urdu.lua")
+    elseif lang == "toki_pona" then
+        TryLoadLanguage("toki_pona", "toki_pona.lua")
     end
 end
 
@@ -134,6 +136,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("italian", "italian.lua")
     elseif lang == "urdu" then
         TryLoadLanguage("urdu", "urdu.lua")
+    elseif lang == "toki_pona" then
+        TryLoadLanguage("toki_pona", "toki_pona.lua")
     end
 
     -- Update global display name
@@ -2262,6 +2266,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/pk.png")
+        end
+
+        if LanguageExists("toki_pona.lua") then
+            menu:AddOption("toki pona", function()
+                self.currentLang = "TP"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_toki_pona"))
+                RunConsoleCommand("nai_npc_ui_language", "toki_pona")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("icon16/world.png")
         end
 
         menu:SetWide(140)
