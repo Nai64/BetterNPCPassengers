@@ -79,6 +79,10 @@ local function LoadLocalization()
         TryLoadLanguage("toki_pona", "toki_pona.lua")
     elseif lang == "dutch" then
         TryLoadLanguage("dutch", "dutch.lua")
+    elseif lang == "kazakh_cyrillic" then
+        TryLoadLanguage("kazakh_cyrillic", "kazakh_cyrillic.lua")
+    elseif lang == "kazakh_latin" then
+        TryLoadLanguage("kazakh_latin", "kazakh_latin.lua")
     end
 end
 
@@ -142,6 +146,10 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("toki_pona", "toki_pona.lua")
     elseif lang == "dutch" then
         TryLoadLanguage("dutch", "dutch.lua")
+    elseif lang == "kazakh_cyrillic" then
+        TryLoadLanguage("kazakh_cyrillic", "kazakh_cyrillic.lua")
+    elseif lang == "kazakh_latin" then
+        TryLoadLanguage("kazakh_latin", "kazakh_latin.lua")
     end
 
     -- Update global display name
@@ -2308,6 +2316,44 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("flags16/nl.png")
+        end
+
+        if LanguageExists("kazakh_cyrillic.lua") then
+            menu:AddOption("Қазақ тілі (Кирилл)", function()
+                self.currentLang = "KZ"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_kazakh_cyrillic"))
+                RunConsoleCommand("nai_npc_ui_language", "kazakh_cyrillic")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/kz.png")
+        end
+
+        if LanguageExists("kazakh_latin.lua") then
+            menu:AddOption("Qazaq tili (Latın)", function()
+                self.currentLang = "KZ"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_kazakh_latin"))
+                RunConsoleCommand("nai_npc_ui_language", "kazakh_latin")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/kz.png")
         end
 
         menu:SetWide(140)
