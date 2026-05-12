@@ -77,6 +77,8 @@ local function LoadLocalization()
         TryLoadLanguage("urdu", "urdu.lua")
     elseif lang == "toki_pona" then
         TryLoadLanguage("toki_pona", "toki_pona.lua")
+    elseif lang == "dutch" then
+        TryLoadLanguage("dutch", "dutch.lua")
     end
 end
 
@@ -138,6 +140,8 @@ local function ReloadLocalizationAndRefresh()
         TryLoadLanguage("urdu", "urdu.lua")
     elseif lang == "toki_pona" then
         TryLoadLanguage("toki_pona", "toki_pona.lua")
+    elseif lang == "dutch" then
+        TryLoadLanguage("dutch", "dutch.lua")
     end
 
     -- Update global display name
@@ -2285,6 +2289,25 @@ local function OpenSettingsPanel()
                     end)
                 end)
             end):SetIcon("icon16/world.png")
+        end
+
+        if LanguageExists("dutch.lua") then
+            menu:AddOption("Nederlands", function()
+                self.currentLang = "NL"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_dutch"))
+                RunConsoleCommand("nai_npc_ui_language", "dutch")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/nl.png")
         end
 
         menu:SetWide(140)
