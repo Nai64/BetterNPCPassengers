@@ -34,24 +34,6 @@ local function LoadLocalization()
 
     if lang == "russian" then
         include("nai_npc_passengers/localization/russian.lua")
-    elseif lang == "chinese" then
-        include("nai_npc_passengers/localization/chinese.lua")
-    elseif lang == "spanish" then
-        include("nai_npc_passengers/localization/spanish.lua")
-    elseif lang == "turkish" then
-        include("nai_npc_passengers/localization/turkish.lua")
-    elseif lang == "portuguese" then
-        include("nai_npc_passengers/localization/portuguese.lua")
-    elseif lang == "german" then
-        include("nai_npc_passengers/localization/german.lua")
-    elseif lang == "french" then
-        include("nai_npc_passengers/localization/french.lua")
-    elseif lang == "japanese" then
-        include("nai_npc_passengers/localization/japanese.lua")
-    elseif lang == "arabic" then
-        include("nai_npc_passengers/localization/arabic.lua")
-    elseif lang == "ukrainian" then
-        include("nai_npc_passengers/localization/ukrainian.lua")
     end
 end
 
@@ -70,24 +52,6 @@ local function ReloadLocalizationAndRefresh()
 
     if lang == "russian" then
         include("nai_npc_passengers/localization/russian.lua")
-    elseif lang == "chinese" then
-        include("nai_npc_passengers/localization/chinese.lua")
-    elseif lang == "spanish" then
-        include("nai_npc_passengers/localization/spanish.lua")
-    elseif lang == "turkish" then
-        include("nai_npc_passengers/localization/turkish.lua")
-    elseif lang == "portuguese" then
-        include("nai_npc_passengers/localization/portuguese.lua")
-    elseif lang == "german" then
-        include("nai_npc_passengers/localization/german.lua")
-    elseif lang == "french" then
-        include("nai_npc_passengers/localization/french.lua")
-    elseif lang == "japanese" then
-        include("nai_npc_passengers/localization/japanese.lua")
-    elseif lang == "arabic" then
-        include("nai_npc_passengers/localization/arabic.lua")
-    elseif lang == "ukrainian" then
-        include("nai_npc_passengers/localization/ukrainian.lua")
     end
 
     -- Update global display name
@@ -1813,24 +1777,6 @@ local function OpenSettingsPanel()
     local currentLangCode = langConVar and langConVar:GetString() or "english"
     if currentLangCode == "russian" then
         langBtn.currentLang = "RU"
-    elseif currentLangCode == "chinese" then
-        langBtn.currentLang = "ZH"
-    elseif currentLangCode == "spanish" then
-        langBtn.currentLang = "ES"
-    elseif currentLangCode == "turkish" then
-        langBtn.currentLang = "TR"
-    elseif currentLangCode == "portuguese" then
-        langBtn.currentLang = "PT"
-    elseif currentLangCode == "german" then
-        langBtn.currentLang = "DE"
-    elseif currentLangCode == "french" then
-        langBtn.currentLang = "FR"
-    elseif currentLangCode == "japanese" then
-        langBtn.currentLang = "JP"
-    elseif currentLangCode == "arabic" then
-        langBtn.currentLang = "AR"
-    elseif currentLangCode == "ukrainian" then
-        langBtn.currentLang = "UA"
     else
         langBtn.currentLang = "EN"
     end
@@ -1901,178 +1847,14 @@ local function OpenSettingsPanel()
             end)
         end):SetIcon("flags16/ru.png")
 
-        menu:AddOption("中文", function()
-            self.currentLang = "ZH"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_chinese"))
+        menu:AddSpacer()
 
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "chinese")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/cn.png")
+        menu:AddOption("Add more languages...", function()
+            -- Open Steam Workshop page for language pack addon
+            steam.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=PLACEHOLDER")
+        end):SetIcon("icon16/add.png")
 
-        menu:AddOption("Español", function()
-            self.currentLang = "ES"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_spanish"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "spanish")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/es.png")
-
-        menu:AddOption("Türkçe", function()
-            self.currentLang = "TR"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_turkish"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "turkish")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/tr.png")
-
-        menu:AddOption("Português", function()
-            self.currentLang = "PT"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_portuguese"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "portuguese")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/pt.png")
-
-        menu:AddOption("Deutsch", function()
-            self.currentLang = "DE"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_german"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "german")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/de.png")
-
-        menu:AddOption("Français", function()
-            self.currentLang = "FR"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_french"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "french")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/fr.png")
-
-        menu:AddOption("日本語", function()
-            self.currentLang = "JP"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_japanese"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "japanese")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/jp.png")
-
-        menu:AddOption("العربية", function()
-            self.currentLang = "AR"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_arabic"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "arabic")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/ar.png")
-
-        menu:AddOption("Українська", function()
-            self.currentLang = "UA"
-            chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_ukrainian"))
-
-            -- Set ConVar first, then wait, then reload, then reopen
-            RunConsoleCommand("nai_npc_ui_language", "ukrainian")
-            timer.Simple(0.15, function()
-                ReloadLocalizationAndRefresh()
-                timer.Simple(0.1, function()
-                    if IsValid(settingsFrame) then
-                        settingsFrame:Close()
-                        timer.Simple(0.15, function()
-                            RunConsoleCommand("nai_passengers_menu")
-                        end)
-                    end
-                end)
-            end)
-        end):SetIcon("flags16/ua.png")
-
-        menu:SetWide(120)
+        menu:SetWide(140)
         menu:Open()
     end
     langBtn:SetTooltip(L("npcpassengers.tooltip.changelang"))
