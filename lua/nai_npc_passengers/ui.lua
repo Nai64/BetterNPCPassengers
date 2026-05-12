@@ -32,8 +32,37 @@ local function LoadLocalization()
     local langConVar = CreateClientConVar("nai_npc_ui_language", "english", true, false, "UI Language preference")
     local lang = langConVar:GetString()
 
+    -- Helper function to try loading from either main addon or language pack
+    local function TryLoadLanguage(langName, fileName)
+        if file.Exists("lua/nai_npc_passengers/localization/" .. fileName, "GAME") then
+            include("nai_npc_passengers/localization/" .. fileName)
+        elseif file.Exists("lua/nai_npc_passengers_languages/localization/" .. fileName, "GAME") then
+            include("nai_npc_passengers_languages/localization/" .. fileName)
+        end
+    end
+
     if lang == "russian" then
-        include("nai_npc_passengers/localization/russian.lua")
+        TryLoadLanguage("russian", "russian.lua")
+    elseif lang == "chinese" then
+        TryLoadLanguage("chinese", "chinese.lua")
+    elseif lang == "spanish" then
+        TryLoadLanguage("spanish", "spanish.lua")
+    elseif lang == "turkish" then
+        TryLoadLanguage("turkish", "turkish.lua")
+    elseif lang == "portuguese" then
+        TryLoadLanguage("portuguese", "portuguese.lua")
+    elseif lang == "german" then
+        TryLoadLanguage("german", "german.lua")
+    elseif lang == "french" then
+        TryLoadLanguage("french", "french.lua")
+    elseif lang == "japanese" then
+        TryLoadLanguage("japanese", "japanese.lua")
+    elseif lang == "arabic" then
+        TryLoadLanguage("arabic", "arabic.lua")
+    elseif lang == "ukrainian" then
+        TryLoadLanguage("ukrainian", "ukrainian.lua")
+    elseif lang == "hindi" then
+        TryLoadLanguage("hindi", "hindi.lua")
     end
 end
 
@@ -50,8 +79,37 @@ local function ReloadLocalizationAndRefresh()
     local langConVar = GetConVar("nai_npc_ui_language")
     local lang = langConVar and langConVar:GetString() or "english"
 
+    -- Helper function to try loading from either main addon or language pack
+    local function TryLoadLanguage(langName, fileName)
+        if file.Exists("lua/nai_npc_passengers/localization/" .. fileName, "GAME") then
+            include("nai_npc_passengers/localization/" .. fileName)
+        elseif file.Exists("lua/nai_npc_passengers_languages/localization/" .. fileName, "GAME") then
+            include("nai_npc_passengers_languages/localization/" .. fileName)
+        end
+    end
+
     if lang == "russian" then
-        include("nai_npc_passengers/localization/russian.lua")
+        TryLoadLanguage("russian", "russian.lua")
+    elseif lang == "chinese" then
+        TryLoadLanguage("chinese", "chinese.lua")
+    elseif lang == "spanish" then
+        TryLoadLanguage("spanish", "spanish.lua")
+    elseif lang == "turkish" then
+        TryLoadLanguage("turkish", "turkish.lua")
+    elseif lang == "portuguese" then
+        TryLoadLanguage("portuguese", "portuguese.lua")
+    elseif lang == "german" then
+        TryLoadLanguage("german", "german.lua")
+    elseif lang == "french" then
+        TryLoadLanguage("french", "french.lua")
+    elseif lang == "japanese" then
+        TryLoadLanguage("japanese", "japanese.lua")
+    elseif lang == "arabic" then
+        TryLoadLanguage("arabic", "arabic.lua")
+    elseif lang == "ukrainian" then
+        TryLoadLanguage("ukrainian", "ukrainian.lua")
+    elseif lang == "hindi" then
+        TryLoadLanguage("hindi", "hindi.lua")
     end
 
     -- Update global display name
@@ -1777,6 +1835,26 @@ local function OpenSettingsPanel()
     local currentLangCode = langConVar and langConVar:GetString() or "english"
     if currentLangCode == "russian" then
         langBtn.currentLang = "RU"
+    elseif currentLangCode == "chinese" then
+        langBtn.currentLang = "ZH"
+    elseif currentLangCode == "spanish" then
+        langBtn.currentLang = "ES"
+    elseif currentLangCode == "turkish" then
+        langBtn.currentLang = "TR"
+    elseif currentLangCode == "portuguese" then
+        langBtn.currentLang = "PT"
+    elseif currentLangCode == "german" then
+        langBtn.currentLang = "DE"
+    elseif currentLangCode == "french" then
+        langBtn.currentLang = "FR"
+    elseif currentLangCode == "japanese" then
+        langBtn.currentLang = "JP"
+    elseif currentLangCode == "arabic" then
+        langBtn.currentLang = "AR"
+    elseif currentLangCode == "ukrainian" then
+        langBtn.currentLang = "UA"
+    elseif currentLangCode == "hindi" then
+        langBtn.currentLang = "HI"
     else
         langBtn.currentLang = "EN"
     end
@@ -1847,12 +1925,202 @@ local function OpenSettingsPanel()
             end)
         end):SetIcon("flags16/ru.png")
 
-        menu:AddSpacer()
+        -- Helper function to check if language file exists
+        local function LanguageExists(fileName)
+            return file.Exists("lua/nai_npc_passengers/localization/" .. fileName, "GAME") or
+                   file.Exists("lua/nai_npc_passengers_languages/localization/" .. fileName, "GAME")
+        end
 
-        menu:AddOption("Add more languages...", function()
-            -- Open Steam Workshop page for language pack addon
-            steam.OpenURL("https://steamcommunity.com/sharedfiles/filedetails/?id=PLACEHOLDER")
-        end):SetIcon("icon16/add.png")
+        -- Add additional languages if files exist
+        if LanguageExists("chinese.lua") then
+            menu:AddOption("中文", function()
+                self.currentLang = "ZH"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_chinese"))
+                RunConsoleCommand("nai_npc_ui_language", "chinese")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/cn.png")
+        end
+
+        if LanguageExists("spanish.lua") then
+            menu:AddOption("Español", function()
+                self.currentLang = "ES"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_spanish"))
+                RunConsoleCommand("nai_npc_ui_language", "spanish")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/es.png")
+        end
+
+        if LanguageExists("turkish.lua") then
+            menu:AddOption("Türkçe", function()
+                self.currentLang = "TR"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_turkish"))
+                RunConsoleCommand("nai_npc_ui_language", "turkish")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/tr.png")
+        end
+
+        if LanguageExists("portuguese.lua") then
+            menu:AddOption("Português", function()
+                self.currentLang = "PT"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_portuguese"))
+                RunConsoleCommand("nai_npc_ui_language", "portuguese")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/pt.png")
+        end
+
+        if LanguageExists("german.lua") then
+            menu:AddOption("Deutsch", function()
+                self.currentLang = "DE"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_german"))
+                RunConsoleCommand("nai_npc_ui_language", "german")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/de.png")
+        end
+
+        if LanguageExists("french.lua") then
+            menu:AddOption("Français", function()
+                self.currentLang = "FR"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_french"))
+                RunConsoleCommand("nai_npc_ui_language", "french")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/fr.png")
+        end
+
+        if LanguageExists("japanese.lua") then
+            menu:AddOption("日本語", function()
+                self.currentLang = "JP"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_japanese"))
+                RunConsoleCommand("nai_npc_ui_language", "japanese")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/jp.png")
+        end
+
+        if LanguageExists("arabic.lua") then
+            menu:AddOption("العربية", function()
+                self.currentLang = "AR"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_arabic"))
+                RunConsoleCommand("nai_npc_ui_language", "arabic")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/ar.png")
+        end
+
+        if LanguageExists("ukrainian.lua") then
+            menu:AddOption("Українська", function()
+                self.currentLang = "UA"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_ukrainian"))
+                RunConsoleCommand("nai_npc_ui_language", "ukrainian")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/ua.png")
+        end
+
+        if LanguageExists("hindi.lua") then
+            menu:AddOption("हिंदी", function()
+                self.currentLang = "HI"
+                chat.AddText(Color(100, 200, 255), "[Better NPC Passengers] ", Color(255, 255, 255), L("npcpassengers.lang.changed_hindi"))
+                RunConsoleCommand("nai_npc_ui_language", "hindi")
+                timer.Simple(0.15, function()
+                    ReloadLocalizationAndRefresh()
+                    timer.Simple(0.1, function()
+                        if IsValid(settingsFrame) then
+                            settingsFrame:Close()
+                            timer.Simple(0.15, function()
+                                RunConsoleCommand("nai_passengers_menu")
+                            end)
+                        end
+                    end)
+                end)
+            end):SetIcon("flags16/in.png")
+        end
 
         menu:SetWide(140)
         menu:Open()
