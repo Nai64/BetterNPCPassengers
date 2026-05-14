@@ -6394,7 +6394,7 @@ net.Receive("NPCPassengers_OpenTaxiMenu", function()
                 return true
             end
         end
-        return self.Draggable and self:Draggable.OnMousePressed(self, code) or false
+        return false
     end
 
     -- Content panel
