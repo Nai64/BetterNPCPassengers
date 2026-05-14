@@ -13,4 +13,5 @@ if SERVER then
     include("nai_npc_passengers/vj_base.lua")
     include("nai_npc_passengers/lvs_turret.lua")
     include("nai_npc_passengers/lvs_driver.lua")
+    include("nai_npc_passengers/decent_vehicle_taxi.lua")
 end

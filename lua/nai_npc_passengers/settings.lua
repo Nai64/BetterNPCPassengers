@@ -63,6 +63,10 @@ NPCPassengers.cv_auto_join_range = CreateConVar("nai_npc_auto_join_range", "500"
 NPCPassengers.cv_auto_join_max = CreateConVar("nai_npc_auto_join_max", "4", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Max NPCs to auto-join per vehicle")
 NPCPassengers.cv_auto_join_squad_only = CreateConVar("nai_npc_auto_join_squad_only", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Only squad members auto-join (requires squad name)")
 
+-- Decent Vehicle Taxi settings
+NPCPassengers.cv_taxi_enabled = CreateConVar("nai_npc_taxi_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC taxi integration (requires Decent Vehicle addon)")
+NPCPassengers.cv_taxi_chance = CreateConVar("nai_npc_taxi_chance", "0.1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Chance (0-1) for NPC to use taxi instead of regular vehicle")
+
 -- NPC Speech settings
 NPCPassengers.cv_speech_enabled = CreateConVar("nai_npc_speech_enabled", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Enable NPC speech while in vehicles")
 

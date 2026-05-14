@@ -3635,7 +3635,14 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                         break
                     end
                 end
-                if isBlacklisted then continue end
+                if isBlacklisted then continue
+
+                -- Check if NPC should use taxi instead (if Decent Vehicle is loaded)
+                if NPCPassengers.IsDecentVehicleLoaded and NPCPassengers.IsDecentVehicleLoaded() then
+                    if NPCPassengers.SendNPCtoTaxiStation and NPCPassengers.SendNPCtoTaxiStation(npc) then
+                        continue -- NPC is going to taxi station, skip regular vehicle boarding
+                    end
+                end
 
                 -- Check if whitelisted (bypasses disposition checks)
                 local isWhitelisted = false
