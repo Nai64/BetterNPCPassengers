@@ -25,21 +25,68 @@ function TOOL.BuildCPanel(panel)
         MaxLength = 50
     })
 
-    -- Use PropSelect for visual model selection
+    -- Model selection with icon preview
+    local modelLabel = vgui.Create("DLabel", panel)
+    modelLabel:SetText("Model:")
+    modelLabel:Dock(TOP)
+    modelLabel:DockMargin(0, 10, 0, 5)
+    panel:AddItem(modelLabel)
+
+    local modelComboBox = vgui.Create("DComboBox", panel)
+    modelComboBox:SetTall(25)
+    modelComboBox:Dock(TOP)
+
     local models = {
-        { Model = "models/props_combine/combine_barricade_short02a.mdl" },
-        { Model = "models/props_c17/concrete_barrier001a.mdl" },
-        { Model = "models/props_c17/lockers.mdl" },
-        { Model = "models/props_c17/truss01a.mdl" },
-        { Model = "models/props_junk/trafficcone001a.mdl" }
+        { name = "Combine Barricade", model = "models/props_combine/combine_barricade_short02a.mdl" },
+        { name = "Concrete Barrier", model = "models/props_c17/concrete_barrier001a.mdl" },
+        { name = "Lockers", model = "models/props_c17/lockers.mdl" },
+        { name = "Truss", model = "models/props_c17/truss01a.mdl" },
+        { name = "Traffic Cone", model = "models/props_junk/trafficcone001a.mdl" }
     }
 
-    panel:AddControl("PropSelect", {
-        Label = "Model",
-        ConVar = "npcpassengers_taxi_station_model",
-        Height = 5,
-        Models = models
-    })
+    for _, data in ipairs(models) do
+        modelComboBox:AddChoice(data.name, data.model)
+    end
+
+    -- Set initial value from ConVar
+    local currentModel = "models/props_combine/combine_barricade_short02a.mdl"
+    if CLIENT then
+        local cv = GetConVar("npcpassengers_taxi_station_model")
+        if cv then
+            currentModel = cv:GetString()
+        end
+    end
+
+    for _, data in ipairs(models) do
+        if data.model == currentModel then
+            modelComboBox:SetValue(data.name)
+            break
+        end
+    end
+
+    modelComboBox.OnSelect = function(index, value, data)
+        RunConsoleCommand("npcpassengers_taxi_station_model", data)
+    end
+
+    panel:AddItem(modelComboBox)
+
+    -- Model preview icon (client only)
+    if CLIENT then
+        local modelIcon = vgui.Create("SpawnIcon", panel)
+        modelIcon:SetSize(128, 128)
+        modelIcon:Dock(TOP)
+        modelIcon:DockMargin(0, 10, 0, 10)
+        modelIcon:SetModel(currentModel)
+
+        -- Update icon when ConVar changes
+        cvars.AddChangeCallback("npcpassengers_taxi_station_model", function(name, old, new)
+            if IsValid(modelIcon) then
+                modelIcon:SetModel(new)
+            end
+        end, "taxi_station_model_update")
+
+        panel:AddItem(modelIcon)
+    end
 
     panel:AddControl("Label", {
         Text = "Left Click: Place station\nRight Click: Remove station\nReload: Remove all stations"
