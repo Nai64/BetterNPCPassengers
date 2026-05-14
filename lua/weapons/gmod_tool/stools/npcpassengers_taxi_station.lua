@@ -79,13 +79,9 @@ function TOOL:LeftClick(trace)
 
     -- Create taxi station
     if NPCPassengers and NPCPassengers.CreateTaxiStation then
-        local station = NPCPassengers.CreateTaxiStation(trace.HitPos, name ~= "" and name or nil)
+        local station = NPCPassengers.CreateTaxiStation(trace.HitPos, name ~= "" and name or nil, model)
 
         if IsValid(station) then
-            if model and model ~= "" then
-                station:SetModel(model)
-            end
-
             -- Play sound effect
             ply:EmitSound("buttons/button14.wav")
 
@@ -118,7 +114,13 @@ function TOOL:RightClick(trace)
     -- Check if clicking on a taxi station
     if trace.Entity and trace.Entity.IsTaxiStation then
         local name = trace.Entity.StationName or "Unknown"
-        trace.Entity:Remove()
+
+        -- Use the proper remove function that also removes from database
+        if NPCPassengers and NPCPassengers.RemoveTaxiStation then
+            NPCPassengers.RemoveTaxiStation(trace.Entity)
+        else
+            trace.Entity:Remove()
+        end
 
         -- Play sound effect
         ply:EmitSound("buttons/button15.wav")
@@ -135,18 +137,12 @@ function TOOL:Reload(trace)
 
     local ply = self:GetOwner()
 
-    -- Remove all taxi stations
-    if NPCPassengers and NPCPassengers.FindTaxiStations then
+    -- Remove all taxi stations for current map
+    if NPCPassengers and NPCPassengers.ClearAllTaxiStations then
         local stations = NPCPassengers.FindTaxiStations()
-        local count = 0
+        local count = #stations
 
-        for _, station in ipairs(stations) do
-            if IsValid(station) and station.IsTaxiStation then
-                local name = station.StationName or "Unknown"
-                station:Remove()
-                count = count + 1
-            end
-        end
+        NPCPassengers.ClearAllTaxiStations()
 
         -- Play sound effect
         if count > 0 then

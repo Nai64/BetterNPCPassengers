@@ -14,7 +14,8 @@ local pairs = pairs
 local ipairs = ipairs
 
 local taxiPassengers = {} -- NPC passengers waiting for taxis
-local taxiStations = {} -- Taxi station entities
+local taxiStations = {} -- Taxi station entities (current map only)
+local persistedStations = {} -- Persisted station data from SQL
 
 -- Random station names
 local stationNouns = {
@@ -39,10 +40,90 @@ local function GetRandomStationName()
         stationNouns[math.random(#stationNouns)])
 end
 
--- Create taxi station entity
-local function CreateTaxiStation(pos, name)
+-- SQL Database for taxi stations
+local DB_NAME = "npc_passengers_taxi"
+local STATION_TABLE = "taxi_stations"
+
+local function InitializeDatabase()
+    if not sql.TableExists(DB_NAME) then
+        sql.Query("CREATE TABLE " .. DB_NAME .. " (id INTEGER PRIMARY KEY, map TEXT, name TEXT, pos_x REAL, pos_y REAL, pos_z REAL, ang_y REAL, ang_p REAL, ang_r REAL, model TEXT)")
+    end
+end
+
+-- Save station to database
+local function SaveStationToDB(station)
+    if not IsValid(station) then return end
+
+    local pos = station:GetPos()
+    local ang = station:GetAngles()
+    local map = game.GetMap()
+
+    -- Check if station already exists in DB
+    local existing = sql.Query("SELECT id FROM " .. DB_NAME .. " WHERE map = " .. sql.SQLStr(map) .. " AND name = " .. sql.SQLStr(station.StationName or ""))
+
+    if existing and #existing > 0 then
+        -- Update existing station
+        sql.Query("UPDATE " .. DB_NAME .. " SET pos_x = " .. pos.x .. ", pos_y = " .. pos.y .. ", pos_z = " .. pos.z .. ", ang_y = " .. ang.y .. ", ang_p = " .. ang.p .. ", ang_r = " .. ang.r .. ", model = " .. sql.SQLStr(station:GetModel()) .. " WHERE id = " .. existing[1].id)
+    else
+        -- Insert new station
+        sql.Query("INSERT INTO " .. DB_NAME .. " (map, name, pos_x, pos_y, pos_z, ang_y, ang_p, ang_r, model) VALUES (" .. sql.SQLStr(map) .. ", " .. sql.SQLStr(station.StationName or "") .. ", " .. pos.x .. ", " .. pos.y .. ", " .. pos.z .. ", " .. ang.y .. ", " .. ang.p .. ", " .. ang.r .. ", " .. sql.SQLStr(station:GetModel()) .. ")")
+    end
+end
+
+-- Remove station from database
+local function RemoveStationFromDB(station)
+    if not IsValid(station) then return end
+
+    local map = game.GetMap()
+    sql.Query("DELETE FROM " .. DB_NAME .. " WHERE map = " .. sql.SQLStr(map) .. " AND name = " .. sql.SQLStr(station.StationName or ""))
+end
+
+-- Load stations from database for current map
+local function LoadStationsFromDB()
+    InitializeDatabase()
+
+    local map = game.GetMap()
+    local results = sql.Query("SELECT * FROM " .. DB_NAME .. " WHERE map = " .. sql.SQLStr(map))
+
+    if not results or #results == 0 then return {} end
+
+    local stations = {}
+    for _, row in ipairs(results) do
+        stations[#stations + 1] = {
+            name = row.name,
+            pos = Vector(row.pos_x, row.pos_y, row.pos_z),
+            ang = Angle(row.ang_p, row.ang_y, row.ang_r),
+            model = row.model
+        }
+    end
+
+    return stations
+end
+
+-- Restore station from database
+local function RestoreStation(stationData)
     local station = ents.Create("prop_physics")
-    station:SetModel("models/props_c17/streetsign004c.mdl")
+    station:SetModel(stationData.model or "models/props_c17/streetsign004c.mdl")
+    station:SetPos(stationData.pos)
+    station:SetAngles(stationData.ang)
+    station:Spawn()
+    station:SetMoveType(MOVETYPE_NONE)
+    station:SetSolid(SOLID_VPHYSICS)
+    station:SetUseType(SIMPLE_USE)
+    station:PhysicsInitStatic(SOLID_VPHYSICS)
+    station:SetCollisionGroup(COLLISION_GROUP_WEAPON)
+
+    station.IsTaxiStation = true
+    station.StationName = stationData.name
+
+    taxiStations[#taxiStations + 1] = station
+    return station
+end
+
+-- Create taxi station entity
+local function CreateTaxiStation(pos, name, model)
+    local station = ents.Create("prop_physics")
+    station:SetModel(model or "models/props_c17/streetsign004c.mdl")
     station:SetPos(pos)
     station:SetAngles(Angle(0, 0, 0))
     station:Spawn()
@@ -56,6 +137,10 @@ local function CreateTaxiStation(pos, name)
     station.StationName = name or GetRandomStationName()
 
     taxiStations[#taxiStations + 1] = station
+
+    -- Save to database
+    SaveStationToDB(station)
+
     return station
 end
 
@@ -63,14 +148,33 @@ end
 local function EnsureTaxiStations()
     if #taxiStations > 0 then return taxiStations end
 
-    -- Try to find existing taxi stations
+    -- Try to find existing taxi stations in the map
     for _, ent in ipairs(ents.GetAll()) do
         if ent.IsTaxiStation then
             taxiStations[#taxiStations + 1] = ent
         end
     end
 
-    -- If no stations exist, create some at spawn points
+    -- Load stations from database for current map
+    local savedStations = LoadStationsFromDB()
+    if #savedStations > 0 then
+        for _, stationData in ipairs(savedStations) do
+            -- Check if station already exists in map (avoid duplicates)
+            local exists = false
+            for _, existingStation in ipairs(taxiStations) do
+                if IsValid(existingStation) and existingStation.StationName == stationData.name then
+                    exists = true
+                    break
+                end
+            end
+
+            if not exists then
+                RestoreStation(stationData)
+            end
+        end
+    end
+
+    -- If still no stations exist, create some at spawn points
     if #taxiStations == 0 then
         local spawnPoints = spawnpoints or {}
         if #spawnPoints > 0 then
@@ -138,16 +242,53 @@ local function GetTaxiStationByName(name)
     return nil
 end
 
--- Get all taxi station names
+-- Get all taxi station names (only valid stations in current map)
 local function GetAllTaxiStationNames()
     EnsureTaxiStations()
     local names = {}
     for _, station in ipairs(taxiStations) do
-        if station.StationName then
+        if IsValid(station) and station.StationName then
             names[#names + 1] = station.StationName
         end
     end
     return names
+end
+
+-- Remove taxi station (from both map and database)
+function NPCPassengers.RemoveTaxiStation(station)
+    if not IsValid(station) then return end
+
+    -- Remove from database
+    RemoveStationFromDB(station)
+
+    -- Remove from local table
+    for i, s in ipairs(taxiStations) do
+        if s == station then
+            table.remove(taxiStations, i)
+            break
+        end
+    end
+
+    -- Remove entity
+    station:Remove()
+end
+
+-- Clear all taxi stations for current map
+function NPCPassengers.ClearAllTaxiStations()
+    local map = game.GetMap()
+
+    -- Remove from database
+    sql.Query("DELETE FROM " .. DB_NAME .. " WHERE map = " .. sql.SQLStr(map))
+
+    -- Remove all entities
+    for _, station in ipairs(taxiStations) do
+        if IsValid(station) then
+            station:Remove()
+        end
+    end
+
+    -- Clear local table
+    taxiStations = {}
 end
 
 -- Assign NPC as taxi passenger (from context menu)
@@ -328,6 +469,8 @@ NPCPassengers.GetNearestTaxiStation = GetNearestTaxiStation
 NPCPassengers.GetTaxiStationByName = GetTaxiStationByName
 NPCPassengers.GetAllTaxiStationNames = GetAllTaxiStationNames
 NPCPassengers.CreateTaxiStation = CreateTaxiStation
+NPCPassengers.RemoveTaxiStation = NPCPassengers.RemoveTaxiStation
+NPCPassengers.ClearAllTaxiStations = NPCPassengers.ClearAllTaxiStations
 NPCPassengers.AssignPassenger = NPCPassengers.AssignPassenger
 
 -- Create global reference for main.lua
