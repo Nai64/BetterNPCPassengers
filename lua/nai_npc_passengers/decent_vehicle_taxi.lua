@@ -381,9 +381,46 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                 end
             end
         elseif data.state == "waiting_for_taxi" then
-            -- Wait for player to arrive with vehicle
+            -- Check for nearby player vehicles to pick up NPC
+            local station = data.station
+            if not IsValid(station) then
+                taxiPassengers[npc] = nil
+                continue
+            end
+
+            local npcPos = npc:GetPos()
+            local pickupRadius = 250
+
+            -- Check all players for nearby vehicles
+            for _, ply in ipairs(player.GetAll()) do
+                if not IsValid(ply) then continue end
+                local vehicle = ply:GetVehicle()
+                if not IsValid(vehicle) then continue end
+
+                local vehiclePos = vehicle:GetPos()
+                local dist = vehiclePos:Distance(npcPos)
+
+                if dist < pickupRadius then
+                    -- Reset NPC schedule so they can enter vehicle
+                    npc:SetSchedule(SCHED_NONE)
+
+                    -- Attach NPC to vehicle
+                    if NPCPassengers and NPCPassengers.AttachPassenger then
+                        NPCPassengers.AttachPassenger(npc, vehicle)
+                    end
+
+                    -- Update passenger state
+                    data.state = "in_taxi"
+                    data.vehicle = vehicle
+                    data.player = ply
+
+                    ply:ChatPrint("Picked up taxi passenger! Destination: " .. (data.destination.StationName or "Unknown"))
+                    break
+                end
+            end
+
+            -- Timeout waiting for taxi
             if curTime - data.waitStartTime > 120 then
-                -- Timeout waiting for taxi
                 taxiPassengers[npc] = nil
             end
         elseif data.state == "in_taxi" then
@@ -423,41 +460,6 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                     ply:ChatPrint("Taxi passenger dropped off at " .. destination.StationName)
                 end
             end
-        end
-    end
-end)
-
--- Player enters vehicle near station - pick up waiting passengers
-hook.Add("PlayerEnteredVehicle", "NPCPassengers_TaxiPickup", function(ply, vehicle, role)
-    if not NPCPassengers.IsAddonEnabled() then return end
-
-    local station = GetNearestTaxiStation(vehicle)
-    if not IsValid(station) then return end
-
-    local vehiclePos = vehicle:GetPos()
-    local pickupRadius = 200
-
-    -- Find waiting passengers at this station
-    for npc, data in pairs(taxiPassengers) do
-        if not IsValid(npc) then continue end
-        if data.state ~= "waiting_for_taxi" then continue end
-        if data.station ~= station then continue end
-
-        local npcPos = npc:GetPos()
-        local dist = vehiclePos:Distance(npcPos)
-
-        if dist < pickupRadius then
-            -- Attach NPC to vehicle
-            if NPCPassengers and NPCPassengers.AttachPassenger then
-                NPCPassengers.AttachPassenger(npc, vehicle)
-            end
-
-            -- Update passenger state
-            data.state = "in_taxi"
-            data.vehicle = vehicle
-            data.player = ply
-
-            ply:ChatPrint("Picked up taxi passenger! Destination: " .. (data.destination.StationName or "Unknown"))
         end
     end
 end)
