@@ -6369,11 +6369,11 @@ net.Receive("NPCPassengers_OpenTaxiMenu", function()
     local label = vgui.Create("DLabel", frame)
     label:SetText("Select destination for NPC:")
     label:Dock(TOP)
-    label:SetMargin(10, 10, 10, 5)
+    label:DockMargin(10, 10, 10, 5)
 
     local combo = vgui.Create("DComboBox", frame)
     combo:Dock(TOP)
-    combo:SetMargin(10, 5, 10, 5)
+    combo:DockMargin(10, 5, 10, 5)
     for _, name in ipairs(stationNames) do
         combo:AddChoice(name)
     end
@@ -6381,7 +6381,7 @@ net.Receive("NPCPassengers_OpenTaxiMenu", function()
     local button = vgui.Create("DButton", frame)
     button:SetText("Send to Taxi")
     button:Dock(TOP)
-    button:SetMargin(10, 5, 10, 10)
+    button:DockMargin(10, 5, 10, 10)
     button.DoClick = function()
         local selected = combo:GetValue()
         if selected and selected ~= "" then
