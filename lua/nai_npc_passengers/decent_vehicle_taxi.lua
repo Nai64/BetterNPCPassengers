@@ -69,13 +69,15 @@ local function CreateTaxiDriver(pos, vehicle)
     driver:SetModel("models/player/odessa.mdl")
     driver:Give("weapon_pistol")
     driver:SetHealth(100)
-    
+
     driver.IsTaxiDriver = true
     driver.TaxiVehicle = vehicle
     driver.CurrentPassenger = nil
     driver.DestinationStation = nil
-    driver.State = "idle" -- idle, picking_up, transporting, returning
-    
+    driver.State = "idle" -- idle, finding_vehicle, picking_up, transporting, returning
+    driver.PendingPassenger = nil
+    driver.PendingDestination = nil
+
     taxiDrivers[driver] = true
     return driver
 end
@@ -334,27 +336,38 @@ function NPCPassengers.FindOrCreateTaxiDriver(station)
     -- Find idle taxi driver near station
     for driver, _ in pairs(taxiDrivers) do
         if not IsValid(driver) then continue end
-        if driver.State == "idle" then
+        if driver.State == "idle" and IsValid(driver.TaxiVehicle) then
             local dist = driver:GetPos():Distance(station:GetPos())
-            if dist < 500 then
+            if dist < 1000 then
                 return driver
             end
         end
     end
-    
+
     -- Create new taxi driver if none available
     local driver = CreateTaxiDriver(station:GetPos() + Vector(0, 100, 0), nil)
+    driver.State = "finding_vehicle"
     return driver
 end
 
 -- Assign passenger to taxi driver
 function NPCPassengers.AssignPassengerToTaxi(driver, npc, destination)
     if not IsValid(driver) or not IsValid(npc) then return end
-    
+    if not IsValid(destination) then return end
+
+    -- Check if driver has a vehicle, if not, find one first
+    if not IsValid(driver.TaxiVehicle) then
+        driver.State = "finding_vehicle"
+        -- Set the assignment data for when vehicle is found
+        driver.PendingPassenger = npc
+        driver.PendingDestination = destination
+        return
+    end
+
     driver.CurrentPassenger = npc
     driver.DestinationStation = destination
     driver.State = "picking_up"
-    
+
     -- Update passenger state
     if taxiPassengers[npc] then
         taxiPassengers[npc].state = "assigned_to_taxi"
@@ -365,11 +378,69 @@ end
 -- Update taxi driver behavior
 function NPCPassengers.UpdateTaxiDriver(driver, curTime)
     if driver.State == "idle" then
-        -- Idle behavior - wander near station
-        if curTime % 5 < 0.1 then
-            driver:SetSchedule(SCHED_IDLE_WANDER)
+        -- Check if driver has a vehicle, if not, find one
+        if not IsValid(driver.TaxiVehicle) then
+            driver.State = "finding_vehicle"
+        else
+            -- Idle behavior - wander near station/vehicle
+            if curTime % 5 < 0.1 then
+                driver:SetSchedule(SCHED_IDLE_WANDER)
+            end
         end
-        
+
+    elseif driver.State == "finding_vehicle" then
+        -- Find a nearby vehicle
+        local driverPos = driver:GetPos()
+        local nearestVehicle = nil
+        local nearestDist = math.huge
+
+        for _, ent in ipairs(ents.FindInSphere(driverPos, 2000, driver)) do
+            if IsValid(ent) and ent:IsVehicle() then
+                local dist = driverPos:Distance(ent:GetPos())
+                -- Check if vehicle is already being used by another taxi driver
+                local alreadyUsed = false
+                for otherDriver, _ in pairs(taxiDrivers) do
+                    if IsValid(otherDriver) and otherDriver ~= driver and otherDriver.TaxiVehicle == ent then
+                        alreadyUsed = true
+                        break
+                    end
+                end
+
+                if not alreadyUsed and dist < nearestDist then
+                    nearestDist = dist
+                    nearestVehicle = ent
+                end
+            end
+        end
+
+        if IsValid(nearestVehicle) and nearestDist < 500 then
+            -- Enter the vehicle
+            driver.TaxiVehicle = nearestVehicle
+            driver:SetPos(nearestVehicle:GetPos() + Vector(0, 0, 50))
+            driver:EnterVehicle(nearestVehicle)
+
+            -- If there's a pending passenger assignment, activate it
+            if IsValid(driver.PendingPassenger) and IsValid(driver.PendingDestination) then
+                driver.CurrentPassenger = driver.PendingPassenger
+                driver.DestinationStation = driver.PendingDestination
+                driver.State = "picking_up"
+                driver.PendingPassenger = nil
+                driver.PendingDestination = nil
+
+                -- Update passenger state
+                if taxiPassengers[driver.CurrentPassenger] then
+                    taxiPassengers[driver.CurrentPassenger].state = "assigned_to_taxi"
+                    taxiPassengers[driver.CurrentPassenger].driver = driver
+                end
+            else
+                driver.State = "idle"
+            end
+        elseif nearestDist > 500 then
+            -- Walk towards vehicle
+            driver:SetLastPosition(nearestVehicle:GetPos())
+            driver:SetSchedule(SCHED_FORCED_GO)
+        end
+
     elseif driver.State == "picking_up" then
         -- Drive to passenger location
         local passenger = driver.CurrentPassenger
@@ -378,71 +449,105 @@ function NPCPassengers.UpdateTaxiDriver(driver, curTime)
             driver.CurrentPassenger = nil
             return
         end
-        
+
+        if not IsValid(driver.TaxiVehicle) then
+            driver.State = "finding_vehicle"
+            return
+        end
+
+        -- Check if driver is in the vehicle
+        local driverSeat = driver:GetVehicle()
+        if not IsValid(driverSeat) or driverSeat ~= driver.TaxiVehicle then
+            driver:EnterVehicle(driver.TaxiVehicle)
+        end
+
         local passengerPos = passenger:GetPos()
-        local driverPos = driver:GetPos()
-        local dist = driverPos:Distance(passengerPos)
-        
-        if dist < 100 then
+        local vehiclePos = driver.TaxiVehicle:GetPos()
+        local dist = vehiclePos:Distance(passengerPos)
+
+        if dist < 200 then
             -- Arrived at passenger, pick them up
             driver.State = "transporting"
-            
-            -- Make passenger enter vehicle (if driver has one)
-            if IsValid(driver.TaxiVehicle) then
+
+            -- Attach passenger to vehicle
+            if NPCPassengers and NPCPassengers.AttachPassenger then
                 NPCPassengers.AttachPassenger(passenger, driver.TaxiVehicle)
             end
+
+            -- Update passenger state
+            if taxiPassengers[passenger] then
+                taxiPassengers[passenger].state = "in_taxi"
+                taxiPassengers[passenger].driver = driver
+            end
         else
-            -- Move towards passenger
-            driver:SetLastPosition(passengerPos)
-            driver:SetSchedule(SCHED_FORCED_GO)
+            -- Drive towards passenger
+            driver.TaxiVehicle:SetPos(vehiclePos + (passengerPos - vehiclePos):GetNormal() * 100)
         end
-        
+
     elseif driver.State == "transporting" then
         -- Drive to destination station
         local destination = driver.DestinationStation
         if not IsValid(destination) then
-            driver.State = "idle"
+            driver.State = "returning"
             driver.DestinationStation = nil
             return
         end
-        
+
+        if not IsValid(driver.TaxiVehicle) then
+            driver.State = "finding_vehicle"
+            return
+        end
+
+        -- Check if driver is in the vehicle
+        local driverSeat = driver:GetVehicle()
+        if not IsValid(driverSeat) or driverSeat ~= driver.TaxiVehicle then
+            driver:EnterVehicle(driver.TaxiVehicle)
+        end
+
         local destPos = destination:GetPos()
-        local driverPos = driver:GetPos()
-        local dist = driverPos:Distance(destPos)
-        
-        if dist < 100 then
+        local vehiclePos = driver.TaxiVehicle:GetPos()
+        local dist = vehiclePos:Distance(destPos)
+
+        if dist < 300 then
             -- Arrived at destination, drop off passenger
             local passenger = driver.CurrentPassenger
             if IsValid(passenger) then
                 -- Detach passenger
-                NPCPassengers.DetachNPC(passenger)
-                
-                -- Make passenger walk away
-                passenger:SetLastPosition(destPos + Vector(100, 0, 0))
+                if NPCPassengers and NPCPassengers.DetachNPC then
+                    NPCPassengers.DetachNPC(passenger)
+                end
+
+                -- Make passenger walk away from station
+                local walkDir = (vehiclePos - destPos):GetNormal()
+                passenger:SetPos(destPos + walkDir * 150)
+                passenger:SetLastPosition(destPos + walkDir * 300)
                 passenger:SetSchedule(SCHED_FORCED_GO)
-                
+
                 -- Remove from taxi passengers
                 taxiPassengers[passenger] = nil
             end
-            
+
             driver.State = "returning"
             driver.CurrentPassenger = nil
         else
-            -- Move towards destination
-            driver:SetLastPosition(destPos)
-            driver:SetSchedule(SCHED_FORCED_GO)
+            -- Drive towards destination
+            driver.TaxiVehicle:SetPos(vehiclePos + (destPos - vehiclePos):GetNormal() * 200)
         end
-        
+
     elseif driver.State == "returning" then
-        -- Return to nearest station
-        local station = GetNearestTaxiStation(driver)
+        -- Return to nearest station or idle
+        local station = GetNearestTaxiStation(driver.TaxiVehicle or driver)
         if IsValid(station) then
-            local dist = driver:GetPos():Distance(station:GetPos())
-            if dist < 100 then
+            local vehiclePos = driver.TaxiVehicle and driver.TaxiVehicle:GetPos() or driver:GetPos()
+            local dist = vehiclePos:Distance(station:GetPos())
+
+            if dist < 300 then
                 driver.State = "idle"
             else
-                driver:SetLastPosition(station:GetPos())
-                driver:SetSchedule(SCHED_FORCED_GO)
+                -- Drive towards station
+                if IsValid(driver.TaxiVehicle) then
+                    driver.TaxiVehicle:SetPos(vehiclePos + (station:GetPos() - vehiclePos):GetNormal() * 200)
+                end
             end
         else
             driver.State = "idle"
