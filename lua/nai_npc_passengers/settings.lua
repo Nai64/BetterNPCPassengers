@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.8.1"
+NPCPassengers.Version = NPCPassengers.Version or "2.8.2"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-05-14"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -79,6 +79,7 @@ if CLIENT then
     NPCPassengers.cv_context_make_passenger = CreateClientConVar("nai_npc_context_make_passenger", "1", true, false, "Show 'Make Passenger' in context menu")
     NPCPassengers.cv_context_make_passenger_for_vehicle = CreateClientConVar("nai_npc_context_make_passenger_vehicle", "1", true, false, "Show 'Make Passenger For Vehicle' in context menu")
     NPCPassengers.cv_context_detach_passenger = CreateClientConVar("nai_npc_context_detach", "1", true, false, "Show 'Detach Passenger' in context menu")
+    NPCPassengers.cv_context_taxi_passenger = CreateClientConVar("nai_npc_context_taxi_passenger", "1", true, false, "Show 'Assign as Taxi Passenger' in context menu")
     NPCPassengers.cv_ui_show_welcome = CreateClientConVar("nai_npc_ui_show_welcome", "1", true, false, "Show welcome screen on updates")
     NPCPassengers.cv_ui_panel_width = CreateClientConVar("nai_npc_ui_panel_width", "950", true, false, "Settings panel width")
     NPCPassengers.cv_ui_panel_height = CreateClientConVar("nai_npc_ui_panel_height", "800", true, false, "Settings panel height")

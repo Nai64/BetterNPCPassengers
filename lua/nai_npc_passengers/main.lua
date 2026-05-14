@@ -3974,6 +3974,9 @@ end)
 util.AddNetworkString("NPCPassengers_MakePassenger")
 util.AddNetworkString("NPCPassengers_RemovePassenger")
 util.AddNetworkString("NPCPassengers_MakePassengerForVehicle")
+util.AddNetworkString("NPCPassengers_TaxiPassenger")
+util.AddNetworkString("NPCPassengers_OpenTaxiMenu")
+util.AddNetworkString("NPCPassengers_TaxiSetDestination")
 
 net.Receive("NPCPassengers_MakePassenger", function(len, ply)
     if not IsAddonEnabled() then return end
@@ -4117,6 +4120,58 @@ net.Receive("NPCPassengers_RemovePassenger", function(len, ply)
     else
         ply:ChatPrint("This NPC is not a passenger!")
     end
+end)
+
+net.Receive("NPCPassengers_TaxiPassenger", function(len, ply)
+    local ent = net.ReadEntity()
+
+    if not IsValid(ent) or not IsValid(ply) then return end
+    if not ent:IsNPC() then return end
+
+    if not IsAddonEnabled() then
+        ply:ChatPrint("NPC Passengers addon is disabled!")
+        return
+    end
+
+    if not GetConVar("nai_npc_taxi_enabled"):GetBool() then
+        ply:ChatPrint("Taxi system is disabled!")
+        return
+    end
+
+    if not NPCTaxi then
+        ply:ChatPrint("Taxi system not available!")
+        return
+    end
+
+    -- Open taxi destination menu
+    local stationNames = NPCTaxi.GetAllTaxiStationNames()
+    if not stationNames or #stationNames == 0 then
+        ply:ChatPrint("No taxi stations available!")
+        return
+    end
+
+    -- Send station names to client
+    net.Start("NPCPassengers_OpenTaxiMenu")
+        net.WriteEntity(ent)
+        net.WriteUInt(#stationNames, 8)
+        for _, name in ipairs(stationNames) do
+            net.WriteString(name)
+        end
+    net.Send(ply)
+end)
+
+net.Receive("NPCPassengers_TaxiSetDestination", function(len, ply)
+    local ent = net.ReadEntity()
+    local destination = net.ReadString()
+
+    if not IsValid(ent) or not IsValid(ply) then return end
+    if not ent:IsNPC() then return end
+
+    if not IsAddonEnabled() then return end
+    if not GetConVar("nai_npc_taxi_enabled"):GetBool() then return end
+    if not NPCTaxi then return end
+
+    NPCTaxi.AssignPassenger(ent, ply, destination)
 end)
 
 local function IsSeatOccupiedByOtherPassenger(seat, ignoredNPC)

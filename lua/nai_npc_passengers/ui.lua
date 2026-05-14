@@ -5164,10 +5164,14 @@ local function OpenSettingsPanel()
     CreateCheckbox(interfacePanel, "Show 'Detach Passenger'", "nai_npc_context_detach")
     CreateHelpText(interfacePanel, L("npcpassengers.context_detach.help"))
 
+    CreateCheckbox(interfacePanel, "Show 'Assign as Taxi Passenger'", "nai_npc_context_taxi_passenger")
+    CreateHelpText(interfacePanel, "Send NPC to nearest taxi station")
+
     CreateButton(interfacePanel, L("npcpassengers.ui.enable_context"), function()
         RunConsoleCommand("nai_npc_context_make_passenger", "1")
         RunConsoleCommand("nai_npc_context_make_passenger_vehicle", "1")
         RunConsoleCommand("nai_npc_context_detach", "1")
+        RunConsoleCommand("nai_npc_context_taxi_passenger", "1")
         chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.context_enabled"))
     end)
 
@@ -5175,6 +5179,7 @@ local function OpenSettingsPanel()
         RunConsoleCommand("nai_npc_context_make_passenger", "0")
         RunConsoleCommand("nai_npc_context_make_passenger_vehicle", "0")
         RunConsoleCommand("nai_npc_context_detach", "0")
+        RunConsoleCommand("nai_npc_context_taxi_passenger", "0")
         chat.AddText(Theme.success, ADDON_CHAT_PREFIX, Theme.text, L("npcpassengers.chat.context_hidden"))
     end)
     
@@ -5850,6 +5855,25 @@ properties.Add("nai_whitelist_passenger", {
     end
 })
 
+properties.Add("nai_taxi_passenger", {
+    MenuLabel = L("npcpassengers.context.taxi_passenger"),
+    Order = 1507,
+    MenuIcon = "icon16/car.png",
+
+    Filter = function(self, ent, ply)
+        if not IsValid(ent) then return false end
+        if not ent:IsNPC() then return false end
+        if not GetConVar("nai_npc_context_taxi_passenger"):GetBool() then return false end
+        return true
+    end,
+
+    Action = function(self, ent)
+        net.Start("NPCPassengers_TaxiPassenger")
+            net.WriteEntity(ent)
+        net.SendToServer()
+    end
+})
+
 -- F7 hotkey
 hook.Add("PlayerButtonDown", "NPCPassengersQuickMenu", function(ply, button)
     if button == KEY_F7 and IsFirstTimePredicted() then
@@ -6318,6 +6342,58 @@ net.Receive("NPCPassengers_EjectPrompt", function()
     ejectPromptData.count = net.ReadInt(8)
     ejectPromptData.lookingAt = net.ReadBool()
     ejectPromptData.showTime = CurTime()
+end)
+
+net.Receive("NPCPassengers_OpenTaxiMenu", function()
+    local npc = net.ReadEntity()
+    local numStations = net.ReadUInt(8)
+    local stationNames = {}
+
+    for i = 1, numStations do
+        stationNames[i] = net.ReadString()
+    end
+
+    if not IsValid(npc) then return end
+
+    -- Create taxi destination menu
+    local frame = vgui.Create("DFrame")
+    frame:SetTitle("Select Taxi Destination")
+    frame:SetSize(300, 200)
+    frame:Center()
+    frame:SetSizable(true)
+    frame:SetVisible(true)
+    frame:SetDraggable(true)
+    frame:ShowCloseButton(true)
+    frame:MakePopup()
+
+    local label = vgui.Create("DLabel", frame)
+    label:SetText("Select destination for NPC:")
+    label:Dock(TOP)
+    label:SetMargin(10, 10, 10, 5)
+
+    local combo = vgui.Create("DComboBox", frame)
+    combo:Dock(TOP)
+    combo:SetMargin(10, 5, 10, 5)
+    for _, name in ipairs(stationNames) do
+        combo:AddChoice(name)
+    end
+
+    local button = vgui.Create("DButton", frame)
+    button:SetText("Send to Taxi")
+    button:Dock(TOP)
+    button:SetMargin(10, 5, 10, 10)
+    button.DoClick = function()
+        local selected = combo:GetValue()
+        if selected and selected ~= "" then
+            net.Start("NPCPassengers_TaxiSetDestination")
+                net.WriteEntity(npc)
+                net.WriteString(selected)
+            net.SendToServer()
+            frame:Close()
+        else
+            chat.AddText(Color(255, 100, 100), "[Taxi] ", Color(255, 255, 255), "Please select a destination!")
+        end
+    end
 end)
 
 -- Detect R key HOLD to eject dead passengers

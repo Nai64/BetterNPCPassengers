@@ -17,6 +17,32 @@ local taxiPassengers = {} -- NPC passengers waiting for taxis
 local taxiStations = {} -- Taxi station entities
 local taxiDrivers = {} -- Taxi driver NPCs
 
+-- Random station names (from Decent Vehicle)
+local stationNouns = {
+    "party", "information", "school", "fact", "money", "point", "example",
+    "state", "business", "night", "area", "water", "thing", "family", "head",
+    "hand", "order", "side", "home", "development", "week", "power",
+    "country", "council", "use", "service", "room", "market", "problem",
+}
+
+local stationAdjectives = {
+    "attractive", "bald", "beautiful", "chubby", "clean", "dazzling",
+    "drab", "elegant", "fancy", "fit", "flabby", "glamorous", "gorgeous",
+    "handsome", "long", "magnificent", "muscular", "plain", "plump",
+    "quaint", "shapely", "short", "skinny", "stocky", "ugly",
+    "ashy", "black", "blue", "gray", "green", "icy", "lemon", "mango",
+    "orange", "purple", "red", "salmon", "white", "yellow",
+    "alive", "better", "careful", "clever", "easy", "famous", "gifted",
+    "hallowed", "helpful", "important", "inexpensive", "mealy",
+    "mushy", "powerful", "shy", "tender", "vast",
+}
+
+local function GetRandomStationName()
+    return string.format("%s-%s",
+        stationAdjectives[math.random(#stationAdjectives)],
+        stationNouns[math.random(#stationNouns)])
+end
+
 -- Create taxi station entity
 local function CreateTaxiStation(pos, name)
     local station = ents.Create("prop_physics")
@@ -29,10 +55,10 @@ local function CreateTaxiStation(pos, name)
     station:SetUseType(SIMPLE_USE)
     station:PhysicsInitStatic(SOLID_VPHYSICS)
     station:SetCollisionGroup(COLLISION_GROUP_WEAPON)
-    
+
     station.IsTaxiStation = true
-    station.StationName = name or ("Taxi Station " .. #taxiStations + 1)
-    
+    station.StationName = name or GetRandomStationName()
+
     taxiStations[#taxiStations + 1] = station
     return station
 end
@@ -60,30 +86,30 @@ end
 -- Find or create taxi stations on the map
 local function EnsureTaxiStations()
     if #taxiStations > 0 then return taxiStations end
-    
+
     -- Try to find existing taxi stations
     for _, ent in ipairs(ents.GetAll()) do
         if ent.IsTaxiStation then
             taxiStations[#taxiStations + 1] = ent
         end
     end
-    
+
     -- If no stations exist, create some at spawn points
     if #taxiStations == 0 then
         local spawnPoints = spawnpoints or {}
         if #spawnPoints > 0 then
             for i = 1, math.min(3, #spawnPoints) do
                 local pos = spawnPoints[i].pos or Vector(0, 0, 0)
-                CreateTaxiStation(pos + Vector(0, 0, 50), "Taxi Station " .. i)
+                CreateTaxiStation(pos + Vector(0, 0, 50))
             end
         else
             -- Fallback: create stations at origin offsets
-            CreateTaxiStation(Vector(0, 200, 0), "Taxi Station North")
-            CreateTaxiStation(Vector(0, -200, 0), "Taxi Station South")
-            CreateTaxiStation(Vector(200, 0, 0), "Taxi Station East")
+            CreateTaxiStation(Vector(0, 200, 0))
+            CreateTaxiStation(Vector(0, -200, 0))
+            CreateTaxiStation(Vector(200, 0, 0))
         end
     end
-    
+
     return taxiStations
 end
 
@@ -113,25 +139,48 @@ local function GetRandomTaxiStation(excludeStation)
     EnsureTaxiStations()
     if #taxiStations == 0 then return nil end
     if #taxiStations == 1 and taxiStations[1] == excludeStation then return nil end
-    
+
     local available = {}
     for _, station in ipairs(taxiStations) do
         if station ~= excludeStation then
             available[#available + 1] = station
         end
     end
-    
+
     if #available == 0 then return nil end
     return available[math.random(#available)]
+end
+
+-- Get taxi station by name
+local function GetTaxiStationByName(name)
+    EnsureTaxiStations()
+    for _, station in ipairs(taxiStations) do
+        if station.StationName == name then
+            return station
+        end
+    end
+    return nil
+end
+
+-- Get all taxi station names
+local function GetAllTaxiStationNames()
+    EnsureTaxiStations()
+    local names = {}
+    for _, station in ipairs(taxiStations) do
+        if station.StationName then
+            names[#names + 1] = station.StationName
+        end
+    end
+    return names
 end
 
 -- Make NPC go to taxi station
 function NPCPassengers.SendNPCtoTaxiStation(npc)
     if not IsValid(npc) then return false end
-    
+
     local station = GetNearestTaxiStation(npc)
     if not station then return false end
-    
+
     -- Store taxi request data
     taxiPassengers[npc] = {
         station = station,
@@ -139,11 +188,58 @@ function NPCPassengers.SendNPCtoTaxiStation(npc)
         startTime = CurTime(),
         destination = GetRandomTaxiStation(station)
     }
-    
+
     -- Make NPC walk to station
     npc:SetLastPosition(station:GetPos())
     npc:SetSchedule(SCHED_FORCED_GO)
-    
+
+    return true
+end
+
+-- Assign NPC as taxi passenger (from context menu)
+function NPCPassengers.AssignPassenger(npc, ply, destinationName)
+    if not IsValid(npc) then return false end
+
+    local station = GetNearestTaxiStation(npc)
+    if not station then
+        if IsValid(ply) then
+            ply:ChatPrint("No taxi stations available!")
+        end
+        return false
+    end
+
+    -- Get destination by name if provided, otherwise random
+    local destination
+    if destinationName then
+        destination = GetTaxiStationByName(destinationName)
+    else
+        destination = GetRandomTaxiStation(station)
+    end
+
+    if not destination then
+        if IsValid(ply) then
+            ply:ChatPrint("No destination available!")
+        end
+        return false
+    end
+
+    -- Store taxi request data
+    taxiPassengers[npc] = {
+        station = station,
+        state = "walking_to_station",
+        startTime = CurTime(),
+        destination = destination
+    }
+
+    -- Make NPC walk to station
+    npc:SetLastPosition(station:GetPos())
+    npc:SetSchedule(SCHED_FORCED_GO)
+
+    if IsValid(ply) then
+        local destName = destination.StationName or "Unknown"
+        ply:ChatPrint("NPC assigned as taxi passenger! Walking to " .. station.StationName .. ", destination: " .. destName)
+    end
+
     return true
 end
 
@@ -358,5 +454,15 @@ end
 NPCPassengers.IsDecentVehicleLoaded = function() return true end -- Always return true now
 NPCPassengers.FindTaxiStations = EnsureTaxiStations
 NPCPassengers.GetNearestTaxiStation = GetNearestTaxiStation
+NPCPassengers.GetTaxiStationByName = GetTaxiStationByName
+NPCPassengers.GetAllTaxiStationNames = GetAllTaxiStationNames
 NPCPassengers.CreateTaxiStation = CreateTaxiStation
 NPCPassengers.CreateTaxiDriver = CreateTaxiDriver
+NPCPassengers.AssignPassenger = NPCPassengers.AssignPassenger
+
+-- Create global reference for main.lua
+NPCTaxi = {
+    AssignPassenger = NPCPassengers.AssignPassenger,
+    GetAllTaxiStationNames = GetAllTaxiStationNames,
+    GetTaxiStationByName = GetTaxiStationByName
+}

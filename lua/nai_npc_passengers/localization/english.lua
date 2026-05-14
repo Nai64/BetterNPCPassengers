@@ -448,6 +448,14 @@ language.Add("npcpassengers.context.cancel_selection", "Cancel NPC Selection")
 language.Add("npcpassengers.context.remove_passenger", "Remove Passenger")
 language.Add("npcpassengers.context.blacklist_passenger", "Blacklist Passenger")
 language.Add("npcpassengers.context.whitelist_passenger", "Whitelist Passenger")
+language.Add("npcpassengers.context.taxi_passenger", "Assign as Taxi Passenger")
+
+-- Tool labels
+language.Add("tool.npcpassengers_taxi_station.name", "Taxi Station")
+language.Add("tool.npcpassengers_taxi_station.desc", "Create a taxi station for NPC taxi system")
+language.Add("tool.npcpassengers_taxi_station.0", "Left-click to place a taxi station. Right-click to remove.")
+language.Add("tool.npcpassengers_taxi_station.left", "Place Taxi Station")
+language.Add("tool.npcpassengers_taxi_station.right", "Remove Taxi Station")
 
 -- Keybinds
 language.Add("npcpassengers.keybinds.header", "Keybinds")
