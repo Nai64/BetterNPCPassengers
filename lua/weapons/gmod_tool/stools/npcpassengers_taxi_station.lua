@@ -11,7 +11,7 @@ if CLIENT then
     language.Add("tool.npcpassengers_taxi_station.right", "Remove Taxi Station")
 end
 
-TOOL.ClientConVar["model"] = "models/props_c17/streetsign004c.mdl"
+TOOL.ClientConVar["model"] = "models/props_combine/combine_barricade_short02a.mdl"
 TOOL.ClientConVar["station_name"] = ""
 
 function TOOL.BuildCPanel(panel)
@@ -34,22 +34,22 @@ function TOOL.BuildCPanel(panel)
     local comboBox = vgui.Create("DComboBox", panel)
     comboBox:SetTall(30)
     comboBox:Dock(TOP)
-    comboBox:SetValue("models/props_c17/streetsign004c.mdl")
+    comboBox:SetValue("models/props_combine/combine_barricade_short02a.mdl")
 
     local models = {
-        "models/props_c17/streetsign004c.mdl",
-        "models/props_c17/gravestone003a.mdl",
         "models/props_combine/combine_barricade_short02a.mdl",
-        "models/props_junk/trafficcone001a.mdl",
-        "models/props_c17/pulleywheels_large01.mdl"
+        "models/props_c17/concrete_barrier001a.mdl",
+        "models/props_c17/lockers.mdl",
+        "models/props_c17/truss01a.mdl",
+        "models/props_junk/trafficcone001a.mdl"
     }
 
     local modelNames = {
-        "Street Sign",
-        "Gravestone",
-        "Barricade",
-        "Traffic Cone",
-        "Pulley Wheel"
+        "Combine Barricade",
+        "Concrete Barrier",
+        "Lockers",
+        "Truss",
+        "Traffic Cone"
     }
 
     for i, model in ipairs(models) do

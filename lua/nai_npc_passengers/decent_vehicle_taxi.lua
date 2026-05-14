@@ -102,8 +102,16 @@ end
 
 -- Restore station from database
 local function RestoreStation(stationData)
+    -- Check if model exists, if not, skip this station
+    if not util.IsValidModel(stationData.model) then
+        -- Remove invalid entry from database
+        local map = game.GetMap()
+        sql.Query("DELETE FROM " .. DB_NAME .. " WHERE map = " .. sql.SQLStr(map) .. " AND name = " .. sql.SQLStr(stationData.name))
+        return nil
+    end
+
     local station = ents.Create("prop_physics")
-    station:SetModel(stationData.model or "models/props_c17/streetsign004c.mdl")
+    station:SetModel(stationData.model)
     station:SetPos(stationData.pos)
     station:SetAngles(stationData.ang)
     station:Spawn()
@@ -123,7 +131,7 @@ end
 -- Create taxi station entity
 local function CreateTaxiStation(pos, name, model)
     local station = ents.Create("prop_physics")
-    station:SetModel(model or "models/props_c17/streetsign004c.mdl")
+    station:SetModel(model or "models/props_combine/combine_barricade_short02a.mdl")
     station:SetPos(pos)
     station:SetAngles(Angle(0, 0, 0))
     station:Spawn()
