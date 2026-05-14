@@ -3120,6 +3120,19 @@ DetachNPC = function(npc)
     npc:SetAngles(Angle(0, 0, 0))
     npc:SetPlaybackRate(1.0)
     npc:ResetSequence(npc:LookupSequence("idle_subtle") or npc:LookupSequence("idle") or 0)
+
+    -- Clear all gestures to prevent passenger animations persisting
+    if npc.RemoveAllGestures then
+        npc:RemoveAllGestures()
+    end
+
+    -- Clear passenger-specific sequence reference
+    npc.NPCPassengerSitSeq = nil
+
+    -- Clear no-talk flag
+    npc.NPCPassengerNoTalk = nil
+    npc:SetNWBool("NPCPassengerNoTalk", false)
+
     ResetPassengerFacialState(npc)
     
     if data.capabilities then
