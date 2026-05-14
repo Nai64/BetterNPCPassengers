@@ -102,24 +102,21 @@ end
 
 -- Restore station from database
 local function RestoreStation(stationData)
-    -- Check if model exists, if not, skip this station
-    if not util.IsValidModel(stationData.model) then
-        -- Remove invalid entry from database
-        local map = game.GetMap()
-        sql.Query("DELETE FROM " .. DB_NAME .. " WHERE map = " .. sql.SQLStr(map) .. " AND name = " .. sql.SQLStr(stationData.name))
-        return nil
-    end
-
     local station = ents.Create("prop_physics")
-    station:SetModel(stationData.model)
+    station:SetModel(stationData.model or "models/props_combine/combine_barricade_short02a.mdl")
     station:SetPos(stationData.pos)
     station:SetAngles(stationData.ang)
     station:Spawn()
-    station:SetMoveType(MOVETYPE_NONE)
+    
+    -- Don't set MOVETYPE_NONE or PhysicsInitStatic
     station:SetSolid(SOLID_VPHYSICS)
     station:SetUseType(SIMPLE_USE)
-    station:PhysicsInitStatic(SOLID_VPHYSICS)
-    station:SetCollisionGroup(COLLISION_GROUP_WEAPON)
+    
+    -- Disable motion so it stays in place
+    local phys = station:GetPhysicsObject()
+    if IsValid(phys) then
+        phys:EnableMotion(false)
+    end
 
     station.IsTaxiStation = true
     station.StationName = stationData.name
@@ -135,11 +132,16 @@ local function CreateTaxiStation(pos, name, model)
     station:SetPos(pos)
     station:SetAngles(Angle(0, 0, 0))
     station:Spawn()
-    station:SetMoveType(MOVETYPE_NONE)
+    
+    -- Don't set MOVETYPE_NONE or PhysicsInitStatic, let it be a normal physics prop
     station:SetSolid(SOLID_VPHYSICS)
     station:SetUseType(SIMPLE_USE)
-    station:PhysicsInitStatic(SOLID_VPHYSICS)
-    station:SetCollisionGroup(COLLISION_GROUP_WEAPON)
+    
+    -- Disable motion so it stays in place
+    local phys = station:GetPhysicsObject()
+    if IsValid(phys) then
+        phys:EnableMotion(false)
+    end
 
     station.IsTaxiStation = true
     station.StationName = name or GetRandomStationName()
