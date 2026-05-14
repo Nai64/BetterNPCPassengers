@@ -6357,13 +6357,13 @@ net.Receive("NPCPassengers_OpenTaxiMenu", function()
 
     -- Create custom styled panel
     local frame = vgui.Create("DFrame")
-    frame:SetTitle("Select Taxi Destination")
-    frame:SetSize(400, 350)
+    frame:SetTitle("") -- Remove default title
+    frame:SetSize(400, 320)
     frame:Center()
     frame:SetSizable(false)
     frame:SetVisible(true)
     frame:SetDraggable(true)
-    frame:ShowCloseButton(true)
+    frame:ShowCloseButton(false) -- Hide default close button
     frame:MakePopup()
     frame:SetKeyboardInputEnabled(true)
 
@@ -6373,26 +6373,34 @@ net.Receive("NPCPassengers_OpenTaxiMenu", function()
         draw.RoundedBox(8, 1, 1, w - 2, h - 2, Theme.bgLight)
 
         -- Header bar
-        draw.RoundedBox(8, 0, 0, w, 40, Theme.accent)
-        draw.RoundedBox(8, 1, 1, w - 2, 38, Theme.accentHover)
+        draw.RoundedBox(8, 0, 0, w, 50, Theme.accent)
+        draw.RoundedBox(8, 1, 1, w - 2, 48, Theme.accentHover)
 
-        -- Title
-        draw.SimpleText("Select Taxi Destination", "NaiFont_Medium", w / 2, 20, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+        -- Custom title aligned to left
+        draw.SimpleText("Taxi Destination", "NaiFont_Medium", 20, 25, Theme.textBright, TEXT_ALIGN_LEFT, TEXT_ALIGN_CENTER)
+
+        -- Close button
+        draw.RoundedBox(4, w - 40, 10, 30, 30, Theme.bgDark)
+        draw.SimpleText("×", "NaiFont_Medium", w - 25, 25, Theme.textDim, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
     end
 
-    -- Close button handler to reset title
-    local oldClose = frame.Close
-    frame.Close = function(self)
-        if IsValid(self) then
-            self:SetTitle("Select Taxi Destination")
+    -- Close button functionality
+    frame.OnMousePressed = function(self, code)
+        if code == MOUSE_LEFT then
+            local w, h = self:GetSize()
+            local x, y = self:LocalCursorPos()
+            if x >= w - 40 and x <= w - 10 and y >= 10 and y <= 40 then
+                self:Close()
+                return true
+            end
         end
-        oldClose(self)
+        return self.Draggable and self:Draggable.OnMousePressed(self, code) or false
     end
 
     -- Content panel
     local contentPanel = vgui.Create("DPanel", frame)
     contentPanel:Dock(FILL)
-    contentPanel:DockMargin(10, 50, 10, 10)
+    contentPanel:DockMargin(10, 60, 10, 10)
     contentPanel.Paint = function(self, w, h)
         draw.RoundedBox(6, 0, 0, w, h, Theme.bgLighter)
     end

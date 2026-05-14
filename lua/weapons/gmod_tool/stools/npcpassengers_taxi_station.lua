@@ -173,7 +173,24 @@ end
 
 if CLIENT then
     function TOOL:DrawHUD()
-        -- HUD drawing disabled
+        local ply = LocalPlayer()
+        local trace = ply:GetEyeTrace()
+
+        if trace.Hit and not trace.HitSky then
+            local pos = trace.HitPos:ToScreen()
+
+            -- Check if looking at a taxi station
+            if trace.Entity and trace.Entity.IsTaxiStation then
+                local stationName = trace.Entity.StationName or "Unknown"
+                surface.SetFont("Trebuchet24")
+                local w, h = surface.GetTextSize(stationName)
+
+                -- Draw name tag above the prop
+                draw.RoundedBox(8, pos.x - w/2 - 8, pos.y - h - 40, w + 16, h + 20, Color(0, 0, 0, 220))
+                draw.RoundedBox(8, pos.x - w/2 - 6, pos.y - h - 38, w + 12, h + 16, Color(255, 200, 0, 200))
+                draw.DrawText(stationName, "Trebuchet24", pos.x, pos.y - h - 30, Color(255, 255, 255), TEXT_ALIGN_CENTER)
+            end
+        end
     end
 
     function TOOL:Think()

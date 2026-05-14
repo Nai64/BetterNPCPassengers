@@ -17,24 +17,21 @@ local taxiPassengers = {} -- NPC passengers waiting for taxis
 local taxiStations = {} -- Taxi station entities
 local taxiDrivers = {} -- Taxi driver NPCs
 
--- Random station names (from Decent Vehicle)
+-- Random station names (improved from Decent Vehicle)
 local stationNouns = {
-    "party", "information", "school", "fact", "money", "point", "example",
-    "state", "business", "night", "area", "water", "thing", "family", "head",
-    "hand", "order", "side", "home", "development", "week", "power",
-    "country", "council", "use", "service", "room", "market", "problem",
+    "Plaza", "Square", "Center", "Terminal", "Hub", "Station", "Stop", "Point",
+    "Market", "Mall", "District", "Quarter", "Zone", "Sector", "Area", "Corner",
+    "Crossroads", "Junction", "Intersection", "Loop", "Circle", "Park", "Gardens",
+    "Avenue", "Boulevard", "Street", "Road", "Lane", "Drive", "Way", "Place",
+    "Tower", "Complex", "Building", "Hall", "Office", "Exchange", "Depot"
 }
 
 local stationAdjectives = {
-    "attractive", "bald", "beautiful", "chubby", "clean", "dazzling",
-    "drab", "elegant", "fancy", "fit", "flabby", "glamorous", "gorgeous",
-    "handsome", "long", "magnificent", "muscular", "plain", "plump",
-    "quaint", "shapely", "short", "skinny", "stocky", "ugly",
-    "ashy", "black", "blue", "gray", "green", "icy", "lemon", "mango",
-    "orange", "purple", "red", "salmon", "white", "yellow",
-    "alive", "better", "careful", "clever", "easy", "famous", "gifted",
-    "hallowed", "helpful", "important", "inexpensive", "mealy",
-    "mushy", "powerful", "shy", "tender", "vast",
+    "Central", "North", "South", "East", "West", "Main", "Grand", "Royal",
+    "Imperial", "Metropolitan", "Downtown", "Uptown", "Midtown", "Old", "New",
+    "Upper", "Lower", "Inner", "Outer", "East", "West", "North", "South",
+    "Prime", "Elite", "Premium", "Gold", "Silver", "Bronze", "Star", "Sun",
+    "Moon", "Sky", "Cloud", "River", "Lake", "Ocean", "Bay", "Harbor", "Port"
 }
 
 local function GetRandomStationName()
@@ -234,6 +231,9 @@ function NPCPassengers.AssignPassenger(npc, ply, destinationName)
     -- Make NPC walk to station
     npc:SetLastPosition(station:GetPos())
     npc:SetSchedule(SCHED_FORCED_GO)
+
+    -- Disable AI behavior to prevent staring at player
+    npc:SetNPCState(NPC_STATE_IDLE)
 
     if IsValid(ply) then
         local destName = destination.StationName or "Unknown"
