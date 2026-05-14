@@ -16,6 +16,7 @@ local ipairs = ipairs
 local taxiPassengers = {} -- NPC passengers waiting for taxis
 local taxiStations = {} -- Taxi station entities (current map only)
 local persistedStations = {} -- Persisted station data from SQL
+local droppedOffCooldowns = {} -- Cooldowns for NPCs recently dropped off
 
 -- Random station names
 local stationNouns = {
@@ -406,6 +407,12 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                 local dist = vehiclePos:Distance(npcPos)
 
                 if dist < pickupRadius then
+                    -- Check if NPC is in cooldown (recently dropped off)
+                    local npcId = npc:EntIndex()
+                    if droppedOffCooldowns[npcId] and droppedOffCooldowns[npcId] > curTime then
+                        continue -- Skip pickup, NPC is in cooldown
+                    end
+
                     -- Attach NPC to vehicle
                     if NPCPassengers and NPCPassengers.AttachPassenger then
                         NPCPassengers.AttachPassenger(npc, vehicle)
@@ -461,10 +468,13 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                     ply:ChatPrint("Taxi passenger dropped off at " .. destination.StationName)
                 end
 
-                -- Allow NPC to be picked up again immediately
+                -- Allow NPC to be picked up again immediately (but with taxi cooldown)
                 if NPCPassengers and NPCPassengers.ClearBoardRetryState then
                     NPCPassengers.ClearBoardRetryState(npc)
                 end
+
+                -- Set taxi pickup cooldown to prevent immediate re-attachment
+                droppedOffCooldowns[npc:EntIndex()] = curTime + 5 -- 5 second cooldown
             end
         end
     end
