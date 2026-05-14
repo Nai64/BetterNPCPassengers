@@ -25,18 +25,38 @@ function TOOL.BuildCPanel(panel)
         MaxLength = 50
     })
 
-    panel:AddControl("PropSelect", {
-        Label = "Model",
-        ConVar = "npcpassengers_taxi_station_model",
-        Category = "Taxi Stations",
-        Models = {
-            ["models/props_c17/streetsign004c.mdl"] = "Street Sign",
-            ["models/props_c17/gravestone003a.mdl"] = "Gravestone",
-            ["models/props_combine/combine_barricade_short02a.mdl"] = "Barricade",
-            ["models/props_junk/trafficcone001a.mdl"] = "Traffic Cone",
-            ["models/props_c17/pulleywheels_large01.mdl"] = "Pulley Wheel"
-        }
-    })
+    -- Use DComboBox for model selection instead of PropSelect
+    local comboBox = vgui.Create("DComboBox", panel)
+    comboBox:SetLabel("Model")
+    comboBox:SetTall(30)
+    comboBox:Dock(TOP)
+    comboBox:SetValue("models/props_c17/streetsign004c.mdl")
+
+    local models = {
+        "models/props_c17/streetsign004c.mdl",
+        "models/props_c17/gravestone003a.mdl",
+        "models/props_combine/combine_barricade_short02a.mdl",
+        "models/props_junk/trafficcone001a.mdl",
+        "models/props_c17/pulleywheels_large01.mdl"
+    }
+
+    local modelNames = {
+        "Street Sign",
+        "Gravestone",
+        "Barricade",
+        "Traffic Cone",
+        "Pulley Wheel"
+    }
+
+    for i, model in ipairs(models) do
+        comboBox:AddChoice(modelNames[i], model)
+    end
+
+    comboBox.OnSelect = function(index, value, data)
+        RunConsoleCommand("npcpassengers_taxi_station_model", data)
+    end
+
+    panel:AddItem(comboBox)
 
     panel:AddControl("Label", {
         Text = "Left Click: Place station\nRight Click: Remove station\nReload: Remove all stations"
