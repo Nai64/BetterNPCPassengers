@@ -170,7 +170,7 @@ end
 
 -- Main taxi system think hook
 hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
-    if not IsAddonEnabled() then return end
+    if not NPCPassengers.IsAddonEnabled() then return end
     
     local curTime = CurTime()
     

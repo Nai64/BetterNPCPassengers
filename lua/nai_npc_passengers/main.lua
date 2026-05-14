@@ -162,6 +162,9 @@ local function IsAddonEnabled()
     return true
 end
 
+-- Make IsAddonEnabled available to other modules
+NPCPassengers.IsAddonEnabled = IsAddonEnabled
+
 local function ResetPassengerFacialState(npc)
     if not IsValid(npc) or not npc:IsNPC() then return end
 
@@ -3635,7 +3638,7 @@ hook.Add("PlayerEnteredVehicle", "NPCPassengerAutoJoin", function(ply, vehicle)
                         break
                     end
                 end
-                if isBlacklisted then continue
+                if isBlacklisted then continue end
 
                 -- Check if NPC should use taxi instead (if Decent Vehicle is loaded)
                 if NPCPassengers.IsDecentVehicleLoaded and NPCPassengers.IsDecentVehicleLoaded() then
