@@ -102,8 +102,11 @@ end
 
 -- Restore station from database
 local function RestoreStation(stationData)
+    -- Use default model if saved model is invalid
+    local validModel = (stationData.model and stationData.model ~= "" and util.IsValidModel(stationData.model)) and stationData.model or "models/props_combine/combine_barricade_short02a.mdl"
+    
     local station = ents.Create("prop_physics")
-    station:SetModel(stationData.model or "models/props_combine/combine_barricade_short02a.mdl")
+    station:SetModel(validModel)
     station:SetPos(stationData.pos)
     station:SetAngles(stationData.ang)
     station:Spawn()
@@ -128,7 +131,9 @@ end
 -- Create taxi station entity
 local function CreateTaxiStation(pos, name, model)
     local station = ents.Create("prop_physics")
-    station:SetModel(model or "models/props_combine/combine_barricade_short02a.mdl")
+    -- Use default model if none provided or if model is invalid
+    local validModel = (model and model ~= "" and util.IsValidModel(model)) and model or "models/props_combine/combine_barricade_short02a.mdl"
+    station:SetModel(validModel)
     station:SetPos(pos)
     station:SetAngles(Angle(0, 0, 0))
     station:Spawn()

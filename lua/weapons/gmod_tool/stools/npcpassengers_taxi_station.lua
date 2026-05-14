@@ -79,7 +79,7 @@ function TOOL:LeftClick(trace)
 
     -- Create taxi station
     if NPCPassengers and NPCPassengers.CreateTaxiStation then
-        local station = NPCPassengers.CreateTaxiStation(trace.HitPos, name ~= "" and name or nil, model)
+        local station = NPCPassengers.CreateTaxiStation(trace.HitPos, name ~= "" and name or nil, model ~= "" and model or nil)
 
         if IsValid(station) then
             -- Play sound effect
