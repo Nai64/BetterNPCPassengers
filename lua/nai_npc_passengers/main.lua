@@ -168,9 +168,26 @@ NPCPassengers.IsAddonEnabled = IsAddonEnabled
 local function ResetPassengerFacialState(npc)
     if not IsValid(npc) or not npc:IsNPC() then return end
 
-    -- Reset only the blink pose parameter (used by the addon for blinking)
-    -- Do NOT reset flex weights or eye pose parameters to preserve user's face posing
+    -- Reset all pose parameters to prevent animations persisting after detaching
     npc:SetPoseParameter("blink", 0)
+    npc:SetPoseParameter("head_yaw", 0)
+    npc:SetPoseParameter("head_pitch", 0)
+    npc:SetPoseParameter("eyes_yaw", 0)
+    npc:SetPoseParameter("eyes_pitch", 0)
+    npc:SetPoseParameter("eyes_updown", 0)
+    npc:SetPoseParameter("eyes_rightleft", 0)
+    npc:SetPoseParameter("aim_yaw", 0)
+    npc:SetPoseParameter("aim_pitch", 0)
+
+    -- Reset flex weights to clear faceposer expressions
+    if npc.SetFlexWeight then
+        for i = 0, (npc:GetFlexNum() or 0) - 1 do
+            npc:SetFlexWeight(i, 0)
+        end
+    end
+
+    -- Reset eye target to prevent NPCs from staring in wrong direction
+    npc:SetEyeTarget(npc:EyePos() + npc:GetForward() * 100)
 
     if npc.InvalidateBoneCache then
         npc:InvalidateBoneCache()
@@ -2420,15 +2437,6 @@ local function CleanupNPCLookState(npcId)
     local npc = Entity(npcId)
     if IsValid(npc) and npc:IsNPC() then
         ResetPassengerFacialState(npc)
-        npc:SetPoseParameter("head_yaw", 0)
-        npc:SetPoseParameter("head_pitch", 0)
-        npc:SetPoseParameter("eyes_yaw", 0)
-        npc:SetPoseParameter("eyes_pitch", 0)
-        npc:SetPoseParameter("eyes_updown", 0)
-        npc:SetPoseParameter("eyes_rightleft", 0)
-        npc:SetPoseParameter("blink", 0)
-        npc:SetPoseParameter("aim_yaw", 0)
-        npc:SetPoseParameter("aim_pitch", 0)
     end
     npcLookState[npcId] = nil
 end
