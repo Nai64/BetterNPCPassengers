@@ -303,6 +303,12 @@ local function RegisterBoardFailure(npc)
     return false
 end
 
+-- Clear board retry state for an NPC (allows immediate re-attachment)
+function NPCPassengers.ClearBoardRetryState(npc)
+    if not IsValid(npc) then return end
+    npcBoardRetryState[npc:EntIndex()] = nil
+end
+
 local hostileThreatClasses = {
     ["npc_antlion"] = true,
     ["npc_antlion_worker"] = true,
@@ -3047,7 +3053,20 @@ DetachNPC = function(npc)
 
     animationTimers[data.npcId] = nil
     CleanupNPCLookState(data.npcId)
-    
+
+    -- Clear board retry state so NPC can be picked up again immediately
+    npcBoardRetryState[data.npcId] = nil
+
+    -- Clear from pending passengers so NPC can be picked up again
+    for ply, pending in pairs(pendingPassengers) do
+        for i, pendingNpc in ipairs(pending) do
+            if pendingNpc == npc then
+                table.remove(pending, i)
+                break
+            end
+        end
+    end
+
     SetNoTalkFlag(npc, false)
     
     -- Dead NPCs: unparent, clear state, then remove the corpse

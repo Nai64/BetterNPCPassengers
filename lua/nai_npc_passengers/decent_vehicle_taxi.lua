@@ -460,6 +460,11 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                 if IsValid(ply) then
                     ply:ChatPrint("Taxi passenger dropped off at " .. destination.StationName)
                 end
+
+                -- Allow NPC to be picked up again immediately
+                if NPCPassengers and NPCPassengers.ClearBoardRetryState then
+                    NPCPassengers.ClearBoardRetryState(npc)
+                end
             end
         end
     end
