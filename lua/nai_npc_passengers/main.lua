@@ -2047,6 +2047,14 @@ end
 
 local function UpdateNPCHeadLook(npc, pdata)
     if not IsValid(npc) then return end
+    if not pdata or not IsValid(pdata.vehicle) then return end
+
+    -- Additional check: ensure NPC is actually attached to the vehicle or seat
+    local expectedParent = pdata.seat or pdata.vehicle
+    local actualParent = npc:GetParent()
+    if not IsValid(actualParent) or (actualParent ~= expectedParent and actualParent ~= pdata.vehicle) then
+        return
+    end
 
     local npcId = npc:EntIndex()
     local state = npcLookState[npcId]
@@ -2470,6 +2478,13 @@ local function UpdatePassengerBehavior(npc, pdata, curTime)
     if not IsValid(npc) or not pdata or not IsValid(pdata.vehicle) then return end
     if pdata.isHidden then return end
 
+    -- Additional check: ensure NPC is actually attached to the vehicle or seat
+    local expectedParent = pdata.seat or pdata.vehicle
+    local actualParent = npc:GetParent()
+    if not IsValid(actualParent) or (actualParent ~= expectedParent and actualParent ~= pdata.vehicle) then
+        return
+    end
+
     local vehicle = pdata.vehicle
     local state = npcLookState[npc:EntIndex()]
     if not state then return end
@@ -2708,8 +2723,31 @@ hook.Add("Think", "NPCPassengerAnimationThink", function()
     for npc, pdata in pairs(friendlyPassengers) do
         if IsValid(npc) and IsValid(pdata.vehicle) then
             local npcId = npc:EntIndex()
-            if animationTimers[npcId] then
-                UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
+            -- Additional check: ensure NPC is actually attached to the vehicle or seat
+            local expectedParent = pdata.seat or pdata.vehicle
+            local actualParent = npc:GetParent()
+            if IsValid(actualParent) and (actualParent == expectedParent or actualParent == pdata.vehicle) then
+                if animationTimers[npcId] then
+                    UpdatePassengerAnimationState(npc, pdata, curTime, players, headLookEnabled, transformOffsets)
+                end
+            else
+                -- NPC is not properly attached, remove from passenger data
+                RemovePassengerData(npc)
+                CleanupNPCTimers(npc)
+                CleanupNPCLookState(npcId)
+                if animationTimers[npcId] then
+                    animationTimers[npcId] = nil
+                end
+            end
+        else
+            -- Vehicle or NPC invalid, clean up
+            if IsValid(npc) then
+                RemovePassengerData(npc)
+                CleanupNPCTimers(npc)
+                CleanupNPCLookState(npc:EntIndex())
+                if animationTimers[npc:EntIndex()] then
+                    animationTimers[npc:EntIndex()] = nil
+                end
             end
         end
     end
