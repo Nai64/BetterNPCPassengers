@@ -12,6 +12,7 @@ versions/
 publish_workshop.py
 release_data.json
 testing/
+suggestions/
 AGENTS.md
 WORKSHOP_DESCRIPTION.md
 DEVELOPER.md
