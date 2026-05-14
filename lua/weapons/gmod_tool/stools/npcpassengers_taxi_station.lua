@@ -28,12 +28,10 @@ function TOOL.BuildCPanel(panel)
     -- Use PropSelect for visual model selection
     local models = {
         { Model = "models/props_combine/combine_barricade_short02a.mdl" },
-        { Model = "models/props_trainstation/bench_indoor001a.mdl" },
-        { Model = "models/props_wasteland/cafeteria_table001a.mdl" },
-        { Model = "models/props_trainstation/BenchOutdoor01a.mdl" },
-        { Model = "models/props_trainstation/Column_Arch001a.mdl" },
-        { Model = "models/props_interiors/BathTub01a.mdl" },
-        { Model = "models/props_trainstation/traincar_seats001.mdl" }
+        { Model = "models/props_c17/concrete_barrier001a.mdl" },
+        { Model = "models/props_c17/lockers.mdl" },
+        { Model = "models/props_c17/truss01a.mdl" },
+        { Model = "models/props_junk/trafficcone001a.mdl" }
     }
 
     panel:AddControl("PropSelect", {
