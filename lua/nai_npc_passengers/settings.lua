@@ -2,7 +2,7 @@ NPCPassengers = NPCPassengers or {}
 NPCPassengers.Modules = NPCPassengers.Modules or {}
 NPCPassengers.Modules.settings = true
 
-NPCPassengers.Version = NPCPassengers.Version or "2.9.2"
+NPCPassengers.Version = NPCPassengers.Version or "2.9.3"
 NPCPassengers.BuildDate = NPCPassengers.BuildDate or "2026-05-14"
 
 NPCPassengers.GetConVarBool = NPCPassengers.GetConVarBool or function(name, default)
@@ -58,7 +58,7 @@ NPCPassengers.cv_deny_models = CreateConVar("nai_npc_deny_models", "", {FCVAR_AR
 NPCPassengers.cv_debug_verbose = CreateConVar("nai_npc_debug_verbose", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Verbose debug messages for passenger attach logic")
 
 -- Auto-join settings
-NPCPassengers.cv_auto_join = CreateConVar("nai_npc_auto_join", "1", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Friendly NPCs automatically join vehicles")
+NPCPassengers.cv_auto_join = CreateConVar("nai_npc_auto_join", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Friendly NPCs automatically join vehicles")
 NPCPassengers.cv_auto_join_range = CreateConVar("nai_npc_auto_join_range", "500", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Range to find NPCs for auto-join")
 NPCPassengers.cv_auto_join_max = CreateConVar("nai_npc_auto_join_max", "4", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Max NPCs to auto-join per vehicle")
 NPCPassengers.cv_auto_join_squad_only = CreateConVar("nai_npc_auto_join_squad_only", "0", {FCVAR_ARCHIVE, FCVAR_REPLICATED}, "Only squad members auto-join (requires squad name)")

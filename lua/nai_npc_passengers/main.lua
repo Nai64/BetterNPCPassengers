@@ -4678,7 +4678,7 @@ concommand.Add("nai_npc_server_reset", function(ply)
     RunConsoleCommand("nai_npc_exit_mode", "0")
     RunConsoleCommand("nai_npc_hide_in_tanks", "1")
     -- Auto-join
-    RunConsoleCommand("nai_npc_auto_join", "1")
+    RunConsoleCommand("nai_npc_auto_join", "0")
     RunConsoleCommand("nai_npc_auto_join_range", "500")
     RunConsoleCommand("nai_npc_auto_join_max", "4")
     RunConsoleCommand("nai_npc_auto_join_squad_only", "0")
