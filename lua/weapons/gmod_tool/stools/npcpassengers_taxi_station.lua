@@ -25,9 +25,13 @@ function TOOL.BuildCPanel(panel)
         MaxLength = 50
     })
 
+    -- Add label for model selection
+    panel:AddControl("Label", {
+        Text = "Model Selection:"
+    })
+
     -- Use DComboBox for model selection instead of PropSelect
     local comboBox = vgui.Create("DComboBox", panel)
-    comboBox:SetLabel("Model")
     comboBox:SetTall(30)
     comboBox:Dock(TOP)
     comboBox:SetValue("models/props_c17/streetsign004c.mdl")
