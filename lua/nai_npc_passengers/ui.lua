@@ -6355,33 +6355,126 @@ net.Receive("NPCPassengers_OpenTaxiMenu", function()
 
     if not IsValid(npc) then return end
 
-    -- Create taxi destination menu
+    -- Create custom styled panel
     local frame = vgui.Create("DFrame")
     frame:SetTitle("Select Taxi Destination")
-    frame:SetSize(300, 200)
+    frame:SetSize(400, 350)
     frame:Center()
-    frame:SetSizable(true)
+    frame:SetSizable(false)
     frame:SetVisible(true)
     frame:SetDraggable(true)
     frame:ShowCloseButton(true)
     frame:MakePopup()
+    frame:SetKeyboardInputEnabled(true)
 
-    local label = vgui.Create("DLabel", frame)
+    -- Custom paint for the frame
+    frame.Paint = function(self, w, h)
+        draw.RoundedBox(8, 0, 0, w, h, Theme.bg)
+        draw.RoundedBox(8, 1, 1, w - 2, h - 2, Theme.bgLight)
+
+        -- Header bar
+        draw.RoundedBox(8, 0, 0, w, 40, Theme.accent)
+        draw.RoundedBox(8, 1, 1, w - 2, 38, Theme.accentHover)
+
+        -- Title
+        draw.SimpleText("Select Taxi Destination", "NaiFont_Medium", w / 2, 20, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+
+    -- Close button handler to reset title
+    local oldClose = frame.Close
+    frame.Close = function(self)
+        if IsValid(self) then
+            self:SetTitle("Select Taxi Destination")
+        end
+        oldClose(self)
+    end
+
+    -- Content panel
+    local contentPanel = vgui.Create("DPanel", frame)
+    contentPanel:Dock(FILL)
+    contentPanel:DockMargin(10, 50, 10, 10)
+    contentPanel.Paint = function(self, w, h)
+        draw.RoundedBox(6, 0, 0, w, h, Theme.bgLighter)
+    end
+
+    -- Label
+    local label = vgui.Create("DLabel", contentPanel)
     label:SetText("Select destination for NPC:")
+    label:SetFont("NaiFont_Small")
+    label:SetTextColor(Theme.text)
     label:Dock(TOP)
-    label:DockMargin(10, 10, 10, 5)
+    label:DockMargin(15, 15, 15, 10)
+    label:SetWrap(true)
 
-    local combo = vgui.Create("DComboBox", frame)
-    combo:Dock(TOP)
-    combo:DockMargin(10, 5, 10, 5)
+    -- Custom styled ComboBox
+    local comboContainer = vgui.Create("DPanel", contentPanel)
+    comboContainer:SetTall(50)
+    comboContainer:Dock(TOP)
+    comboContainer:DockMargin(15, 5, 15, 15)
+    comboContainer.Paint = function(self, w, h)
+        draw.RoundedBox(6, 0, 0, w, h, Theme.bgDark)
+        draw.RoundedBox(6, 1, 1, w - 2, h - 2, Theme.bg)
+    end
+
+    local combo = vgui.Create("DComboBox", comboContainer)
+    combo:Dock(FILL)
+    combo:DockMargin(5, 5, 5, 5)
+    combo:SetFont("NaiFont_Small")
+    combo:SetTextColor(Theme.text)
+
     for _, name in ipairs(stationNames) do
         combo:AddChoice(name)
     end
 
-    local button = vgui.Create("DButton", frame)
+    -- Custom styled button
+    local button = vgui.Create("DButton", contentPanel)
     button:SetText("Send to Taxi")
+    button:SetFont("NaiFont_Medium")
+    button:SetTall(50)
     button:Dock(TOP)
-    button:DockMargin(10, 5, 10, 10)
+    button:DockMargin(15, 5, 15, 15)
+    button:SetTextColor(Theme.textBright)
+    button.hoverAnim = 0
+    button.pressAnim = 0
+
+    button.Paint = function(self, w, h)
+        local hoverAnim = self.hoverAnim or 0
+        local pressAnim = self.pressAnim or 0
+        local pushOffset = math.floor(pressAnim * 2 + 0.5)
+
+        local bgColor = LerpColor(hoverAnim, Theme.accent, Theme.accentHover)
+        bgColor = LerpColor(pressAnim, bgColor, Theme.accentActive)
+
+        if hoverAnim > 0 then
+            local glowAlpha = 50 * hoverAnim
+            draw.RoundedBox(6, -2, -2 + pushOffset, w + 4, h + 4, ColorAlpha(Theme.accent, glowAlpha))
+        end
+
+        draw.RoundedBox(6, 2, 2 - pushOffset, w, h, Theme.shadow)
+        draw.RoundedBox(5, 0, pushOffset, w, h, bgColor)
+
+        local gradientMat = Material("vgui/gradient-d")
+        surface.SetDrawColor(255, 255, 255, 15)
+        surface.SetMaterial(gradientMat)
+        surface.DrawTexturedRect(0, pushOffset, w, h / 2)
+
+        surface.SetDrawColor(Theme.accentHover.r, Theme.accentHover.g, Theme.accentHover.b, 60)
+        surface.DrawOutlinedRect(0, pushOffset, w, h, 1)
+        draw.SimpleText(self:GetText(), "NaiFont_Medium", w / 2, (h / 2) + pushOffset, Theme.textBright, TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    end
+
+    button.OnCursorEntered = function(self)
+        self.hoverAnim = 0
+    end
+
+    button.OnCursorExited = function(self)
+        self.hoverAnim = 0
+    end
+
+    button.PaintOver = function(self, w, h)
+        self.hoverAnim = math.min(self.hoverAnim + FrameTime() * 8, 1)
+    end
+
     button.DoClick = function()
         local selected = combo:GetValue()
         if selected and selected ~= "" then
