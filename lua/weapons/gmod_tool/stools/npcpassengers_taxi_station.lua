@@ -25,42 +25,23 @@ function TOOL.BuildCPanel(panel)
         MaxLength = 50
     })
 
-    -- Add label for model selection
-    panel:AddControl("Label", {
-        Text = "Model Selection:"
-    })
-
-    -- Use DComboBox for model selection instead of PropSelect
-    local comboBox = vgui.Create("DComboBox", panel)
-    comboBox:SetTall(30)
-    comboBox:Dock(TOP)
-    comboBox:SetValue("models/props_combine/combine_barricade_short02a.mdl")
-
+    -- Use PropSelect for visual model selection
     local models = {
-        "models/props_combine/combine_barricade_short02a.mdl",
-        "models/props_c17/concrete_barrier001a.mdl",
-        "models/props_c17/lockers.mdl",
-        "models/props_c17/truss01a.mdl",
-        "models/props_junk/trafficcone001a.mdl"
+        { Model = "models/props_combine/combine_barricade_short02a.mdl" },
+        { Model = "models/props_trainstation/bench_indoor001a.mdl" },
+        { Model = "models/props_wasteland/cafeteria_table001a.mdl" },
+        { Model = "models/props_trainstation/BenchOutdoor01a.mdl" },
+        { Model = "models/props_trainstation/Column_Arch001a.mdl" },
+        { Model = "models/props_interiors/BathTub01a.mdl" },
+        { Model = "models/props_trainstation/traincar_seats001.mdl" }
     }
 
-    local modelNames = {
-        "Combine Barricade",
-        "Concrete Barrier",
-        "Lockers",
-        "Truss",
-        "Traffic Cone"
-    }
-
-    for i, model in ipairs(models) do
-        comboBox:AddChoice(modelNames[i], model)
-    end
-
-    comboBox.OnSelect = function(index, value, data)
-        RunConsoleCommand("npcpassengers_taxi_station_model", data)
-    end
-
-    panel:AddItem(comboBox)
+    panel:AddControl("PropSelect", {
+        Label = "Model",
+        ConVar = "npcpassengers_taxi_station_model",
+        Height = 5,
+        Models = models
+    })
 
     panel:AddControl("Label", {
         Text = "Left Click: Place station\nRight Click: Remove station\nReload: Remove all stations"
