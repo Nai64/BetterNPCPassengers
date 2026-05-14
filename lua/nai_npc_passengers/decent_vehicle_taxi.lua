@@ -341,12 +341,8 @@ function NPCPassengers.AssignPassenger(npc, ply, destinationName)
         destination = destination
     }
 
-    -- Make NPC walk to station
+    -- Make NPC walk to station using standard AI (no schedule/state modifications)
     npc:SetLastPosition(station:GetPos())
-    npc:SetSchedule(SCHED_FORCED_GO)
-
-    -- Disable AI behavior to prevent staring at player
-    npc:SetNPCState(NPC_STATE_IDLE)
 
     if IsValid(ply) then
         local destName = destination.StationName or "Unknown"
@@ -382,18 +378,12 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
             if dist < 50 then
                 data.state = "waiting_for_taxi"
                 data.waitStartTime = curTime
-
-                -- Make NPC wait
-                npc:SetSchedule(SCHED_IDLE_STAND)
             elseif curTime - data.startTime > 30 then
                 -- Timeout, give up
                 taxiPassengers[npc] = nil
             else
-                -- Keep walking
-                if npc:IsCurrentSchedule(SCHED_IDLE_STAND) or npc:IsCurrentSchedule(SCHED_ALERT_STAND) then
-                    npc:SetLastPosition(station:GetPos())
-                    npc:SetSchedule(SCHED_FORCED_GO)
-                end
+                -- Keep walking using standard AI
+                npc:SetLastPosition(station:GetPos())
             end
         elseif data.state == "waiting_for_taxi" then
             -- Check for nearby player vehicles to pick up NPC
@@ -416,9 +406,6 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                 local dist = vehiclePos:Distance(npcPos)
 
                 if dist < pickupRadius then
-                    -- Reset NPC schedule so they can enter vehicle
-                    npc:SetSchedule(SCHED_NONE)
-
                     -- Attach NPC to vehicle
                     if NPCPassengers and NPCPassengers.AttachPassenger then
                         NPCPassengers.AttachPassenger(npc, vehicle)
@@ -460,11 +447,10 @@ hook.Add("Think", "NPCPassengers_TaxiIntegration", function()
                     NPCPassengers.DetachNPC(npc)
                 end
 
-                -- Make NPC walk away from station
+                -- Make NPC walk away from station using standard AI
                 local walkDir = (vehiclePos - destination:GetPos()):GetNormal()
                 npc:SetPos(destination:GetPos() + walkDir * 150)
                 npc:SetLastPosition(destination:GetPos() + walkDir * 300)
-                npc:SetSchedule(SCHED_FORCED_GO)
 
                 -- Remove from taxi passengers
                 taxiPassengers[npc] = nil
