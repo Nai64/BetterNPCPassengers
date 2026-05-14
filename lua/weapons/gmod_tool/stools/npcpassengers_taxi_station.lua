@@ -173,72 +173,7 @@ end
 
 if CLIENT then
     function TOOL:DrawHUD()
-        local ply = LocalPlayer()
-        local trace = ply:GetEyeTrace()
-
-        if trace.Hit and not trace.HitSky then
-            local pos = trace.HitPos:ToScreen()
-
-            -- Draw station label
-            surface.SetFont("Trebuchet24")
-            local text = "Taxi Station"
-            local w, h = surface.GetTextSize(text)
-
-            draw.RoundedBox(4, pos.x - w/2 - 8, pos.y - h - 15, w + 16, h + 25, Color(0, 0, 0, 220))
-            draw.DrawText(text, "Trebuchet24", pos.x, pos.y - h - 10, Color(255, 200, 0), TEXT_ALIGN_CENTER)
-
-            -- Draw vertical arrows (more prominent)
-            local arrowHeight = 80
-            local arrowWidth = 12
-            local centerX = pos.x
-            local centerY = pos.y
-
-            -- Top arrow (pointing up)
-            surface.SetDrawColor(255, 200, 0, 255)
-            surface.DrawRect(centerX - arrowWidth/2, centerY - arrowHeight + 15, arrowWidth, arrowHeight - 25)
-            draw.NoTexture()
-            surface.SetDrawColor(255, 200, 0, 255)
-            local topArrowPoly = {
-                {x = centerX - arrowWidth, y = centerY - arrowHeight + 20},
-                {x = centerX + arrowWidth, y = centerY - arrowHeight + 20},
-                {x = centerX, y = centerY - arrowHeight - 15}
-            }
-            surface.DrawPoly(topArrowPoly)
-
-            -- Bottom arrow (pointing down)
-            surface.SetDrawColor(255, 200, 0, 255)
-            surface.DrawRect(centerX - arrowWidth/2, centerY + 15, arrowWidth, arrowHeight - 25)
-            draw.NoTexture()
-            surface.SetDrawColor(255, 200, 0, 255)
-            local bottomArrowPoly = {
-                {x = centerX - arrowWidth, y = centerY + arrowHeight - 20},
-                {x = centerX + arrowWidth, y = centerY + arrowHeight - 20},
-                {x = centerX, y = centerY + arrowHeight + 15}
-            }
-            surface.DrawPoly(bottomArrowPoly)
-
-            -- Center indicator
-            surface.SetDrawColor(255, 255, 255, 255)
-            surface.DrawRect(centerX - 3, centerY - 3, 6, 6)
-
-            -- Distance indicator
-            local dist = ply:EyePos():Distance(trace.HitPos)
-            surface.SetFont("Trebuchet18")
-            local distText = math.Round(dist) .. " units"
-            local distW, distH = surface.GetTextSize(distText)
-            draw.RoundedBox(4, centerX - distW/2 - 5, centerY + arrowHeight + 25, distW + 10, distH + 10, Color(0, 0, 0, 180))
-            draw.DrawText(distText, "Trebuchet18", centerX, centerY + arrowHeight + 30, Color(255, 255, 255), TEXT_ALIGN_CENTER)
-
-            -- Station name preview
-            local stationName = self:GetClientInfo("station_name")
-            if stationName and stationName ~= "" then
-                surface.SetFont("Trebuchet18")
-                local nameText = "Name: " .. stationName
-                local nameW, nameH = surface.GetTextSize(nameText)
-                draw.RoundedBox(4, centerX - nameW/2 - 5, centerY - arrowHeight - 45, nameW + 10, nameH + 10, Color(0, 0, 0, 180))
-                draw.DrawText(nameText, "Trebuchet18", centerX, centerY - arrowHeight - 40, Color(100, 255, 100), TEXT_ALIGN_CENTER)
-            end
-        end
+        -- HUD drawing disabled
     end
 
     function TOOL:Think()
