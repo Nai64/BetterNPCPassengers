@@ -79,9 +79,9 @@ local function LoadLocalization()
 
     -- Helper function to try loading from either main addon or language pack
     local function TryLoadLanguage(langName, fileName)
-        if file.Exists("lua/nai_npc_passengers/localization/" .. fileName, "GAME") then
+        if file.Exists("nai_npc_passengers/localization/" .. fileName, "LUA") then
             include("nai_npc_passengers/localization/" .. fileName)
-        elseif file.Exists("lua/nai_npc_passengers_languages/localization/" .. fileName, "GAME") then
+        elseif file.Exists("nai_npc_passengers_languages/localization/" .. fileName, "LUA") then
             include("nai_npc_passengers_languages/localization/" .. fileName)
         end
     end
@@ -168,9 +168,9 @@ local function ReloadLocalizationAndRefresh()
 
     -- Helper function to try loading from either main addon or language pack
     local function TryLoadLanguage(langName, fileName)
-        if file.Exists("lua/nai_npc_passengers/localization/" .. fileName, "GAME") then
+        if file.Exists("nai_npc_passengers/localization/" .. fileName, "LUA") then
             include("nai_npc_passengers/localization/" .. fileName)
-        elseif file.Exists("lua/nai_npc_passengers_languages/localization/" .. fileName, "GAME") then
+        elseif file.Exists("nai_npc_passengers_languages/localization/" .. fileName, "LUA") then
             include("nai_npc_passengers_languages/localization/" .. fileName)
         end
     end
@@ -2091,8 +2091,8 @@ local function OpenSettingsPanel()
 
         -- Helper function to check if language file exists
         local function LanguageExists(fileName)
-            return file.Exists("lua/nai_npc_passengers/localization/" .. fileName, "GAME") or
-                   file.Exists("lua/nai_npc_passengers_languages/localization/" .. fileName, "GAME")
+            return file.Exists("nai_npc_passengers/localization/" .. fileName, "LUA") or
+                   file.Exists("nai_npc_passengers_languages/localization/" .. fileName, "LUA")
         end
 
         -- Add additional languages if files exist
